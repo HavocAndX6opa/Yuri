@@ -627,6 +627,10 @@ public class WorldRenderer
         return this;
     }
 
+    public WorldRenderer color(int colorHex) {
+        return this.color(colorHex >> 16 & 255, colorHex >> 8 & 255, colorHex & 255, colorHex >> 24 & 255);
+    }
+
     public void putNormal(float x, float y, float z)
     {
         int i = (byte)((int)(x * 127.0F)) & 255;

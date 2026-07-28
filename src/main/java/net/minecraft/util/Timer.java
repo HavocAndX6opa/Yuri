@@ -67,4 +67,8 @@ public class Timer
 
         this.renderPartialTicks = this.elapsedPartialTicks;
     }
+
+    public void resetTimerSpeed() {
+        timerSpeed = 1.0f;
+    }
 }

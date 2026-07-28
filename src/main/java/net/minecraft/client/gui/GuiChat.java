@@ -3,6 +3,9 @@ package net.minecraft.client.gui;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.List;
+
+import ddlc.yuri.api.gui.EuphoriaTextField;
+import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.network.play.client.C14PacketTabComplete;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
@@ -14,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import net.minecraft.client.renderer.GlStateManager;
 
 public class GuiChat extends GuiScreen
 {
@@ -24,8 +28,13 @@ public class GuiChat extends GuiScreen
     private boolean waitingOnAutocomplete;
     private int autocompleteIndex;
     private List<String> foundPlayerNames = Lists.<String>newArrayList();
-    protected GuiTextField inputField;
+    protected EuphoriaTextField inputField;
     private String defaultInputFieldText = "";
+
+
+    private float fadeProgress = 0.0F;
+    private boolean closing = false;
+    private static final float FADE_SPEED = 0.08F;
 
     public GuiChat()
     {
@@ -40,12 +49,15 @@ public class GuiChat extends GuiScreen
     {
         Keyboard.enableRepeatEvents(true);
         this.sentHistoryCursor = this.mc.ingameGUI.getChatGUI().getSentMessages().size();
-        this.inputField = new GuiTextField(0, this.fontRendererObj, 4, this.height - 12, this.width - 4, 12);
+        this.inputField = new EuphoriaTextField(0, FontUtils.getFont("sf", 18), 4, this.height - 12, this.width - 4, 12);
         this.inputField.setMaxStringLength(100);
         this.inputField.setEnableBackgroundDrawing(false);
         this.inputField.setFocused(true);
         this.inputField.setText(this.defaultInputFieldText);
         this.inputField.setCanLoseFocus(false);
+
+        this.fadeProgress = 0.0F;
+        this.closing = false;
     }
 
     public void onGuiClosed()
@@ -57,6 +69,21 @@ public class GuiChat extends GuiScreen
     public void updateScreen()
     {
         this.inputField.updateCursorCounter();
+
+        if (!closing) {
+            if (fadeProgress < 1.0F) {
+                fadeProgress = Math.min(1.0F, fadeProgress + FADE_SPEED);
+            }
+        } else {
+            fadeProgress = Math.max(0.0F, fadeProgress - FADE_SPEED);
+            if (fadeProgress <= 0.0F) {
+                this.mc.displayGuiScreen((GuiScreen)null);
+            }
+        }
+    }
+
+    private void startClosing() {
+        this.closing = true;
     }
 
     protected void keyTyped(char typedChar, int keyCode) throws IOException
@@ -74,7 +101,7 @@ public class GuiChat extends GuiScreen
 
         if (keyCode == 1)
         {
-            this.mc.displayGuiScreen((GuiScreen)null);
+            this.startClosing();
         }
         else if (keyCode != 28 && keyCode != 156)
         {
@@ -96,7 +123,9 @@ public class GuiChat extends GuiScreen
             }
             else
             {
-                this.inputField.textboxKeyTyped(typedChar, keyCode);
+                if (!closing) {
+                    this.inputField.textboxKeyTyped(typedChar, keyCode);
+                }
             }
         }
         else
@@ -108,7 +137,7 @@ public class GuiChat extends GuiScreen
                 this.sendChatMessage(s);
             }
 
-            this.mc.displayGuiScreen((GuiScreen)null);
+            this.startClosing();
         }
     }
 
@@ -140,6 +169,8 @@ public class GuiChat extends GuiScreen
 
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException
     {
+        if (closing) return;
+
         if (mouseButton == 0)
         {
             IChatComponent ichatcomponent = this.mc.ingameGUI.getChatGUI().getChatComponent(Mouse.getX(), Mouse.getY());
@@ -259,14 +290,26 @@ public class GuiChat extends GuiScreen
 
     public void drawScreen(int mouseX, int mouseY, float partialTicks)
     {
-        drawRect(2, this.height - 14, this.width - 2, this.height - 2, Integer.MIN_VALUE);
+        int alpha = (int)(this.fadeProgress * 127) << 24;
+
+        drawRect(0, this.height - 14, this.width, this.height, alpha & 0xFF000000);
+
+        GlStateManager.pushMatrix();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+
+        GlStateManager.color(1.0F, 1.0F, 1.0F, this.fadeProgress);
+
         this.inputField.drawTextBox();
+
         IChatComponent ichatcomponent = this.mc.ingameGUI.getChatGUI().getChatComponent(Mouse.getX(), Mouse.getY());
 
         if (ichatcomponent != null && ichatcomponent.getChatStyle().getChatHoverEvent() != null)
         {
             this.handleComponentHover(ichatcomponent, mouseX, mouseY);
         }
+
+        GlStateManager.popMatrix();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

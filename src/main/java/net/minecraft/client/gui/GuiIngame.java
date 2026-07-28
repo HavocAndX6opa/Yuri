@@ -6,6 +6,9 @@ import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -100,6 +103,7 @@ public class GuiIngame extends Gui
         int i = scaledresolution.getScaledWidth();
         int j = scaledresolution.getScaledHeight();
         this.mc.entityRenderer.setupOverlayRendering();
+        Yuri.INSTANCE.getEventBus().post(new Render2DEvent(partialTicks));
         GlStateManager.enableBlend();
 
         if (Config.isVignetteEnabled())

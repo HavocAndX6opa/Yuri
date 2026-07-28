@@ -9,9 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.player.JumpEvent;
+import ddlc.yuri.api.events.impl.player.LadderEvent;
+import ddlc.yuri.managers.impl.RotationManager;
+import ddlc.yuri.modules.impl.render.CameraModule;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.BaseAttributeMap;
@@ -23,6 +30,7 @@ import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.EnumPlayerModelParts;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -108,7 +116,7 @@ public abstract class EntityLivingBase extends Entity
     private EntityLivingBase lastAttacker;
     private int lastAttackerTime;
     private float landMovementFactor;
-    private int jumpTicks;
+    public int jumpTicks;
     private float absorptionAmount;
 
     public void onKillCommand()
@@ -825,7 +833,7 @@ public abstract class EntityLivingBase extends Entity
                             d1 = (Math.random() - Math.random()) * 0.01D;
                         }
 
-                        this.attackedAtYaw = (float)(MathHelper.atan2(d0, d1) * 180.0D / Math.PI - (double)this.rotationYaw);
+                        this.attackedAtYaw = (float) (MathHelper.atan2(d0, d1) * 180.0D / Math.PI - (double) this.movementYaw);
                         this.knockBack(entity, amount, d1, d0);
                     }
                     else
@@ -1133,7 +1141,11 @@ public abstract class EntityLivingBase extends Entity
 
     private int getArmSwingAnimationEnd()
     {
-        return this.isPotionActive(Potion.digSpeed) ? 6 - (1 + this.getActivePotionEffect(Potion.digSpeed).getAmplifier()) * 1 : (this.isPotionActive(Potion.digSlowdown) ? 6 + (1 + this.getActivePotionEffect(Potion.digSlowdown).getAmplifier()) * 2 : 6);
+        return (Yuri.INSTANCE.getModuleManager().getModule(CameraModule.class).isEnabled()
+                ? CameraModule.slowdown.getValue().intValue() : 1)
+                * (this.isPotionActive(Potion.digSpeed)
+                ? 6 - (1 + this.getActivePotionEffect(Potion.digSpeed).getAmplifier())
+                : (this.isPotionActive(Potion.digSlowdown) ? 6 + (1 + this.getActivePotionEffect(Potion.digSlowdown).getAmplifier()) * 2 : 6));
     }
 
     public void swingItem()
@@ -1324,21 +1336,33 @@ public abstract class EntityLivingBase extends Entity
 
     protected void jump()
     {
-        this.motionY = (double)this.getJumpUpwardsMotion();
+        float jumpMotion = this.getJumpUpwardsMotion();
 
-        if (this.isPotionActive(Potion.jump))
-        {
-            this.motionY += (double)((float)(this.getActivePotionEffect(Potion.jump).getAmplifier() + 1) * 0.1F);
+        if (this.isPotionActive(Potion.jump)) {
+            jumpMotion += (float) (this.getActivePotionEffect(Potion.jump).getAmplifier() + 1) * 0.1F;
         }
 
-        if (this.isSprinting())
-        {
-            float f = this.rotationYaw * 0.017453292F;
-            this.motionX -= (double)(MathHelper.sin(f) * 0.2F);
-            this.motionZ += (double)(MathHelper.cos(f) * 0.2F);
-        }
+        if (this == Minecraft.getMinecraft().thePlayer) {
+            final JumpEvent event = new JumpEvent(jumpMotion, this.movementYaw);
+            Yuri.INSTANCE.getEventBus().post(event);
+            jumpMotion = event.getJumpMotion();
+            this.movementYaw = event.getYaw();
+            this.velocityYaw = event.getYaw();
 
-        this.isAirBorne = true;
+            if (event.isCancelled()) {
+                return;
+            }
+            this.motionY = jumpMotion;
+
+            if (this.isSprinting()) {
+                float f = this.movementYaw * 0.017453292F;
+
+                this.motionX -= MathHelper.sin(f) * 0.2F;
+                this.motionZ += MathHelper.cos(f) * 0.2F;
+            }
+
+            this.isAirBorne = true;
+        }
     }
 
     protected void updateAITick()
@@ -1410,7 +1434,9 @@ public abstract class EntityLivingBase extends Entity
 
                     if (this.isCollidedHorizontally && this.isOnLadder())
                     {
-                        this.motionY = 0.2D;
+                        final LadderEvent eventLadder = new LadderEvent(0.2);
+                        Yuri.INSTANCE.getEventBus().post(eventLadder);
+                        this.motionY = eventLadder.getMotionY();
                     }
 
                     if (this.worldObj.isRemote && (!this.worldObj.isBlockLoaded(new BlockPos((int)this.posX, 0, (int)this.posZ)) || !this.worldObj.getChunkFromBlockCoords(new BlockPos((int)this.posX, 0, (int)this.posZ)).isLoaded()))
@@ -1574,6 +1600,8 @@ public abstract class EntityLivingBase extends Entity
         }
 
         this.onLivingUpdate();
+        float yaw = this.rotationYaw;
+        if (this == Minecraft.getMinecraft().thePlayer) yaw = RotationManager.rotations.x;
         double d0 = this.posX - this.prevPosX;
         double d1 = this.posZ - this.prevPosZ;
         float f = (float)(d0 * d0 + d1 * d1);
@@ -1591,7 +1619,7 @@ public abstract class EntityLivingBase extends Entity
 
         if (this.swingProgress > 0.0F)
         {
-            f1 = this.rotationYaw;
+            f1 = yaw;
         }
 
         if (!this.onGround)
@@ -1651,9 +1679,11 @@ public abstract class EntityLivingBase extends Entity
 
     protected float updateDistance(float p_110146_1_, float p_110146_2_)
     {
+        float yaw = this.rotationYaw;
+        if (this == Minecraft.getMinecraft().thePlayer) yaw = RotationManager.rotations.x;
         float f = MathHelper.wrapAngleTo180_float(p_110146_1_ - this.renderYawOffset);
         this.renderYawOffset += f * 0.3F;
-        float f1 = MathHelper.wrapAngleTo180_float(this.rotationYaw - this.renderYawOffset);
+        float f1 = MathHelper.wrapAngleTo180_float(yaw - this.renderYawOffset);
         boolean flag = f1 < -90.0F || f1 >= 90.0F;
 
         if (f1 < -75.0F)
@@ -1666,7 +1696,7 @@ public abstract class EntityLivingBase extends Entity
             f1 = 75.0F;
         }
 
-        this.renderYawOffset = this.rotationYaw - f1;
+        this.renderYawOffset = yaw - f1;
 
         if (f1 * f1 > 2500.0F)
         {
@@ -1988,5 +2018,18 @@ public abstract class EntityLivingBase extends Entity
     protected void markPotionsDirty()
     {
         this.potionsNeedUpdate = true;
+    }
+
+    public void swingItemClient()
+    {
+        if (!this.isSwingInProgress || this.swingProgressInt >= this.getArmSwingAnimationEnd() / 2 || this.swingProgressInt < 0)
+        {
+            this.swingProgressInt = -1;
+            this.isSwingInProgress = true;
+        }
+    }
+
+    public boolean func_175148_a(EnumPlayerModelParts p_175148_1_) {
+        return (this.getDataWatcher().getWatchableObjectByte(10) & p_175148_1_.getPartMask()) == p_175148_1_.getPartMask();
     }
 }

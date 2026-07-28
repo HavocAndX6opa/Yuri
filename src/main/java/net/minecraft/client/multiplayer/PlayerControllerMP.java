@@ -1,5 +1,9 @@
 package net.minecraft.client.multiplayer;
 
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -8,6 +12,7 @@ import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
@@ -29,6 +34,8 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldSettings;
 
+@Getter
+@Setter
 public class PlayerControllerMP
 {
     private final Minecraft mc;
@@ -438,6 +445,13 @@ public class PlayerControllerMP
 
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity)
     {
+        PlayerAttackEvent attackEntityEvent = new PlayerAttackEvent((EntityLivingBase) targetEntity);
+
+        Yuri.INSTANCE.getEventBus().post(attackEntityEvent);
+
+        if (attackEntityEvent.isCancelled()) {
+            return;
+        }
         this.syncCurrentPlayItem();
         this.netClientHandler.addToSendQueue(new C02PacketUseEntity(targetEntity, C02PacketUseEntity.Action.ATTACK));
 

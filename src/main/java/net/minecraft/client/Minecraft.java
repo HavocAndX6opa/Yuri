@@ -35,6 +35,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import javax.imageio.ImageIO;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.client.ClientTickEvent;
+import ddlc.yuri.api.events.impl.client.GameStartupEvent;
+import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
+import ddlc.yuri.api.events.impl.client.KeyPressEvent;
+import ddlc.yuri.api.events.impl.player.MiddleClickEvent;
+import ddlc.yuri.api.events.impl.player.RightClickEvent;
+import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
+import ddlc.yuri.api.gui.main.YuriMenu;
+import lombok.Setter;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.audio.MusicTicker;
@@ -46,7 +57,6 @@ import net.minecraft.client.gui.GuiControls;
 import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.gui.GuiIngameMenu;
-import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiMemoryErrorScreen;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSleepMP;
@@ -206,7 +216,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
     public int displayWidth;
     public int displayHeight;
     private boolean connectedToRealms = false;
-    private Timer timer = new Timer(20.0F);
+    public Timer timer = new Timer(20.0F);
     private PlayerUsageSnooper usageSnooper = new PlayerUsageSnooper("client", this, MinecraftServer.getCurrentTimeMillis());
     public WorldClient theWorld;
     public RenderGlobal renderGlobal;
@@ -217,14 +227,15 @@ public class Minecraft implements IThreadListener, IPlayerUsage
     private Entity renderViewEntity;
     public Entity pointedEntity;
     public EffectRenderer effectRenderer;
-    private final Session session;
+    @Setter
+    private Session session;
     private boolean isGamePaused;
     public FontRenderer fontRendererObj;
     public FontRenderer standardGalacticFontRenderer;
     public GuiScreen currentScreen;
     public LoadingScreenRenderer loadingScreen;
     public EntityRenderer entityRenderer;
-    private int leftClickCounter;
+    public int leftClickCounter;
     private int tempDisplayWidth;
     private int tempDisplayHeight;
     private IntegratedServer theIntegratedServer;
@@ -240,7 +251,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
     private final Proxy proxy;
     private ISaveFormat saveLoader;
     private static int debugFPS;
-    private int rightClickDelayTimer;
+    public int rightClickDelayTimer;
     private String serverName;
     private int serverPort;
     public boolean inGameHasFocus;
@@ -325,6 +336,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
         try
         {
             this.startGame();
+            Yuri.INSTANCE.getEventBus().post(new GameStartupEvent());
         }
         catch (Throwable throwable)
         {
@@ -488,11 +500,11 @@ public class Minecraft implements IThreadListener, IPlayerUsage
 
         if (this.serverName != null)
         {
-            this.displayGuiScreen(new GuiConnecting(new GuiMainMenu(), this, this.serverName, this.serverPort));
+            this.displayGuiScreen(new GuiConnecting(new YuriMenu(), this, this.serverName, this.serverPort));
         }
         else
         {
-            this.displayGuiScreen(new GuiMainMenu());
+            this.displayGuiScreen(new YuriMenu());
         }
 
         this.renderEngine.deleteTexture(this.mojangLogo);
@@ -542,7 +554,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
     private void createDisplay() throws LWJGLException
     {
         Display.setResizable(true);
-        Display.setTitle("Minecraft 1.8.9");
+        Display.setTitle(Yuri.FULL);
 
         try
         {
@@ -887,14 +899,14 @@ public class Minecraft implements IThreadListener, IPlayerUsage
 
         if (guiScreenIn == null && this.theWorld == null)
         {
-            guiScreenIn = new GuiMainMenu();
+            guiScreenIn = new YuriMenu();
         }
         else if (guiScreenIn == null && this.thePlayer.getHealth() <= 0.0F)
         {
             guiScreenIn = new GuiGameOver();
         }
 
-        if (guiScreenIn instanceof GuiMainMenu)
+        if (guiScreenIn instanceof YuriMenu)
         {
             this.gameSettings.showDebugInfo = false;
             this.ingameGUI.getChatGUI().clearChatMessages();
@@ -1319,6 +1331,8 @@ public class Minecraft implements IThreadListener, IPlayerUsage
 
     public void shutdown()
     {
+        GameStoppingEvent gameStoppingEvent = new GameStoppingEvent();
+        Yuri.INSTANCE.getEventBus().post(gameStoppingEvent);
         this.running = false;
     }
 
@@ -1385,7 +1399,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
         }
     }
 
-    private void clickMouse()
+    public void clickMouse()
     {
         if (this.leftClickCounter <= 0)
         {
@@ -1429,8 +1443,11 @@ public class Minecraft implements IThreadListener, IPlayerUsage
     }
 
     @SuppressWarnings("incomplete-switch")
-    private void rightClickMouse()
+    public void rightClickMouse()
     {
+        RightClickEvent rightClickEvent = new RightClickEvent();
+        Yuri.INSTANCE.getEventBus().post(rightClickEvent);
+        if (rightClickEvent.isCancelled()) return;
         if (!this.playerController.getIsHittingBlock())
         {
             this.rightClickDelayTimer = 4;
@@ -1590,6 +1607,11 @@ public class Minecraft implements IThreadListener, IPlayerUsage
 
     public void runTick() throws IOException
     {
+        if (thePlayer != null) {
+            thePlayer.lastMovementYaw = thePlayer.movementYaw;
+            thePlayer.movementYaw = thePlayer.velocityYaw = thePlayer.rotationYaw;
+        }
+
         if (this.rightClickDelayTimer > 0)
         {
             --this.rightClickDelayTimer;
@@ -1600,6 +1622,10 @@ public class Minecraft implements IThreadListener, IPlayerUsage
         if (!this.isGamePaused)
         {
             this.ingameGUI.updateTick();
+        }
+
+        if (thePlayer != null && theWorld != null) {
+            Yuri.INSTANCE.getEventBus().post(new ClientTickEvent());
         }
 
         this.mcProfiler.endSection();
@@ -1793,6 +1819,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
                     }
                     else
                     {
+                        Yuri.INSTANCE.getEventBus().post(new KeyPressEvent(k));
                         if (k == 1)
                         {
                             this.displayInGameMenu();
@@ -2257,6 +2284,7 @@ public class Minecraft implements IThreadListener, IPlayerUsage
             this.thePlayer.movementInput = new MovementInputFromOptions(this.gameSettings);
             this.playerController.setPlayerCapabilities(this.thePlayer);
             this.renderViewEntity = this.thePlayer;
+            Yuri.INSTANCE.getEventBus().post(new WorldJoinEvent());
         }
         else
         {
@@ -2330,6 +2358,10 @@ public class Minecraft implements IThreadListener, IPlayerUsage
 
     private void middleClickMouse()
     {
+        MiddleClickEvent middleClickEvent = new MiddleClickEvent();
+        Yuri.INSTANCE.getEventBus().post(middleClickEvent);
+        if (middleClickEvent.isCancelled()) return;
+
         if (this.objectMouseOver != null)
         {
             boolean flag = this.thePlayer.capabilities.isCreativeMode;

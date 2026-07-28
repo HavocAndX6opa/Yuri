@@ -10,6 +10,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.player.MouseOverEvent;
+import ddlc.yuri.api.events.impl.render.Render3DEvent;
+import ddlc.yuri.modules.impl.render.CameraModule;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBed;
 import net.minecraft.block.material.Material;
@@ -404,14 +409,19 @@ public class EntityRenderer implements IResourceManagerReloadListener
 
         if (entity != null && this.mc.theWorld != null)
         {
-            this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
-            double d0 = (double)this.mc.playerController.getBlockReachDistance();
+            double d0 = this.mc.playerController.getBlockReachDistance();
             this.mc.objectMouseOver = entity.rayTrace(d0, partialTicks);
             double d1 = d0;
             Vec3 vec3 = entity.getPositionEyes(partialTicks);
             boolean flag = false;
-            int i = 3;
+            double reach = 3.0D;
+            float expand = 0;
+
+            MouseOverEvent mouseOverEvent = new MouseOverEvent(reach, expand);
+            Yuri.INSTANCE.getEventBus().post(mouseOverEvent);
+            reach = mouseOverEvent.getRange();
+            expand = mouseOverEvent.getExpand();
 
             if (this.mc.playerController.extendedReach())
             {
@@ -420,6 +430,10 @@ public class EntityRenderer implements IResourceManagerReloadListener
             }
             else if (d0 > 3.0D)
             {
+                flag = true;
+            }
+
+            if (reach > 3.0001) {
                 flag = true;
             }
 
@@ -433,7 +447,7 @@ public class EntityRenderer implements IResourceManagerReloadListener
             this.pointedEntity = null;
             Vec3 vec33 = null;
             float f = 1.0F;
-            List<Entity> list = this.mc.theWorld.getEntitiesInAABBexcluding(entity, entity.getEntityBoundingBox().addCoord(vec31.xCoord * d0, vec31.yCoord * d0, vec31.zCoord * d0).expand((double)f, (double)f, (double)f), Predicates.and(EntitySelectors.NOT_SPECTATING, new Predicate<Entity>()
+            List<Entity> list = this.mc.theWorld.getEntitiesInAABBexcluding(entity, entity.getEntityBoundingBox().addCoord(vec31.xCoord * d0, vec31.yCoord * d0, vec31.zCoord * d0).expand(f, f, f), Predicates.and(EntitySelectors.NOT_SPECTATING, new Predicate<Entity>()
             {
                 public boolean apply(Entity p_apply_1_)
                 {
@@ -444,9 +458,9 @@ public class EntityRenderer implements IResourceManagerReloadListener
 
             for (int j = 0; j < list.size(); ++j)
             {
-                Entity entity1 = (Entity)list.get(j);
-                float f1 = entity1.getCollisionBorderSize();
-                AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand((double)f1, (double)f1, (double)f1);
+                Entity entity1 = list.get(j);
+                final float f1 = entity1.getCollisionBorderSize() + ((entity instanceof EntityPlayer && !entity.isInvisible()) ? expand : 0);
+                AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand(f1, f1, f1);
                 MovingObjectPosition movingobjectposition = axisalignedbb.calculateIntercept(vec3, vec32);
 
                 if (axisalignedbb.isVecInside(vec3))
@@ -466,11 +480,6 @@ public class EntityRenderer implements IResourceManagerReloadListener
                     {
                         boolean flag1 = false;
 
-                        if (Reflector.ForgeEntity_canRiderInteract.exists())
-                        {
-                            flag1 = Reflector.callBoolean(entity1, Reflector.ForgeEntity_canRiderInteract, new Object[0]);
-                        }
-
                         if (!flag1 && entity1 == entity.ridingEntity)
                         {
                             if (d2 == 0.0D)
@@ -489,10 +498,9 @@ public class EntityRenderer implements IResourceManagerReloadListener
                 }
             }
 
-            if (this.pointedEntity != null && flag && vec3.distanceTo(vec33) > 3.0D)
-            {
+            if (this.pointedEntity != null && flag && vec33 != null && vec3.distanceTo(vec33) > reach) {
                 this.pointedEntity = null;
-                this.mc.objectMouseOver = new MovingObjectPosition(MovingObjectPosition.MovingObjectType.MISS, vec33, (EnumFacing)null, new BlockPos(vec33));
+                this.mc.objectMouseOver = new MovingObjectPosition(MovingObjectPosition.MovingObjectType.MISS, vec33, null, new BlockPos(vec33));
             }
 
             if (this.pointedEntity != null && (d2 < d1 || this.mc.objectMouseOver == null))
@@ -504,8 +512,6 @@ public class EntityRenderer implements IResourceManagerReloadListener
                     this.mc.pointedEntity = this.pointedEntity;
                 }
             }
-
-            this.mc.mcProfiler.endSection();
         }
     }
 
@@ -605,6 +611,10 @@ public class EntityRenderer implements IResourceManagerReloadListener
 
     private void hurtCameraEffect(float partialTicks)
     {
+        if (Yuri.INSTANCE.getModuleManager().getModule(CameraModule.class).isEnabled()
+                && CameraModule.noHurtCamera.getValue())
+            return;
+
         if (this.mc.getRenderViewEntity() instanceof EntityLivingBase)
         {
             EntityLivingBase entitylivingbase = (EntityLivingBase)this.mc.getRenderViewEntity();
@@ -1812,6 +1822,11 @@ public class EntityRenderer implements IResourceManagerReloadListener
             Reflector.callVoid(Reflector.ForgeHooksClient_dispatchRenderLast, new Object[] {renderglobal, Float.valueOf(partialTicks)});
         }
 
+        GlStateManager.enableBlend();
+        final Render3DEvent eventRender3D = new Render3DEvent();
+        Yuri.INSTANCE.getEventBus().post(eventRender3D);
+        GlStateManager.disableBlend();
+
         this.mc.mcProfiler.endStartSection("hand");
 
         if (this.renderHand && !Shaders.isShadowPass)
@@ -2351,6 +2366,10 @@ public class EntityRenderer implements IResourceManagerReloadListener
         }
         else if (entity instanceof EntityLivingBase && ((EntityLivingBase)entity).isPotionActive(Potion.blindness))
         {
+            if (Yuri.INSTANCE.getModuleManager().getModule(CameraModule.class).isEnabled()
+                    && CameraModule.noBlindness.getValue())
+                return;
+
             float f4 = 5.0F;
             int i = ((EntityLivingBase)entity).getActivePotionEffect(Potion.blindness).getDuration();
 

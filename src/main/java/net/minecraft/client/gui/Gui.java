@@ -1,5 +1,8 @@
 package net.minecraft.client.gui;
 
+import ddlc.yuri.utils.misc.Pair;
+import ddlc.yuri.utils.render.GLUtils;
+import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -7,12 +10,32 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
 
+import java.awt.*;
+
+import static net.minecraft.client.renderer.OpenGlHelper.GL_QUADS;
+
 public class Gui
 {
     public static final ResourceLocation optionsBackground = new ResourceLocation("textures/gui/options_background.png");
     public static final ResourceLocation statIcons = new ResourceLocation("textures/gui/container/stats_icons.png");
     public static final ResourceLocation icons = new ResourceLocation("textures/gui/icons.png");
     protected float zLevel;
+
+    public static void drawRectOutline(float x, float y, float width, float height, float outlineWidth, int fillColor, int outlineColor) {
+        // Keep thin outlines visible when the ClickGUI is rendered below 1x.
+        outlineWidth /= RenderUtils.getScissorTransformScale();
+
+        // Fill
+        Gui.drawRect2(x, y, width, height, fillColor);
+
+        // Top & bottom borders (full width)
+        Gui.drawRect2(x, y, width, outlineWidth, outlineColor);
+        Gui.drawRect2(x, y + height - outlineWidth, width, outlineWidth, outlineColor);
+
+        // Left & right borders (inset to avoid overlapping top/bottom at corners)
+        Gui.drawRect2(x, y + outlineWidth, outlineWidth, height - (outlineWidth * 2), outlineColor);
+        Gui.drawRect2(x + width - outlineWidth, y + outlineWidth, outlineWidth, height - (outlineWidth * 2), outlineColor);
+    }
 
     protected void drawHorizontalLine(int startX, int endX, int y, int color)
     {
@@ -37,6 +60,47 @@ public class Gui
 
         drawRect(x, startY + 1, x + 1, endY, color);
     }
+
+    public static void drawRect2(double x, double y, double width, double height, int color) {
+        drawRect(x, y, x + width, y + height, color);
+    }
+
+    public static void drawRect(double left, double top, double right, double bottom, int color)
+    {
+        if (left < right)
+        {
+            double i = left;
+            left = right;
+            right = i;
+        }
+
+        if (top < bottom)
+        {
+            double j = top;
+            top = bottom;
+            bottom = j;
+        }
+
+        float f3 = (float)(color >> 24 & 255) / 255.0F;
+        float f = (float)(color >> 16 & 255) / 255.0F;
+        float f1 = (float)(color >> 8 & 255) / 255.0F;
+        float f2 = (float)(color & 255) / 255.0F;
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(f, f1, f2, f3);
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldrenderer.pos(left, bottom, 0.0D).endVertex();
+        worldrenderer.pos(right, bottom, 0.0D).endVertex();
+        worldrenderer.pos(right, top, 0.0D).endVertex();
+        worldrenderer.pos(left, top, 0.0D).endVertex();
+        tessellator.draw();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+    }
+
 
     public static void drawRect(int left, int top, int right, int bottom, int color)
     {
@@ -163,6 +227,20 @@ public class Gui
         worldrenderer.pos((double)x, (double)(y + height), 0.0D).tex((double)(u * f), (double)((v + (float)height) * f1)).endVertex();
         worldrenderer.pos((double)(x + width), (double)(y + height), 0.0D).tex((double)((u + (float)width) * f), (double)((v + (float)height) * f1)).endVertex();
         worldrenderer.pos((double)(x + width), (double)y, 0.0D).tex((double)((u + (float)width) * f), (double)(v * f1)).endVertex();
+        worldrenderer.pos((double)x, (double)y, 0.0D).tex((double)(u * f), (double)(v * f1)).endVertex();
+        tessellator.draw();
+    }
+
+    public static void drawModalRectWithCustomSizedTexture(float x, float y, float u, float v, float wH, float wH2, float textureWidth, float textureHeight)
+    {
+        float f = 1.0F / textureWidth;
+        float f1 = 1.0F / textureHeight;
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION_TEX);
+        worldrenderer.pos((double)x, (double)(y + wH2), 0.0D).tex((double)(u * f), (double)((v + (float)wH2) * f1)).endVertex();
+        worldrenderer.pos((double)(x + wH), (double)(y + wH2), 0.0D).tex((double)((u + (float)wH) * f), (double)((v + (float)wH2) * f1)).endVertex();
+        worldrenderer.pos((double)(x + wH), (double)y, 0.0D).tex((double)((u + (float)wH) * f), (double)(v * f1)).endVertex();
         worldrenderer.pos((double)x, (double)y, 0.0D).tex((double)(u * f), (double)(v * f1)).endVertex();
         tessellator.draw();
     }
