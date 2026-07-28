@@ -40,3 +40,20 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+/run
+/.idea
+/run/saves
+/saves
+/src/.idea
+/screenshots
+optionsof.txt
+options.txt
+usercache.json
+/Yuri
+/.refact
+/assets
+/crash-reports
+servers.dat
+docs/
+.allatori/doc
