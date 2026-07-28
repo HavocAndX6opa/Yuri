@@ -37,7 +37,7 @@ public final class ClientInfoModule extends Module {
         if (mc.thePlayer != null) {
             double deltaX = mc.thePlayer.posX - mc.thePlayer.prevPosX;
             double deltaZ = mc.thePlayer.posZ - mc.thePlayer.prevPosZ;
-            bpsValue = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 20.0;
+            bpsValue = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 20.0 * mc.timer.timerSpeed;
             xCoord = mc.thePlayer.getPosition().getX();
             yCoord = mc.thePlayer.getPosition().getY();
             zCoord = mc.thePlayer.getPosition().getZ();
