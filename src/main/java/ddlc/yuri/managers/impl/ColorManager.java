@@ -2,7 +2,7 @@ package ddlc.yuri.managers.impl;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
-import ddlc.yuri.modules.impl.client.ClickGUIModule;
+import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.misc.Pair;
 import ddlc.yuri.utils.render.RenderUtils;
 import lombok.Getter;

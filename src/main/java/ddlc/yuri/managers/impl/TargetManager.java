@@ -1,7 +1,11 @@
 package ddlc.yuri.managers.impl;
 
+import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.impl.player.KillEvent;
+import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.utils.client.TimerUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -12,8 +16,7 @@ import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,17 +27,58 @@ import static ddlc.yuri.utils.misc.IMinecraft.mc;
 public class TargetManager {
 
     @Getter
+    @Setter
+    private static EntityLivingBase target;
+    @Getter
     private static List<Entity> targetList = new CopyOnWriteArrayList<>();
+    private static final TimerUtils switchTimer = new TimerUtils();
     @Getter
     @Setter
-    private static List<Enum> targets;
+    private static Mode mode;
     @Getter
     @Setter
-    private static boolean searching;
+    private static List<Targets> targets;
+    @Getter
+    @Setter
+    private static float seekRange;
+    @Getter
+    @Setter
+    private static int switchTime;
+    private int targetIndex;
+
+    public TargetManager(float seekRange) {
+        mode = Mode.ADAPTIVE;
+        targets = Arrays.asList(Targets.PLAYERS, Targets.HOSTILES);
+        TargetManager.seekRange = seekRange;
+        switchTime = 2;
+    }
 
     public TargetManager() {
-        targets = Arrays.asList(Targets.PLAYERS, Targets.HOSTILES, Targets.TEAMMATES, Targets.INVISIBLES);
-        searching = false;
+        mode = Mode.ADAPTIVE;
+        targets = Arrays.asList(Targets.PLAYERS, Targets.HOSTILES);
+        seekRange = 6.0f;
+        switchTime = 2;
+    }
+
+    public static void configure(List<Targets> targets) {
+        TargetManager.targets = targets;
+    }
+
+    public enum Mode {
+        ADAPTIVE("Adaptive"),
+        SWITCH("Switch"),
+        SINGLE("Single");
+
+        public final String name;
+
+        Mode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     public enum Targets {
@@ -50,6 +94,7 @@ public class TargetManager {
             this.name = name;
         }
 
+        @Override
         public String toString() {
             return name;
         }
@@ -57,8 +102,51 @@ public class TargetManager {
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
-        if (searching) {
-            targetList = getTargets();
+        targetList = getTargets();
+
+        if (targetList.isEmpty()) {
+            target = null;
+            return;
+        }
+
+        selectTarget();
+
+        // kill event shiz
+        if (target != null && !mc.theWorld.loadedEntityList.contains(target)) {
+            Yuri.INSTANCE.getEventBus().post(new KillEvent(target));
+            target = null;
+        }
+    };
+
+    @EventHook
+    public void onPlayerAttack(PlayerAttackEvent event) {
+        event.target = target;
+    }
+
+    private void selectTarget() {
+        if (targetList.isEmpty()) {
+            target = null;
+            return;
+        }
+
+        if (mode.equals(Mode.SINGLE)) {
+            target = (EntityLivingBase) targetList.get(0);
+        } else if (mode.equals(Mode.SWITCH)) {
+            if (targetIndex >= targetList.size()) {
+                targetIndex = 0;
+            }
+
+            if (switchTimer.hasTimeElapsed(switchTime * 100)) {
+                targetIndex = (targetIndex + 1) % targetList.size();
+                switchTimer.reset();
+            }
+            target = (EntityLivingBase) targetList.get(targetIndex);
+        } else if (mode.equals(Mode.ADAPTIVE)) {
+            target = (EntityLivingBase) targetList.stream()
+                    .min(Comparator.comparingDouble(e -> mc.thePlayer.getDistanceToEntity(e)))
+                    .orElse(null);
+        } else {
+            throw new IllegalStateException("Unexpected value: " + this.mode);
         }
     }
 
@@ -68,18 +156,18 @@ public class TargetManager {
                 .filter(entity -> entity != mc.thePlayer)
                 .filter(entity -> !entity.isDead)
                 .filter(entity -> ((EntityLivingBase) entity).getHealth() > 0)
-                .filter(entity -> mc.thePlayer.getDistanceToEntity(entity) <= 6.0f)
+                .filter(entity -> mc.thePlayer.getDistanceToEntity(entity) <= seekRange)
                 .filter(this::isValidEntity)
                 .collect(Collectors.toList());
     }
 
     private boolean isValidEntity(Entity entity) {
-        if (!targets.contains(Targets.TEAMMATES) && inTeam(mc.thePlayer, entity)) return false;
-
+        boolean teammate = entity instanceof EntityPlayer && inTeam(mc.thePlayer, entity);
         if (targets.contains(Targets.PLAYERS) && entity instanceof EntityPlayer) return true;
         if (targets.contains(Targets.HOSTILES) && entity instanceof EntityMob) return true;
         if (targets.contains(Targets.ANIMALS) && entity instanceof EntityAnimal) return true;
         if (targets.contains(Targets.INVISIBLES) && entity.isInvisible()) return true;
+        if (targets.contains(Targets.TEAMMATES) && teammate) return true;
 
         return false;
     }

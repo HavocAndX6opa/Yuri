@@ -4,13 +4,13 @@ import ddlc.yuri.api.config.BindsConfig;
 import ddlc.yuri.api.config.ConfigManager;
 import ddlc.yuri.api.events.EventBus;
 import ddlc.yuri.api.events.annotations.EventHook;
-import ddlc.yuri.api.events.impl.client.ClientTickEvent;
 import ddlc.yuri.api.events.impl.client.GameStartupEvent;
 import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
-import ddlc.yuri.api.gui.click.ClickGUI;
+import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.gui.click.novoline.ClickGUI;
 import ddlc.yuri.managers.ManagerWrapper;
 import ddlc.yuri.modules.ModuleManager;
-import ddlc.yuri.modules.impl.client.ClickGUIModule;
+import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.render.DragUtils;
 import lombok.Getter;
 
@@ -56,7 +56,7 @@ public class Yuri {
     }
 
     @EventHook
-    public void onClientTick(ClientTickEvent event) {
+    public void onRender2D(Render2DEvent event) {
         DragUtils.update();
     }
 

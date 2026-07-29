@@ -3,6 +3,8 @@ package ddlc.yuri.managers;
 import ddlc.yuri.api.events.EventBus;
 import ddlc.yuri.managers.impl.*;
 
+import java.util.Arrays;
+
 public class ManagerWrapper {
     private static RotationManager rotationManager;
     private static ColorManager colorManager;
@@ -16,6 +18,7 @@ public class ManagerWrapper {
         colorManager = new ColorManager();
         commandManager = new CommandManager();
         targetManager = new TargetManager();
+        TargetManager.configure(Arrays.asList(TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.INVISIBLES, TargetManager.Targets.TEAMMATES));
         blinkManager = new BlinkManager();
         badPacketsManager = new BadPacketsManager();
     }

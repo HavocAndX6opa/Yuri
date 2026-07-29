@@ -3,6 +3,7 @@ package ddlc.yuri.modules.impl.render;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.managers.impl.ColorManager;
@@ -57,6 +58,15 @@ public class WatermarkModule extends Module implements IMinecraft {
 
     @EventHook
     public void onRender2D(Render2DEvent event) {
+        renderWatermark();
+    }
+
+    @EventHook
+    public void onShader2D(Shader2DEvent event) {
+        renderWatermark();
+    }
+
+    private void renderWatermark() {
         ScaledResolution sr = new ScaledResolution(mc);
         int main = ColorManager.getColor().getRGB();
         int white = 0xFFFFFFFF;

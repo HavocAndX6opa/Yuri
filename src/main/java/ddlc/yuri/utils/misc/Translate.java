@@ -13,8 +13,8 @@ public final class Translate {
     }
 
     public void animate(double newX, double newY) {
-        x = progressiveAnimation(x, newX, 1.0D);
-        y = progressiveAnimation(y, newY, 0.5D);
+        x = progressiveAnimation(x, newX, 0.20D);
+        y = progressiveAnimation(y, newY, 0.20D);
     }
 
     public double getX() {

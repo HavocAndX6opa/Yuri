@@ -4,7 +4,6 @@ import ddlc.yuri.Yuri;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.alt.EuphoriaAltMenu;
 import ddlc.yuri.managers.impl.ColorManager;
-import ddlc.yuri.modules.impl.client.ClickGUIModule;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.gui.*;

@@ -34,7 +34,7 @@ public class GuiChat extends GuiScreen
 
     private float fadeProgress = 0.0F;
     private boolean closing = false;
-    private static final float FADE_SPEED = 0.08F;
+    private static final float FADE_SPEED = 0.35F;
 
     public GuiChat()
     {

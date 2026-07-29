@@ -1,6 +1,6 @@
 package ddlc.yuri.api.gui.main;
 
-import ddlc.yuri.api.gui.click.GuiTheme;
+import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.gui.Gui;

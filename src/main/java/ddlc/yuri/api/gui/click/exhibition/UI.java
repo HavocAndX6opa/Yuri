@@ -1,0 +1,50 @@
+package ddlc.yuri.api.gui.click.exhibition;
+
+import ddlc.yuri.api.gui.click.exhibition.components.*;
+
+public abstract class UI {
+    public abstract void mainConstructor(ExhibitionClickGui p0);
+    public abstract void mainPanelDraw(MainPanel panel, int p0, int p1);
+    public abstract void mainPanelKeyPress(MainPanel panel, int key);
+    public abstract void panelConstructor(MainPanel mainPanel, float x, float y);
+    public abstract void panelMouseClicked(MainPanel mainPanel, int p1, int p2, int p3);
+    public abstract void panelMouseMovedOrUp(MainPanel mainPanel, int p1, int p2, int p3);
+    public abstract void categoryButtonConstructor(CategoryButton p0, MainPanel p1);
+    public abstract void categoryButtonMouseClicked(CategoryButton p0, MainPanel p1, int p2, int p3, int p4);
+    public abstract void categoryButtonDraw(CategoryButton p0, float p2, float p3);
+    public abstract void categoryPanelConstructor(CategoryPanel categoryPanel, CategoryButton categoryButton, float x, float y);
+    public abstract void categoryPanelMouseClicked(CategoryPanel categoryPanel, int p1, int p2, int p3);
+    public abstract void categoryPanelDraw(CategoryPanel categoryPanel, float x, float y);
+    public abstract void categoryPanelMouseMovedOrUp(CategoryPanel categoryPanel, int x, int y, int button);
+    public abstract void groupBoxConstructor(GroupBox groupBox, float x, float y);
+    public abstract void groupBoxMouseClicked(GroupBox groupBox, int p1, int p2, int p3);
+    public abstract void groupBoxDraw(GroupBox groupBox, float x, float y);
+    public abstract void groupBoxMouseMovedOrUp(GroupBox groupBox, int x, int y, int button);
+    public abstract void buttonContructor(Button p0, CategoryPanel panel);
+    public abstract void buttonMouseClicked(Button p0, int p2, int p3, int p4, CategoryPanel panel);
+    public abstract void buttonDraw(Button p0, float p2, float p3, CategoryPanel panel);
+    public abstract void buttonKeyPressed(Button button, int key);
+    public abstract void checkBoxMouseClicked(Checkbox p0, int p2, int p3, int p4, CategoryPanel panel);
+    public abstract void checkBoxDraw(Checkbox p0, float p2, float p3, CategoryPanel panel);
+    public abstract void dropDownContructor(DropdownBox p0, float x, float u, CategoryPanel panel);
+    public abstract void dropDownMouseClicked(DropdownBox p0, int x, int u, int mouse, CategoryPanel panel);
+    public abstract void dropDownDraw(DropdownBox p0, float x, float y, CategoryPanel panel);
+    public abstract void dropDownButtonMouseClicked(DropdownButton p0, DropdownBox p1, int x, int y, int mouse);
+    public abstract void dropDownButtonDraw(DropdownButton p0, DropdownBox p1, float x, float y);
+    public abstract void multiDropDownContructor(MultiDropdownBox p0, float x, float u, CategoryPanel panel);
+    public abstract void multiDropDownMouseClicked(MultiDropdownBox p0, int x, int u, int mouse, CategoryPanel panel);
+    public abstract void multiDropDownDraw(MultiDropdownBox p0, float x, float y, CategoryPanel panel);
+    public abstract void multiDropDownButtonMouseClicked(MultiDropdownButton p0, MultiDropdownBox p1, int x, int y, int mouse);
+    public abstract void multiDropDownButtonDraw(MultiDropdownButton p0, MultiDropdownBox p1, float x, float y);
+    public abstract void SliderContructor(Slider p0, CategoryPanel panel);
+    public abstract void SliderMouseClicked(Slider p0, int p2, int p3, int p4, CategoryPanel panel);
+    public abstract void SliderMouseMovedOrUp(Slider p0, int p2, int p3, int p4, CategoryPanel panel);
+    public abstract void SliderDraw(Slider p0, float p2, float p3, CategoryPanel panel);
+    public abstract void categoryButtonMouseReleased(CategoryButton categoryButton, int x, int y, int button);
+    public abstract void slButtonDraw(SLButton slButton, float x, float y, MainPanel panel);
+    public abstract void slButtonMouseClicked(SLButton slButton, float x, float y, int button, MainPanel panel);
+    public abstract void textBoxDraw(TextBox textBox, float x, float y);
+    public abstract void textBoxMouseClicked(TextBox textBox, int x, int y, int mouseID);
+    public abstract void textBoxKeyPressed(TextBox textBox, int key);
+    public abstract void handleMouseInput(MainPanel panel);
+}

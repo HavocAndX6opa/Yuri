@@ -3,6 +3,7 @@ package ddlc.yuri.modules.impl.render;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
@@ -46,6 +47,15 @@ public final class ClientInfoModule extends Module {
 
     @EventHook
     public void onRender2D(Render2DEvent event) {
+        renderClientInfo();
+    }
+
+    @EventHook
+    public void onShader2D(Shader2DEvent event) {
+        renderClientInfo();
+    }
+
+    private void renderClientInfo() {
         sr = new ScaledResolution(mc);
 
         double targetY = (mc.currentScreen instanceof GuiChat) ? (sr.getScaledHeight() - 15) : (sr.getScaledHeight() - 2);

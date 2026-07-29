@@ -1,6 +1,6 @@
 package ddlc.yuri.api.gui.alt;
 
-import ddlc.yuri.api.gui.click.GuiTheme;
+import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.api.gui.alt.comp.CustomTextBox;
 import ddlc.yuri.api.gui.alt.comp.MicrosoftOAuthTranslation;
 import ddlc.yuri.api.gui.alt.comp.SessionChanger;
@@ -12,7 +12,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Session;

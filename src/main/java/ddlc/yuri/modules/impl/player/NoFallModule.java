@@ -24,8 +24,7 @@ public final class NoFallModule extends Module {
 
     private enum Mode {
         VANILLA("Vanilla"),
-        MLG("MLG"),
-        ;
+        MLG("MLG"),;
 
         public final String name;
 

@@ -9,6 +9,7 @@ import java.util.Random;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.modules.impl.render.PostProcessingModule;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -103,6 +104,7 @@ public class GuiIngame extends Gui
         int i = scaledresolution.getScaledWidth();
         int j = scaledresolution.getScaledHeight();
         this.mc.entityRenderer.setupOverlayRendering();
+        Yuri.INSTANCE.getModuleManager().getModule(PostProcessingModule.class).renderShaders();
         Yuri.INSTANCE.getEventBus().post(new Render2DEvent(partialTicks));
         GlStateManager.enableBlend();
 

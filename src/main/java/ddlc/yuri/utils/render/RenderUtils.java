@@ -2,6 +2,7 @@ package ddlc.yuri.utils.render;
 
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
@@ -10,7 +11,7 @@ import java.awt.*;
 import static ddlc.yuri.utils.misc.IMinecraft.mc;
 import static org.lwjgl.opengl.GL11.*;
 
-public final class RenderUtils {
+public class RenderUtils {
     public static float delta = 0f;
 
     private static float scissorTransformScale = 1.0f;
@@ -335,4 +336,24 @@ public final class RenderUtils {
         return scissorTransformScale;
     }
 
+    public static Framebuffer createFrameBuffer(Framebuffer framebuffer) {
+        return createFrameBuffer(framebuffer, false);
+    }
+
+    public static Framebuffer createFrameBuffer(Framebuffer framebuffer, boolean depth) {
+        if (needsNewFramebuffer(framebuffer)) {
+            if (framebuffer != null) {
+                framebuffer.deleteFramebuffer();
+            }
+            return new Framebuffer(mc.displayWidth, mc.displayHeight, depth);
+        }
+        return framebuffer;
+    }
+    public static boolean needsNewFramebuffer(Framebuffer framebuffer) {
+        return framebuffer == null || framebuffer.framebufferWidth != mc.displayWidth || framebuffer.framebufferHeight != mc.displayHeight;
+    }
+
+    public static void resetColor() {
+        GlStateManager.color(1, 1, 1, 1);
+    }
 }

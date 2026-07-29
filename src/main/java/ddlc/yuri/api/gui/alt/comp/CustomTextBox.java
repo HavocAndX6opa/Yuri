@@ -1,6 +1,6 @@
 package ddlc.yuri.api.gui.alt.comp;
 
-import ddlc.yuri.api.gui.click.GuiTheme;
+import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.gui.Gui;

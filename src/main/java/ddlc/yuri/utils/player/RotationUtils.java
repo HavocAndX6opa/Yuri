@@ -291,7 +291,7 @@ public class RotationUtils implements IMinecraft {
 
     public static Vector2f calculate(final Entity entity, final boolean adaptive, final double range) {
         Vector2f normalRotations = calculate(entity);
-        if (!adaptive || RaytraceUtils.raytrace(normalRotations, range).typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
+        if (!adaptive || RayCastUtils.rayCast(normalRotations, range).typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
             return normalRotations;
         }
 
@@ -303,7 +303,7 @@ public class RotationUtils implements IMinecraft {
                             (entity.getEntityBoundingBox().maxY - entity.getEntityBoundingBox().minY) * yPercent,
                             (entity.getEntityBoundingBox().maxZ - entity.getEntityBoundingBox().minZ) * zPercent));
 
-                    if (RaytraceUtils.raytrace(adaptiveRotations, range).typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
+                    if (RayCastUtils.rayCast(adaptiveRotations, range).typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
                         return adaptiveRotations;
                     }
                 }

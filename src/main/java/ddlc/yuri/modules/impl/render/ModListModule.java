@@ -4,15 +4,15 @@ import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
-import ddlc.yuri.modules.impl.client.ClickGUIModule;
-import ddlc.yuri.modules.impl.render.WatermarkModule;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.misc.Translate;
 import ddlc.yuri.utils.render.FontUtils;
@@ -24,22 +24,36 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 @ModuleInfo(label = "Mod List", category = ModuleCategory.RENDER, description = "Shows the enabled mods on your HUD")
 public class ModListModule extends Module implements IMinecraft {
 
     private final Property<Boolean> bg = new Property<>("Background", true);
+    public NumberProperty arrayBg = new NumberProperty("Background Opacity", 130, 0, 255, 1, bg::getValue);
     private final Property<Boolean> outline = new Property<>("Outline", false);
     private final Property<Boolean> line = new Property<>("Line", true, () -> !outline.getValue());
     private final Property<Boolean> hideVisuals = new Property<>("Hide Visuals", false);
+    private final Property<Boolean> hideMisc = new Property<>("Hide Misc", false);
     private static final Property<Boolean> useCustomFont = new Property<>("Use Custom Font", true);
     private final Property<Boolean> noSpaces = new Property<>("No Spaces", false);
     private final Property<Boolean> lowercase = new Property<>("Lowercase", false);
+    private final Property<Boolean> bold = new Property<>("Bold", false);
     private final ModeProperty<ColorMode> colorMode = new ModeProperty<>("Color Mode", ColorMode.FADE);
+    private final NumberProperty padding = new NumberProperty("Padding", 2, 0, 6, 0.5);
+    private final NumberProperty offset = new NumberProperty("Offset", 0, 0, 30, 1);
+    private final NumberProperty lineWidth = new NumberProperty("Line Width", 1.0, 0.5, 1.0, 0.1);
+
+    private static final float TEXT_HEIGHT = 8f;
 
     private static final Map<Module, String> displayLabelCache = new HashMap<>();
     private static List<Module> moduleCache;
+
+    private final Set<Module> seededModules = new HashSet<>();
+    private final Map<Module, Boolean> previousVisibility = new HashMap<>();
 
     public enum ColorMode {
         STATIC("Static"),
@@ -79,8 +93,13 @@ public class ModListModule extends Module implements IMinecraft {
         renderArrayList();
     }
 
+    @EventHook
+    public void onShader2D(Shader2DEvent event) {
+        renderArrayList();
+    }
+
     private CustomFontRenderer getActiveFont() {
-        return FontUtils.getFont("sf", 18);
+        return FontUtils.getFont(bold.getValue() ? "sf-bold" : "sf", 18);
     }
 
     private boolean isMcFontActive() {
@@ -111,6 +130,14 @@ public class ModListModule extends Module implements IMinecraft {
         return fr.drawStringWithShadow(text, x, y, color);
     }
 
+    private boolean shouldSkip(Module module) {
+        return (hideVisuals.getValue() && module.getCategory() == ModuleCategory.RENDER)
+                || (hideMisc.getValue() && module.getCategory() == ModuleCategory.MISC)
+                || module instanceof ClickGUIModule
+                || module instanceof WatermarkModule
+                || module instanceof ModListModule;
+    }
+
     private void renderArrayList() {
         CustomFontRenderer fr = getActiveFont();
         ScaledResolution sr = new ScaledResolution(mc);
@@ -119,27 +146,27 @@ public class ModListModule extends Module implements IMinecraft {
             return;
         }
 
-        boolean mcFont = isMcFontActive();
-
-        float screenX = sr.getScaledWidth();
-        float startY = 2;
-
         if (moduleCache == null) {
-            updateModulePositions(sr);
+            moduleCache = new ArrayList<>(Yuri.INSTANCE.getModuleManager().getModules());
         }
 
-        float y = startY;
-        float previousModuleWidth = -1;
+        float pad = padding.getValue().floatValue();
+        float lw = lineWidth.getValue().floatValue();
+        float off = offset.getValue().floatValue();
+        float screenX = sr.getScaledWidth() - off;
+        float screenRight = sr.getScaledWidth();
+        float startY = 2 + off;
+        float rowStep = TEXT_HEIGHT + (pad * 2);
 
         List<Module> filteredModules = new ArrayList<>();
         for (Module module : moduleCache) {
-            if (hideVisuals.getValue() && module.getCategory() == ModuleCategory.RENDER) {
-                continue;
-            } else if (module instanceof ClickGUIModule || module instanceof WatermarkModule || module instanceof ModListModule) {
+            if (shouldSkip(module)) {
                 continue;
             }
             filteredModules.add(module);
         }
+
+        updatePositions(filteredModules, fr, screenX, screenRight, startY, pad, lw, rowStep);
 
         final int moduleCacheSize = filteredModules.size();
         int lastVisibleModuleIndex = moduleCacheSize - 1;
@@ -152,6 +179,7 @@ public class ModListModule extends Module implements IMinecraft {
 
         int firstVisibleModuleIndex = -1;
         int visibleModuleCount = 0;
+        float previousModuleWidth = -1;
 
         for (int i = 0; i < moduleCacheSize; i++) {
             final Module module = filteredModules.get(i);
@@ -160,51 +188,38 @@ public class ModListModule extends Module implements IMinecraft {
             final float moduleWidth = getTextWidth(fr, name);
             final boolean visible = module.isVisible();
 
-            if (visible) {
-                if (firstVisibleModuleIndex == -1) {
-                    firstVisibleModuleIndex = i;
-                }
-                translate.animate(screenX - moduleWidth - (line.getValue() && !outline.getValue() ? 2 : 1), y);
-                y += 12;
-            } else {
-                translate.animate(screenX, y);
+            if (visible && firstVisibleModuleIndex == -1) {
+                firstVisibleModuleIndex = i;
             }
 
-            double translateX = translate.getX();
+            double translateX = line.getValue() ? translate.getX() : translate.getX() + 1;
             double translateY = translate.getY();
 
             if (visible || translateX < screenX) {
                 int aColor = getColorForModule(visibleModuleCount);
-                double top = translateY - 2;
 
                 if (bg.getValue()) {
-                    Gui.drawRect(!line.getValue() && !outline.getValue() ? translateX - 2 : translateX - 3, translateY - 2, screenX + 3, translateY + 10, getColorForBG().getRGB());
+                    float bgLeft = (!line.getValue() && !outline.getValue()) ? (float) translateX - pad : (float) translateX - pad - lw;
+                    if (off > 0 & line.getValue()) {
+                        Gui.drawRect(bgLeft, (float) translateY - pad, screenX, (float) translateY + TEXT_HEIGHT + pad, getColorForBG().getRGB());
+                    } else {
+                        Gui.drawRect(bgLeft, (float) translateY - pad, screenX + pad + lw, (float) translateY + TEXT_HEIGHT + pad, getColorForBG().getRGB());
+                    }
                 }
 
-                float textX = line.getValue() ? (float) (translateX - 1f) : (float) translateX - 0.5f;
+                float textX = line.getValue() ? (float) (translateX - 1.2f) : (float) ((float) offset.getValue().floatValue() == 0 ? translateX - 0.5f : (float) translateX);
 
-                drawText(fr,
-                        name,
-                        (float) textX,
-                        (float) translateY,
-                        aColor);
+                drawText(fr, name, textX, (float) translateY, aColor);
 
                 if (outline.getValue()) {
-                    Gui.drawRect(translateX - 3,
-                            translateY - 2,
-                            translateX - 2,
-                            translateY + 10,
-                            aColor);
+                    Gui.drawRect((float) translateX - pad - lw, (float) translateY - pad, (float) translateX - pad, (float) translateY + TEXT_HEIGHT + pad, aColor);
 
-                    double outlineTop = top - 1;
-                    double outlineBottom = translateY + 10;
+                    double outlineTop = translateY - pad - lw;
+                    double outlineBottom = translateY + TEXT_HEIGHT + pad;
+                    float renderRight = (float) translateX + moduleWidth + pad;
 
                     if (i != firstVisibleModuleIndex && moduleWidth - previousModuleWidth > 0) {
-                        Gui.drawRect(translateX - 3,
-                                outlineTop,
-                                screenX - previousModuleWidth - 6,
-                                outlineTop + 1,
-                                aColor);
+                        Gui.drawRect((float) translateX - pad - lw, outlineTop, screenX - previousModuleWidth - ((pad + lw) * 2), outlineTop + lw, aColor);
                     }
 
                     if (i != lastVisibleModuleIndex) {
@@ -225,47 +240,25 @@ public class ModListModule extends Module implements IMinecraft {
                             float nextModuleWidth = getTextWidth(fr, nextModuleName);
 
                             if (moduleWidth - nextModuleWidth > 0.5) {
-                                Gui.drawRect(translateX - 3,
-                                        outlineBottom,
-                                        screenX - nextModuleWidth - 3,
-                                        outlineBottom + 1,
-                                        aColor);
+                                Gui.drawRect((float) translateX - pad - lw, outlineBottom, screenX - nextModuleWidth - (pad + lw), outlineBottom + lw, aColor);
                             }
                         }
                     } else {
-                        Gui.drawRect(translateX - 3,
-                                outlineBottom,
-                                screenX + 3,
-                                outlineBottom + 1,
-                                aColor);
+                        Gui.drawRect((float) translateX - pad - lw, outlineBottom, screenX + pad + lw, outlineBottom + lw, aColor);
                     }
-                }
 
-                if (line.getValue() && !outline.getValue()) {
-                    if (i == firstVisibleModuleIndex) {
-                        Gui.drawRect(screenX - 1,
-                                startY - 2,
-                                screenX,
-                                translateY + 10,
-                                aColor);
-                    } else {
-                        Module prevModule = null;
-                        for (int j = i - 1; j >= 0; j--) {
-                            if (filteredModules.get(j).isVisible()) {
-                                prevModule = filteredModules.get(j);
-                                break;
-                            }
+                    if (off > 0) {
+                        Gui.drawRect(renderRight, (float) translateY - pad, renderRight + lw, (float) translateY + TEXT_HEIGHT + pad, aColor);
+
+                        if (i == firstVisibleModuleIndex) {
+                            Gui.drawRect((float) translateX - pad - lw, (float) outlineTop, renderRight + lw, (float) outlineTop + lw, aColor);
                         }
                     }
                 }
 
                 if (line.getValue() && !outline.getValue()) {
                     if (i == firstVisibleModuleIndex) {
-                        Gui.drawRect(screenX - 1,
-                                startY - 2,
-                                screenX,
-                                translateY + 10,
-                                aColor);
+                        Gui.drawRect(screenX - lw, startY - pad, screenX, (float) translateY + TEXT_HEIGHT + pad, aColor);
                     } else {
                         Module prevModule = null;
                         for (int j = i - 1; j >= 0; j--) {
@@ -276,25 +269,48 @@ public class ModListModule extends Module implements IMinecraft {
                         }
                         if (prevModule != null) {
                             double prevY = prevModule.getTranslate().getY();
-
-                            Gui.drawRect(screenX - 1,
-                                    prevY + 10,
-                                    screenX,
-                                    translateY + 10,
-                                    aColor);
+                            Gui.drawRect(screenX - lw, (float) prevY + TEXT_HEIGHT + pad, screenX, (float) translateY + TEXT_HEIGHT + pad, aColor);
                         }
-
                     }
                 }
 
                 previousModuleWidth = moduleWidth;
                 visibleModuleCount++;
             }
+
+            previousVisibility.put(module, visible);
+        }
+    }
+
+    private void updatePositions(List<Module> filteredModules, CustomFontRenderer fr, float screenX, float screenRight, float startY, float pad, float lw, float rowStep) {
+        float y = startY;
+
+        for (Module module : filteredModules) {
+            Translate translate = module.getTranslate();
+            String name = displayLabelCache.get(module);
+            float moduleWidth = getTextWidth(fr, name);
+            float offset = (line.getValue() && !outline.getValue()) ? pad : lw;
+            float visibleTargetX = screenX - moduleWidth - offset;
+            float hiddenTargetX = screenRight + moduleWidth + pad + 4f;
+
+            if (!seededModules.contains(module)) {
+                translate.setX(module.isVisible() ? visibleTargetX : hiddenTargetX);
+                translate.setY(y);
+                seededModules.add(module);
+            } else if (module.isVisible()) {
+                translate.animate(visibleTargetX, y);
+            } else {
+                translate.animate(hiddenTargetX, y);
+            }
+
+            if (module.isVisible()) {
+                y += rowStep;
+            }
         }
     }
 
     private Color getColorForBG() {
-        return new Color(0, 0, 0, 130);
+        return new Color(0, 0, 0, arrayBg.getValue().intValue());
     }
 
     private int getColorForModule(int visibleModuleIndex) {
@@ -323,7 +339,7 @@ public class ModListModule extends Module implements IMinecraft {
             if (hue > 1.0f) {
                 hue %= 1.0f;
             }
-            return  Color.getHSBColor(hue, 0.25f, 0.9f).getRGB();
+            return Color.getHSBColor(hue, 0.25f, 0.9f).getRGB();
         }
 
         return RenderUtils.interpolateColorsBackAndForth(15, offset, ColorManager.colors.getFirst(), ColorManager.colors.getSecond(), false).getRGB();
@@ -351,35 +367,6 @@ public class ModListModule extends Module implements IMinecraft {
             return label + " \2477" + suffix;
         }
         return label;
-    }
-
-    private void updateModulePositions(ScaledResolution scaledResolution) {
-        CustomFontRenderer fr = getActiveFont();
-        if (fr == null) {
-            return;
-        }
-        if (moduleCache == null) {
-            moduleCache = new ArrayList<>(Yuri.INSTANCE.getModuleManager().getModules());
-        }
-
-        float y = 2;
-        float screenX = scaledResolution.getScaledWidth();
-
-        for (Module module : moduleCache) {
-            if (hideVisuals.getValue() && module.getCategory() == ModuleCategory.RENDER) {
-                continue;
-            }
-
-            if (module.isEnabled()) {
-                module.getTranslate().setX(screenX - getTextWidth(fr, getDisplayLabel(module)) + 2);
-            } else {
-                module.getTranslate().setX(screenX);
-            }
-            module.getTranslate().setY(y);
-            if (module.isEnabled()) {
-                y += 12;
-            }
-        }
     }
 
     private class LengthComparator implements Comparator<Module> {
