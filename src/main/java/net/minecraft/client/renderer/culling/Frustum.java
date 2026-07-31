@@ -4,7 +4,7 @@ import net.minecraft.util.AxisAlignedBB;
 
 public class Frustum implements ICamera
 {
-    private ClippingHelper clippingHelper;
+    public ClippingHelper clippingHelper;
     private double xPosition;
     private double yPosition;
     private double zPosition;

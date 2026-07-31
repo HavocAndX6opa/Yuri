@@ -2,6 +2,7 @@ package ddlc.yuri.utils.client;
 
 import ddlc.yuri.utils.misc.IMinecraft;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 
 import java.math.BigDecimal;
@@ -123,4 +124,75 @@ public class MathUtils implements IMinecraft {
         }
         return ThreadLocalRandom.current().nextInt(min, max);
     }
+
+    public static int lerp4Channel(int a, int b, float t) {
+        float invert = 1.0f - t;
+        int B = (int) ((a >> 16 & 0xFF) * invert +
+                (b >> 16 & 0xFF) * t);
+        int G = (int) ((a >> 8 & 0xFF) * invert +
+                (b >> 8 & 0xFF) * t);
+        int R = (int) ((a & 0xFF) * invert +
+                (b & 0xFF) * t);
+        int A = (int) ((a >> 24 & 0xFF) * invert +
+                (b >> 24 & 0xFF) * t);
+        return ((A & 0xFF) << 24) |
+                ((B & 0xFF) << 16) |
+                ((G & 0xFF) << 8) |
+                (R & 0xFF);
+    }
+    public static int darker(int rgbOrBgr, float f) {
+        f = MathHelper.clamp_float(f, 0.0f, 1.0f);
+        int r = (int) ((rgbOrBgr >> 16 & 0xFF) * f);
+        int g = (int) ((rgbOrBgr >> 8 & 0xFF) * f);
+        int b = (int) ((rgbOrBgr & 0xFF) * f);
+        int a = rgbOrBgr >> 24 & 0xFF;
+        return (r << 16) | (g << 8) | b | (a << 24);
+    }
+
+    public static int HSBtoBGR(float hue, float saturation, float brightness) {
+        int r = 0, g = 0, b = 0;
+        if (saturation < 0.01f) {
+            r = g = b = (int) (brightness * 255.0f + 0.5f);
+        } else if (brightness > 0.01f) {
+            float h = (hue - (float) Math.floor(hue)) * 6.0f;
+            float f = h - (float) java.lang.Math.floor(h);
+            float p = brightness * (1.0f - saturation);
+            float q = brightness * (1.0f - saturation * f);
+            float t = brightness * (1.0f - (saturation * (1.0f - f)));
+            switch ((int) h) {
+                case 0:
+                    r = (int) (brightness * 255.0f + 0.5f);
+                    g = (int) (t * 255.0f + 0.5f);
+                    b = (int) (p * 255.0f + 0.5f);
+                    break;
+                case 1:
+                    r = (int) (q * 255.0f + 0.5f);
+                    g = (int) (brightness * 255.0f + 0.5f);
+                    b = (int) (p * 255.0f + 0.5f);
+                    break;
+                case 2:
+                    r = (int) (p * 255.0f + 0.5f);
+                    g = (int) (brightness * 255.0f + 0.5f);
+                    b = (int) (t * 255.0f + 0.5f);
+                    break;
+                case 3:
+                    r = (int) (p * 255.0f + 0.5f);
+                    g = (int) (q * 255.0f + 0.5f);
+                    b = (int) (brightness * 255.0f + 0.5f);
+                    break;
+                case 4:
+                    r = (int) (t * 255.0f + 0.5f);
+                    g = (int) (p * 255.0f + 0.5f);
+                    b = (int) (brightness * 255.0f + 0.5f);
+                    break;
+                case 5:
+                    r = (int) (brightness * 255.0f + 0.5f);
+                    g = (int) (p * 255.0f + 0.5f);
+                    b = (int) (q * 255.0f + 0.5f);
+                    break;
+            }
+        }
+        return (b << 16) | (g << 8) | (r << 0);
+    }
+
 }

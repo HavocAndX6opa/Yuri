@@ -1,7 +1,10 @@
 package net.minecraft.client.model;
 
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.render.ModalUpdateEvent;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 
 public class ModelPlayer extends ModelBiped
 {
@@ -120,8 +123,9 @@ public class ModelPlayer extends ModelBiped
         copyModelAngles(this.bipedLeftArm, this.bipedLeftArmwear);
         copyModelAngles(this.bipedRightArm, this.bipedRightArmwear);
         copyModelAngles(this.bipedBody, this.bipedBodyWear);
+        ModalUpdateEvent event = new ModalUpdateEvent((EntityPlayer) entityIn, this);
+        Yuri.INSTANCE.getEventBus().post(event);
     }
-
     public void renderRightArm()
     {
         this.bipedRightArm.render(0.0625F);

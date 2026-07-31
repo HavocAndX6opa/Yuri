@@ -39,6 +39,8 @@ public class ModListModule extends Module implements IMinecraft {
     private final Property<Boolean> hideVisuals = new Property<>("Hide Visuals", false);
     private final Property<Boolean> hideMisc = new Property<>("Hide Misc", false);
     private static final Property<Boolean> useCustomFont = new Property<>("Use Custom Font", true);
+    private static final Property<Boolean> hideSuffix = new Property<>("Hide Suffix", false);
+    private final ModeProperty<SuffixMode> suffixMode = new ModeProperty<>("Suffix Mode", SuffixMode.SPACE, () -> !hideSuffix.getValue());
     private final Property<Boolean> noSpaces = new Property<>("No Spaces", false);
     private final Property<Boolean> lowercase = new Property<>("Lowercase", false);
     private final Property<Boolean> bold = new Property<>("Bold", false);
@@ -54,6 +56,21 @@ public class ModListModule extends Module implements IMinecraft {
 
     private final Set<Module> seededModules = new HashSet<>();
     private final Map<Module, Boolean> previousVisibility = new HashMap<>();
+
+    public enum SuffixMode {
+        SPACE("Space"), DASH("Dash"), BRACKETS("Brackets"), PIPE("Pipe");
+        public final String name;
+
+        SuffixMode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
 
     public enum ColorMode {
         STATIC("Static"),
@@ -363,10 +380,29 @@ public class ModListModule extends Module implements IMinecraft {
             }
         }
 
+        if (hideSuffix.getValue()) {
+            suffix = null;
+        }
+
         if (suffix != null) {
-            return label + " \2477" + suffix;
+            return label + "\2477" + getFormattedSuffixString(suffix);
         }
         return label;
+    }
+
+    private String getFormattedSuffixString(String rawSuffix) {
+        switch (suffixMode.getValue()) {
+            case SPACE:
+                return " " + rawSuffix;
+            case DASH:
+                return " - " + rawSuffix;
+            case BRACKETS:
+                return " [" + rawSuffix + "]";
+            case PIPE:
+                return " | " + rawSuffix;
+            default:
+                return rawSuffix;
+        }
     }
 
     private class LengthComparator implements Comparator<Module> {

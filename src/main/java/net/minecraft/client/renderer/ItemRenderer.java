@@ -1,6 +1,7 @@
 package net.minecraft.client.renderer;
 
 import ddlc.yuri.Yuri;
+import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.render.CameraModule;
 import ddlc.yuri.utils.player.InventoryUtils;
 import net.minecraft.block.Block;
@@ -299,8 +300,7 @@ public class ItemRenderer {
 
             if (this.itemToRender != null) {
                 boolean renderMap = this.itemToRender.getItem() instanceof ItemMap;
-                // boolean shouldBlock = !renderMap && (KillAuraModule.autoBlocking && this.itemToRender.getItem() instanceof ItemSword);
-                boolean shouldBlock = !renderMap;
+                boolean shouldBlock = !renderMap && (AuraModule.autoBlocking && this.itemToRender.getItem() instanceof ItemSword);
                 boolean shouldBlock2 = !shouldBlock && abstractclientplayer.getItemInUseCount() > 0;
                 boolean shouldBlock3 = shouldBlock2 && this.itemToRender.getItemUseAction() == EnumAction.BLOCK;
 
@@ -324,13 +324,12 @@ public class ItemRenderer {
                 }
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(abstractclientplayer, f2, f, f1);
-//                } else if (abstractclientplayer.getItemInUseCount() > 0 || KillAuraModule.autoBlocking) {
-                } else if (abstractclientplayer.getItemInUseCount() > 0) {
+                } else if (abstractclientplayer.getItemInUseCount() > 0 || AuraModule.autoBlocking) {
                     EnumAction enumaction = this.itemToRender.getItemUseAction();
 
-//                    if (Yuri.INSTANCE.getModuleManager().getModule(KillAuraModule.class).isEnabled() && KillAuraModule.target != null
-//                            && InventoryUtils.isHoldingSword() && KillAuraModule.autoBlocking)
-//                        enumaction = EnumAction.BLOCK;
+                    if (Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled() && AuraModule.target != null
+                            && InventoryUtils.isHoldingSword() && AuraModule.autoBlocking)
+                        enumaction = EnumAction.BLOCK;
 
                     switch (enumaction) {
                         case NONE:

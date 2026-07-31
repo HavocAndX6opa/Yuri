@@ -1,6 +1,6 @@
 package net.minecraft.client.renderer.culling;
 
-public class ClippingHelper
+public abstract class ClippingHelper
 {
     public float[][] frustum = new float[6][4];
     public float[] projectionMatrix = new float[16];
@@ -85,4 +85,5 @@ public class ClippingHelper
             return true;
         }
     }
+    public abstract void init();
 }

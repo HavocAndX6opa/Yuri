@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ClickGUI extends GuiScreen implements IMinecraft {
+public class NovolineClickGUI extends GuiScreen implements IMinecraft {
 
     private final List<CategoryTab> tabs = new CopyOnWriteArrayList<>();
     private final DecelerateAnimation openAnimation = new DecelerateAnimation(280, 1.0D, Direction.FORWARDS);

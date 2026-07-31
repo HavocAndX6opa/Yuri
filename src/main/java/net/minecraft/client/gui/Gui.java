@@ -19,7 +19,7 @@ public class Gui
     public static final ResourceLocation optionsBackground = new ResourceLocation("textures/gui/options_background.png");
     public static final ResourceLocation statIcons = new ResourceLocation("textures/gui/container/stats_icons.png");
     public static final ResourceLocation icons = new ResourceLocation("textures/gui/icons.png");
-    protected float zLevel;
+    public static float zLevel;
 
     public static void drawRectOutline(float x, float y, float width, float height, float outlineWidth, int fillColor, int outlineColor) {
         // Keep thin outlines visible when the ClickGUI is rendered below 1x.
@@ -138,7 +138,7 @@ public class Gui
         GlStateManager.disableBlend();
     }
 
-    protected void drawGradientRect(int left, int top, int right, int bottom, int startColor, int endColor)
+    public static void drawGradientRect(int left, int top, int right, int bottom, int startColor, int endColor)
     {
         float f = (float)(startColor >> 24 & 255) / 255.0F;
         float f1 = (float)(startColor >> 16 & 255) / 255.0F;
@@ -156,10 +156,39 @@ public class Gui
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer worldrenderer = tessellator.getWorldRenderer();
         worldrenderer.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        worldrenderer.pos((double)right, (double)top, (double)this.zLevel).color(f1, f2, f3, f).endVertex();
-        worldrenderer.pos((double)left, (double)top, (double)this.zLevel).color(f1, f2, f3, f).endVertex();
-        worldrenderer.pos((double)left, (double)bottom, (double)this.zLevel).color(f5, f6, f7, f4).endVertex();
-        worldrenderer.pos((double)right, (double)bottom, (double)this.zLevel).color(f5, f6, f7, f4).endVertex();
+        worldrenderer.pos((double)right, (double)top, (double)zLevel).color(f1, f2, f3, f).endVertex();
+        worldrenderer.pos((double)left, (double)top, (double)zLevel).color(f1, f2, f3, f).endVertex();
+        worldrenderer.pos((double)left, (double)bottom, (double)zLevel).color(f5, f6, f7, f4).endVertex();
+        worldrenderer.pos((double)right, (double)bottom, (double)zLevel).color(f5, f6, f7, f4).endVertex();
+        tessellator.draw();
+        GlStateManager.shadeModel(7424);
+        GlStateManager.disableBlend();
+        GlStateManager.enableAlpha();
+        GlStateManager.enableTexture2D();
+    }
+
+    public static void drawGradientRect(double left, double top, double right, double bottom, int startColor, int endColor)
+    {
+        float f = (float)(startColor >> 24 & 255) / 255.0F;
+        float f1 = (float)(startColor >> 16 & 255) / 255.0F;
+        float f2 = (float)(startColor >> 8 & 255) / 255.0F;
+        float f3 = (float)(startColor & 255) / 255.0F;
+        float f4 = (float)(endColor >> 24 & 255) / 255.0F;
+        float f5 = (float)(endColor >> 16 & 255) / 255.0F;
+        float f6 = (float)(endColor >> 8 & 255) / 255.0F;
+        float f7 = (float)(endColor & 255) / 255.0F;
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.disableAlpha();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.shadeModel(7425);
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        worldrenderer.pos((double)right, (double)top, (double)zLevel).color(f1, f2, f3, f).endVertex();
+        worldrenderer.pos((double)left, (double)top, (double)zLevel).color(f1, f2, f3, f).endVertex();
+        worldrenderer.pos((double)left, (double)bottom, (double)zLevel).color(f5, f6, f7, f4).endVertex();
+        worldrenderer.pos((double)right, (double)bottom, (double)zLevel).color(f5, f6, f7, f4).endVertex();
         tessellator.draw();
         GlStateManager.shadeModel(7424);
         GlStateManager.disableBlend();

@@ -346,14 +346,14 @@ public class AuraModule extends Module {
         if (ab.getValue() == AutoBlock.HYPIXEL && BadPacketsManager.bad(true, false, false, true, false))
             return;
         if (!hitTimerDone()) return;
-        if (rayCast.getValue() && !(RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()) != null
-                && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit != null
-                && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit == target))
-            return;
 
         double dist = mc.thePlayer.getDistanceToEntity(target);
-        
+
         if (dist <= attackRange.getValue()) {
+            if (rayCast.getValue() && !(RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()) != null
+                    && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit != null
+                    && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit == target))
+                return;
             swing();
             mc.playerController.attackEntity(mc.thePlayer, target);
             this.hitTicks = 0;

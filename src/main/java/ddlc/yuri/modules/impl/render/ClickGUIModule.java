@@ -77,8 +77,7 @@ public class ClickGUIModule extends Module implements IMinecraft {
                 mc.displayGuiScreen(new ExhibitionClickGui());
                 break;
             case NOVOLINE:
-            default:
-                mc.displayGuiScreen(Yuri.INSTANCE.getClickGui());
+                mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
                 break;
         }
     }
@@ -87,8 +86,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
     public void onDisable() {
         if (mc.currentScreen instanceof ExhibitionClickGui) {
             // exhibition gui handles its own cleanup in onGuiClosed
-        } else if (mc.currentScreen == Yuri.INSTANCE.getClickGui() && !Yuri.INSTANCE.getClickGui().isClosing()) {
-            Yuri.INSTANCE.getClickGui().beginClose();
+        } else if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
+            Yuri.INSTANCE.getNovolineClickGui().beginClose();
         }
     }
 }

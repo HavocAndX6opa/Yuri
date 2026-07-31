@@ -52,9 +52,9 @@ public class GuiScreenRealmsProxy extends GuiScreen
         super.drawTexturedModalRect(x, y, textureX, textureY, width, height);
     }
 
-    public void drawGradientRect(int left, int top, int right, int bottom, int startColor, int endColor)
+    public static void drawGradientRect(int left, int top, int right, int bottom, int startColor, int endColor)
     {
-        super.drawGradientRect(left, top, right, bottom, startColor, endColor);
+        Gui.drawGradientRect(left, top, right, bottom, startColor, endColor);
     }
 
     public void drawDefaultBackground()

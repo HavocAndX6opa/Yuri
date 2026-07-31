@@ -84,9 +84,39 @@ public class RoundedUtils extends RenderUtils {
         GLUtils.endBlend();
     }
 
-    /**
-     * Draws a rounded rectangle specifying which individual corners should be rounded or flat.
-     */
+    public static void drawCustomRoundOutline(float x, float y, float width, float height, float radius, float outlineThickness,
+                                              boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft,
+                                              Color color, Color outlineColor) {
+        resetColor();
+        GLUtils.startBlend();
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        setAlphaLimit(0);
+        roundedOutlineShader.init();
+
+        ScaledResolution sr = new ScaledResolution(Minecraft.getMinecraft());
+        setupRoundedRectUniforms(x, y, width, height, radius, roundedOutlineShader);
+        roundedOutlineShader.setUniformf("outlineThickness", outlineThickness * sr.getScaleFactor());
+        roundedOutlineShader.setUniformf("color", color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f);
+        roundedOutlineShader.setUniformf("outlineColor", outlineColor.getRed() / 255f, outlineColor.getGreen() / 255f, outlineColor.getBlue() / 255f, outlineColor.getAlpha() / 255f);
+        roundedOutlineShader.setUniformf("corners",
+                topLeft ? 1.0f : 0.0f,
+                topRight ? 1.0f : 0.0f,
+                bottomRight ? 1.0f : 0.0f,
+                bottomLeft ? 1.0f : 0.0f
+        );
+
+        ShaderUtils.drawQuads(x - (2 + outlineThickness), y - (2 + outlineThickness), width + (4 + outlineThickness * 2), height + (4 + outlineThickness * 2));
+        roundedOutlineShader.unload();
+        GLUtils.endBlend();
+    }
+
+    public static void drawCustomRoundOutline(double x, double y, double width, double height, double radius, double outlineThickness,
+                                              boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft,
+                                              Color color, Color outlineColor) {
+        drawCustomRoundOutline((float) x, (float) y, (float) width, (float) height, (float) radius, (float) outlineThickness,
+                topLeft, topRight, bottomRight, bottomLeft, color, outlineColor);
+    }
+
     public static void drawCustomRoundedRect(float x, float y, float width, float height, float radius,
                                              boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft,
                                              Color color) {
@@ -106,7 +136,6 @@ public class RoundedUtils extends RenderUtils {
 
         setupRoundedRectUniforms(x, y, width, height, radius, roundedShader);
 
-        // Pass 1.0f for rounded, 0.0f for flat
         roundedShader.setUniformf("corners",
                 topLeft ? 1.0f : 0.0f,
                 topRight ? 1.0f : 0.0f,
@@ -122,7 +151,6 @@ public class RoundedUtils extends RenderUtils {
         GlStateManager.disableBlend();
     }
 
-    // Double overload
     public static void drawCustomRoundedRect(double x, double y, double width, double height, double radius,
                                              boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft,
                                              Color color) {
