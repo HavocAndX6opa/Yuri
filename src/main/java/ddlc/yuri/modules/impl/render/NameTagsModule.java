@@ -80,14 +80,14 @@ public class NameTagsModule extends Module {
         String tagText = CLIENT_TAG_PLACEHOLDER;
 
         int fontHeight = getFontHeight();
-        int clientWidth = getStringWidth(CLIENT_NAME);
+        int clientWidth = mc.gameSettings.thirdPersonView != 0 && renderSelf.getValue() && player.equals(mc.thePlayer) ? getStringWidth(CLIENT_NAME) : 0;
         int nameWidth = getStringWidth(player.getName());
         int distanceWidth = getStringWidth(distanceText);
-        int heartWidth = getStringWidth(heart);
+        int heartWidth = mc.fontRendererObj.getStringWidth(heart);
         int gap = 4;
 
         double mainTextWidth = clientWidth + gap + nameWidth + gap + distanceWidth + gap + heartWidth;
-        double badgeWidth = getStringWidth(tagText) + BADGE_PADDING * 2;
+        double badgeWidth = mc.gameSettings.thirdPersonView != 0 && renderSelf.getValue() && player.equals(mc.thePlayer) ? getStringWidth(tagText) + BADGE_PADDING * 2 : 0;
         double totalWidth = mainTextWidth + BADGE_GAP + badgeWidth;
 
         double startX = screenX - totalWidth / 2.0;
@@ -122,7 +122,7 @@ public class NameTagsModule extends Module {
         drawString(distanceText, cursorX, topY, Color.white.getRGB());
         cursorX += distanceWidth + gap;
 
-        drawString(heart, cursorX, topY, Color.red.getRGB());
+        mc.fontRendererObj.drawStringWithShadow(heart, (float) cursorX, customFont.getValue() ? (float) topY - 1f : (float) topY, Color.red.getRGB());
 
         if (mc.gameSettings.thirdPersonView != 0 && renderSelf.getValue() && player.equals(mc.thePlayer)) {
             double badgeX = startX + mainTextWidth + BADGE_GAP;

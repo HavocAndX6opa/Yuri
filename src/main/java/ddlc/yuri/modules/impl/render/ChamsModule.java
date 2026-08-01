@@ -14,7 +14,7 @@ public class ChamsModule extends Module {
     private static final Property<Boolean> tileEntities = new Property<>("Tile Entities", false);
 
     public boolean shouldRender(Entity entity) {
-        return entity instanceof EntityPlayer && (!(entity instanceof EntityPlayerSP) || mc.gameSettings.thirdPersonView != 0);
+        return entity instanceof EntityPlayer && !mc.thePlayer.canEntityBeSeen(entity) && (!(entity instanceof EntityPlayerSP) || mc.gameSettings.thirdPersonView != 0);
     }
 
     public boolean doRenderTileEntities() {
