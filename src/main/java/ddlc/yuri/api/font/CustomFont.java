@@ -20,6 +20,7 @@ public class CustomFont
     protected int fontHeight = -1;
     protected int charOffset = 0;
     protected DynamicTexture tex;
+    private static final int PADDING = 2;
 
     public CustomFont(Font font, boolean antiAlias, boolean fractionalMetrics)
     {
@@ -40,6 +41,8 @@ public class CustomFont
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.getGlTextureId());
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
             return texture;
         }
         catch (Exception e)
@@ -82,15 +85,28 @@ public class CustomFont
             char ch = (char) i;
             CharData charData = new CharData();
             Rectangle2D dimensions = fontMetrics.getStringBounds(String.valueOf(ch), g);
-            charData.width = (dimensions.getBounds().width + 8);
-            charData.height = dimensions.getBounds().height;
+            int measuredWidth = dimensions.getBounds().width + 8;
+            int measuredHeight = dimensions.getBounds().height;
 
-            if (positionX + charData.width >= imgSize)
+            if (positionX + measuredWidth + PADDING >= imgSize)
             {
                 positionX = 0;
-                positionY += charHeight;
+                positionY += charHeight + PADDING;
                 charHeight = 0;
             }
+
+            if (positionY + measuredHeight + PADDING >= imgSize)
+            {
+                charData.valid = false;
+                charData.width = 0;
+                charData.height = 0;
+                chars[i] = charData;
+                continue;
+            }
+
+            charData.width = measuredWidth;
+            charData.height = measuredHeight;
+            charData.valid = true;
 
             if (charData.height > charHeight)
             {
@@ -107,7 +123,7 @@ public class CustomFont
 
             chars[i] = charData;
             g.drawString(String.valueOf(ch), positionX + 2, positionY + fontMetrics.getAscent());
-            positionX += charData.width;
+            positionX += charData.width + PADDING;
         }
 
         return bufferedImage;
@@ -117,6 +133,7 @@ public class CustomFont
     {
         try
         {
+            if (!chars[c].valid) return;
             drawQuad(x, y, chars[c].width, chars[c].height, chars[c].storedX, chars[c].storedY, chars[c].width, chars[c].height);
         }
         catch (Exception e)
@@ -161,7 +178,7 @@ public class CustomFont
 
         for (char c : text.toCharArray())
         {
-            if ((c < this.charData.length) && (c >= 0))
+            if ((c < this.charData.length) && (c >= 0) && this.charData[c] != null && this.charData[c].valid)
             {
                 width += this.charData[c].width - 8 + this.charOffset;
             }
@@ -215,6 +232,7 @@ public class CustomFont
         public int height;
         public int storedX;
         public int storedY;
+        public boolean valid;
 
         protected CharData()
         {

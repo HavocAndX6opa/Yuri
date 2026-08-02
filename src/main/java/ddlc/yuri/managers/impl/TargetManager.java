@@ -12,6 +12,7 @@ import lombok.Setter;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
@@ -163,6 +164,9 @@ public class TargetManager {
 
     private boolean isValidEntity(Entity entity) {
         boolean teammate = entity instanceof EntityPlayer && inTeam(mc.thePlayer, entity);
+        if (entity instanceof EntityArmorStand) {
+            return false;
+        }
         if (targets.contains(Targets.PLAYERS) && entity instanceof EntityPlayer) return true;
         if (targets.contains(Targets.HOSTILES) && entity instanceof EntityMob) return true;
         if (targets.contains(Targets.ANIMALS) && entity instanceof EntityAnimal) return true;

@@ -445,13 +445,14 @@ public class PlayerControllerMP
 
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity)
     {
-        PlayerAttackEvent attackEntityEvent = new PlayerAttackEvent((EntityLivingBase) targetEntity);
-
-        Yuri.INSTANCE.getEventBus().post(attackEntityEvent);
-
-        if (attackEntityEvent.isCancelled()) {
-            return;
+        if (targetEntity instanceof EntityLivingBase)   {
+            PlayerAttackEvent attackEntityEvent = new PlayerAttackEvent((EntityLivingBase) targetEntity);
+            Yuri.INSTANCE.getEventBus().post(attackEntityEvent);
+            if (attackEntityEvent.isCancelled()) {
+                return;
+            }
         }
+
         this.syncCurrentPlayItem();
         this.netClientHandler.addToSendQueue(new C02PacketUseEntity(targetEntity, C02PacketUseEntity.Action.ATTACK));
 

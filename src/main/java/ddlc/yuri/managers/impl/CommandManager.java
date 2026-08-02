@@ -1,10 +1,7 @@
 package ddlc.yuri.managers.impl;
 
 import ddlc.yuri.api.commands.Command;
-import ddlc.yuri.api.commands.impl.BindCommand;
-import ddlc.yuri.api.commands.impl.ConfigCommand;
-import ddlc.yuri.api.commands.impl.HelpCommand;
-import ddlc.yuri.api.commands.impl.ToggleCommand;
+import ddlc.yuri.api.commands.impl.*;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.ChatEvent;
 import ddlc.yuri.utils.client.LoggingUtils;
@@ -26,6 +23,7 @@ public class CommandManager {
         addCommand(new ToggleCommand());
         addCommand(new ConfigCommand());
         addCommand(new BindCommand());
+        addCommand(new RotationCommand());
 
     }
 

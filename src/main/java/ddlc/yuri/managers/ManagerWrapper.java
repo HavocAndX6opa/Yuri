@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 public class ManagerWrapper {
     private static RotationManager rotationManager;
+    private static RotationLearnerManager rotationLearnerManager;
     private static ColorManager colorManager;
     private static CommandManager commandManager;
     private static TargetManager targetManager;
@@ -15,6 +16,7 @@ public class ManagerWrapper {
 
     public static void init() {
         rotationManager = new RotationManager();
+        rotationLearnerManager = RotationLearnerManager.INSTANCE;
         colorManager = new ColorManager();
         commandManager = new CommandManager();
         targetManager = new TargetManager();
@@ -25,6 +27,7 @@ public class ManagerWrapper {
 
     public static void subscribe(EventBus eventBus) {
         eventBus.subscribe(rotationManager);
+        eventBus.subscribe(rotationLearnerManager);
         eventBus.subscribe(colorManager);
         eventBus.subscribe(commandManager);
         eventBus.subscribe(targetManager);

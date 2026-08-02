@@ -12,6 +12,7 @@ import ddlc.yuri.api.properties.impl.MultiModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.managers.impl.BadPacketsManager;
 import ddlc.yuri.managers.impl.ColorManager;
+import ddlc.yuri.managers.impl.RotationLearnerManager;
 import ddlc.yuri.managers.impl.RotationManager;
 import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
@@ -25,30 +26,25 @@ import ddlc.yuri.utils.player.RotationUtils;
 import ddlc.yuri.utils.player.packet.PacketUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.awt.*;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @ModuleInfo(label = "Aura", description = "Automatically attacks entities around you", category = ModuleCategory.COMBAT)
 public class AuraModule extends Module {
     private final MultiModeProperty<TargetManager.Targets> targets = new MultiModeProperty<>("Targets", TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.TEAMMATES, TargetManager.Targets.INVISIBLES);
     private static final ModeProperty<TargetManager.Mode> mode = new ModeProperty<>("Mode", TargetManager.Mode.SINGLE);
-    private final NumberProperty switchSpeed = new NumberProperty("Switch Speed", 2.0, 0, 10, 1, () -> mode.getValue() == TargetManager.Mode.SWITCH);
     public static NumberProperty seekRange = new NumberProperty("Seek Range", 6.0, 3, 6, 0.1);
     public static NumberProperty attackRange = new NumberProperty("Attack Range", 3.0, 3, 6, 0.1);
     public static NumberProperty swingRange = new NumberProperty("Swing Range", 6.0, 3, 6, 0.1);
@@ -61,6 +57,8 @@ public class AuraModule extends Module {
     public static ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL);
     private final NumberProperty minRotSpeed = new NumberProperty("Min Rotation Speed", 3, 0, 10, 0.5f);
     private final NumberProperty maxRotSpeed = new NumberProperty("Max Rotation Speed", 7, 0, 10, 0.5f);
+    private final NumberProperty bodyEase = new NumberProperty("Body Ease", 0.2, 0.01, 1.0, 0.01, () -> rotations.getValue() == Rotations.ML);
+    private final NumberProperty mlEase = new NumberProperty("ML Ease", 0.2, 0.01, 1.0, 0.01, () -> rotations.getValue() == Rotations.ML);
     public static final Property<Boolean> rayCast = new Property<>("Ray Cast", true);
     public static final ModeProperty<MoveFix> fix = new ModeProperty<>("Move Fix", MoveFix.SILENT);
     public static final Property<Boolean> sprint = new Property<>("Keep Sprint", false);
@@ -87,7 +85,7 @@ public class AuraModule extends Module {
 
     public enum Rotations {
         NORMAL("Normal"),
-        POLAR("Polar"),
+        ML("ML"),
         NONE("None");
 
         public final String name;
@@ -129,8 +127,8 @@ public class AuraModule extends Module {
     private int blockTicks = 0;
     private static long delay = 0;
     public int hitTicks;
-    private int targetIndex;
-    private static final TimerUtils switchTimer = new TimerUtils();
+    private EntityLivingBase lastTarget;
+    private Vec3 smoothedBodyPoint;
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
@@ -141,7 +139,7 @@ public class AuraModule extends Module {
             return;
         }
 
-        TargetManager.setTargets(Arrays.asList(targets.getValues()));
+        TargetManager.setTargets(targets.getValue());
         getTarget();
 
         if (target == null) {
@@ -210,10 +208,48 @@ public class AuraModule extends Module {
     private void calculateRotations() {
         if (mc.thePlayer == null || target == null || rotations.getValue() == Rotations.NONE) return;
 
+        if (target != lastTarget) {
+            smoothedBodyPoint = null;
+            RotationLearnerManager.resetSmoothing();
+            lastTarget = target;
+        }
+
         float rotSpeed = (float) MathUtils.getRandom(minRotSpeed.getValue(), maxRotSpeed.getValue());
-        Vector2f rotation = RotationUtils.calculate(target, false, seekRange.getValue());
+        Vector2f rotation;
+
+        if (rotations.getValue() == Rotations.ML && RotationLearnerManager.hasModelLoaded()) {
+            rotation = RotationLearnerManager.humanize(getWholeBodyRotation(target), 1.0f, mlEase.getValue().floatValue());
+        } else {
+            rotation = RotationUtils.calculate(target, false, seekRange.getValue());
+        }
 
         RotationManager.setRotations(rotation, rotSpeed, fix.getValue() != MoveFix.NONE ? fix.getValue() == MoveFix.SILENT ? RotationManager.MovementFix.NORMAL : RotationManager.MovementFix.TRADITIONAL : RotationManager.MovementFix.OFF);
+    }
+
+    private Vector2f getWholeBodyRotation(EntityLivingBase entity) {
+        AxisAlignedBB box = entity.getEntityBoundingBox();
+        double targetX = box.minX + (box.maxX - box.minX) * MathUtils.getRandom(0.0, 1.0);
+        double targetY = box.minY + (box.maxY - box.minY) * MathUtils.getRandom(0.0, 1.0);
+        double targetZ = box.minZ + (box.maxZ - box.minZ) * MathUtils.getRandom(0.0, 1.0);
+
+        Vec3 desired = new Vec3(targetX, targetY, targetZ);
+
+        if (smoothedBodyPoint == null) {
+            smoothedBodyPoint = desired;
+        } else {
+            double ease = MathUtils.getRandom(0.0, 0.0);
+            ease = bodyEase.getValue();
+            smoothedBodyPoint = new Vec3(
+                    smoothedBodyPoint.xCoord + (desired.xCoord - smoothedBodyPoint.xCoord) * ease,
+                    smoothedBodyPoint.yCoord + (desired.yCoord - smoothedBodyPoint.yCoord) * ease,
+                    smoothedBodyPoint.zCoord + (desired.zCoord - smoothedBodyPoint.zCoord) * ease
+            );
+        }
+
+        Vec3 eyePos = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
+        float[] rot = RotationUtils.getRotationsTo(eyePos, smoothedBodyPoint);
+
+        return new Vector2f(rot[0], rot[1]);
     }
 
 
@@ -417,6 +453,9 @@ public class AuraModule extends Module {
         }
 
         target = null;
+        lastTarget = null;
+        smoothedBodyPoint = null;
+        RotationLearnerManager.resetSmoothing();
         delay = 0;
         blockTicks = -1;
         attackTimer.reset();
