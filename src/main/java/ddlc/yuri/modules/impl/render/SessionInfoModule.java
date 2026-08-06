@@ -6,12 +6,14 @@ import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.utils.render.FontUtils;
+import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -47,6 +49,10 @@ public class SessionInfoModule extends Module implements IMinecraft {
     private static final float GAP_HEADER_TIME = 8f;
     private static final float GAP_TIME = 3f;
     private static final float GAP_LINE = 2f;
+
+    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
+    private static final Color HEADER_COLOR = new Color(40, 40, 44, 100);
+    private static final Color BODY_COLOR = new Color(18, 18, 20, 150);
 
     private final DragUtils.DraggableComponent component = new DragUtils.DraggableComponent(20, 20);
 
@@ -110,7 +116,7 @@ public class SessionInfoModule extends Module implements IMinecraft {
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
         CustomFontRenderer body = FontUtils.getFont("sf", 16);
-        CustomFontRenderer timeFont = FontUtils.getFont("sf-bold", 24); // Scaled down slightly to fit narrower width
+        CustomFontRenderer timeFont = FontUtils.getFont("sf-bold", 24);
         if (bold == null || regular == null || body == null || timeFont == null) return;
 
         String sessionWord = "session";
@@ -149,15 +155,12 @@ public class SessionInfoModule extends Module implements IMinecraft {
         if (x > sr.getScaledWidth()) x = sr.getScaledWidth() - width;
         if (y > sr.getScaledHeight()) y = sr.getScaledHeight() - totalHeight;
 
-        Color headerColor = new Color(40, 40, 44, 100);
-        Color bodyColor = new Color(18, 18, 20, 150);
-
         RoundedUtils.drawCustomRoundedRect(x, y, width, headerHeight, RADIUS,
-                true, true, false, false, headerColor);
+                true, true, false, false, HEADER_COLOR);
 
         float seamFixOffset = 1.35f;
         RoundedUtils.drawCustomRoundedRect(x, y + headerHeight + seamFixOffset, width, bodyHeight + seamFixOffset, RADIUS,
-                false, false, true, true, bodyColor);
+                false, false, true, true, BODY_COLOR);
 
         float cx = x + width / 2f;
         float titleX = cx - titleWidth / 2f;
@@ -178,7 +181,66 @@ public class SessionInfoModule extends Module implements IMinecraft {
     }
 
     public void renderYuri() {
+        CustomFontRenderer title = FontUtils.getFont("sf-bold", 20);
+        CustomFontRenderer welcome = FontUtils.getFont("sf-bold", 22);
+        CustomFontRenderer body = FontUtils.getFont("sf", 16);
+        if (title == null || welcome == null || body == null) return;
 
+        String titleText = "session info";
+        String welcomeText = "Welcome, " + mc.getSession().getUsername() + "!";
+        String killsText = "You have " + kills + " kills.";
+        String timeText = "You have been playing for " + formatTimeYuri(System.currentTimeMillis() - sessionStart) + ".";
+        String serverText = "Server: " + getServerName();
+
+        float titleWidth = title.getStringWidth(titleText);
+        float welcomeWidth = welcome.getStringWidth(welcomeText);
+        float killsWidth = body.getStringWidth(killsText);
+        float timeWidth = body.getStringWidth(timeText);
+        float serverWidth = body.getStringWidth(serverText);
+
+        float contentWidth = Math.max(titleWidth, Math.max(welcomeWidth, Math.max(killsWidth, Math.max(timeWidth, serverWidth))));
+        float width = Math.max(MIN_WIDTH, contentWidth + PADDING_X * 2);
+
+        float titleHeight = title.getHeight();
+        float welcomeHeight = welcome.getHeight();
+        float lineHeight = body.getHeight();
+
+        float gapTitleWelcome = 10f;
+        float gapWelcomeKills = 8f;
+        float gapLine = 6f;
+        float gapKillsServer = 14f;
+
+        float height = PADDING_Y * 2 + titleHeight + gapTitleWelcome + welcomeHeight + gapWelcomeKills
+                + lineHeight + gapLine + lineHeight + gapKillsServer + lineHeight;
+
+        component.setWidth(width);
+        component.setHeight(height);
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        float x = (float) component.getX();
+        float y = (float) component.getY();
+        if (x > sr.getScaledWidth()) x = sr.getScaledWidth() - width;
+        if (y > sr.getScaledHeight()) y = sr.getScaledHeight() - height;
+
+        RoundedUtils.drawRoundOutline(x, y, width, height, RADIUS, 0.2f, BG_COLOR,
+                ColorManager.getColor());
+
+        float cx = x + width / 2f;
+        float cursorY = y + PADDING_Y;
+
+        title.drawStringWithShadow(titleText, cx - titleWidth / 2f, cursorY, Color.WHITE.getRGB());
+        cursorY += titleHeight + gapTitleWelcome;
+
+        welcome.drawStringWithShadow(welcomeText, cx - welcomeWidth / 2f, cursorY, Color.WHITE.getRGB());
+        cursorY += welcomeHeight + gapWelcomeKills;
+
+        body.drawStringWithShadow(killsText, cx - killsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+        cursorY += lineHeight + gapLine;
+
+        body.drawStringWithShadow(timeText, cx - timeWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+        cursorY += lineHeight + gapKillsServer;
+
+        body.drawStringWithShadow(serverText, cx - serverWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
     }
 
     private String formatTime(long millis) {
@@ -187,5 +249,16 @@ public class SessionInfoModule extends Module implements IMinecraft {
         long minutes = (totalSeconds % 3600) / 60;
         long seconds = totalSeconds % 60;
         return hours + "h " + minutes + "m " + seconds + "s";
+    }
+
+    private String formatTimeYuri(long millis) {
+        long totalMinutes = millis / 60000;
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        return hours + "hrs and " + minutes + " mins";
+    }
+
+    private String getServerName() {
+        return mc.getCurrentServerData() != null ? mc.getCurrentServerData().serverIP : "Singleplayer";
     }
 }

@@ -3,16 +3,21 @@ package ddlc.yuri.utils.player;
 import ddlc.yuri.utils.misc.IMinecraft;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MathHelper;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,6 +28,9 @@ public class BlockUtils implements IMinecraft {
             Blocks.stone_pressure_plate, Blocks.wooden_pressure_plate, Blocks.noteblock,
             Blocks.dropper, Blocks.tnt, Blocks.standing_banner, Blocks.wall_banner, Blocks.redstone_torch);
 
+    public static boolean inLiquid() {
+        return mc.thePlayer.isInWater() || mc.thePlayer.isInLava();
+    }
 
     public static boolean insideBlock() {
         if (mc.thePlayer.ticksExisted < 5) {
@@ -154,6 +162,7 @@ public class BlockUtils implements IMinecraft {
         return -1;
     }
 
+
     public static boolean isContainerBlock(ItemBlock itemBlock) {
         Block block = itemBlock.getBlock();
         if (BlockUtils.isInteractable(block)) return false;
@@ -170,4 +179,108 @@ public class BlockUtils implements IMinecraft {
         }
         return false;
     }
+
+    public static boolean isValidBlock(Block block, boolean placing) {
+        if (block instanceof BlockCarpet
+                || block instanceof BlockSnow
+                || block instanceof BlockContainer
+                || block instanceof BlockBasePressurePlate
+                || block.getMaterial().isLiquid()) {
+            return false;
+        }
+        if (placing && (block instanceof BlockSlab
+                || block instanceof BlockStairs
+                || block instanceof BlockLadder
+                || block instanceof BlockStainedGlassPane
+                || block instanceof BlockWall
+                || block instanceof BlockWeb
+                || block instanceof BlockCactus
+                || block instanceof BlockFalling
+                || block == Blocks.glass_pane
+                || block == Blocks.iron_bars)) {
+            return false;
+        }
+        return (block.getMaterial().isSolid() || !block.isTranslucent() || block.isFullBlock());
+    }
+
+    public static Block getBlock(BlockPos blockPos) {
+        return getBlockState(blockPos).getBlock();
+    }
+
+    public static Block getBlock(double x, double y, double z) {
+        return getBlock(new BlockPos(x, y, z));
+    }
+
+    public static IBlockState getBlockState(BlockPos blockPos) {
+        return mc.theWorld.getBlockState(blockPos);
+    }
+
+    public static float getBlockHardness(final Block block, final ItemStack itemStack, boolean ignoreSlow, boolean ignoreGround) {
+        final float getBlockHardness = block.getBlockHardness(mc.theWorld, null);
+        if (getBlockHardness < 0.0f) {
+            return 0.0f;
+        }
+        return (block.getMaterial().isToolNotRequired() || (itemStack != null && itemStack.canHarvestBlock(block))) ? (getToolDigEfficiency(itemStack, block, ignoreSlow, ignoreGround) / getBlockHardness / 30.0f) : (getToolDigEfficiency(itemStack, block, ignoreSlow, ignoreGround) / getBlockHardness / 100.0f);
+    }
+
+    public static float getToolDigEfficiency(ItemStack itemStack, Block block, boolean ignoreSlow, boolean ignoreGround) {
+        float n = (itemStack == null) ? 1.0f : itemStack.getItem().getStrVsBlock(itemStack, block);
+        if (n > 1.0f) {
+            final int getEnchantmentLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.efficiency.effectId, itemStack);
+            if (getEnchantmentLevel > 0 && itemStack != null) {
+                n += getEnchantmentLevel * getEnchantmentLevel + 1;
+            }
+        }
+        if (mc.thePlayer.isPotionActive(Potion.digSpeed)) {
+            n *= 1.0f + (mc.thePlayer.getActivePotionEffect(Potion.digSpeed).getAmplifier() + 1) * 0.2f;
+        }
+        if (!ignoreSlow) {
+            if (mc.thePlayer.isPotionActive(Potion.digSlowdown)) {
+                float n2;
+                switch (mc.thePlayer.getActivePotionEffect(Potion.digSlowdown).getAmplifier()) {
+                    case 0: {
+                        n2 = 0.3f;
+                        break;
+                    }
+                    case 1: {
+                        n2 = 0.09f;
+                        break;
+                    }
+                    case 2: {
+                        n2 = 0.0027f;
+                        break;
+                    }
+                    default: {
+                        n2 = 8.1E-4f;
+                        break;
+                    }
+                }
+                n *= n2;
+            }
+            if (mc.thePlayer.isInsideOfMaterial(Material.water) && !EnchantmentHelper.getAquaAffinityModifier(mc.thePlayer)) {
+                n /= 5.0f;
+            }
+            if (!mc.thePlayer.onGround && !ignoreGround) {
+                n /= 5.0f;
+            }
+        }
+        return n;
+    }
+
+    public static List<BlockPos> getAllInBox(BlockPos from, BlockPos to) {
+        final List<BlockPos> blocks = new ArrayList<>();
+
+        BlockPos min = new BlockPos(Math.min(from.getX(), to.getX()),
+                Math.min(from.getY(), to.getY()), Math.min(from.getZ(), to.getZ()));
+        BlockPos max = new BlockPos(Math.max(from.getX(), to.getX()),
+                Math.max(from.getY(), to.getY()), Math.max(from.getZ(), to.getZ()));
+
+        for (int x = min.getX(); x <= max.getX(); x++)
+            for (int y = min.getY(); y <= max.getY(); y++)
+                for (int z = min.getZ(); z <= max.getZ(); z++)
+                    blocks.add(new BlockPos(x, y, z));
+
+        return blocks;
+    }
+
 }

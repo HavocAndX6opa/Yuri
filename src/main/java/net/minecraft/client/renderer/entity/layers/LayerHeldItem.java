@@ -1,5 +1,6 @@
 package net.minecraft.client.renderer.entity.layers;
 
+import ddlc.yuri.managers.impl.SlotManager;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBiped;
@@ -25,6 +26,11 @@ public class LayerHeldItem implements LayerRenderer<EntityLivingBase>
     public void doRenderLayer(EntityLivingBase entitylivingbaseIn, float p_177141_2_, float p_177141_3_, float partialTicks, float p_177141_5_, float p_177141_6_, float p_177141_7_, float scale)
     {
         ItemStack itemstack = entitylivingbaseIn.getHeldItem();
+        if (entitylivingbaseIn == Minecraft.getMinecraft().thePlayer) {
+            if (SlotManager.isServerSwapActive()) {
+                itemstack = SlotManager.getVisualStack();
+            }
+        }
 
         if (itemstack != null)
         {

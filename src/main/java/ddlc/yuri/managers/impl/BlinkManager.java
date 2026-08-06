@@ -12,9 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BlinkManager {
-
     public static boolean enabled;
     private static boolean disable = false;
+    private static boolean cancelReceived = false;
     public static final List<Packet<?>> blinkedSendPackets = new ArrayList<>();
     public static final List<Packet<?>> blinkedReceivePackets = new ArrayList<>();
 
@@ -28,7 +28,7 @@ public class BlinkManager {
 
     @EventHook
     public void onPacketReceived(PacketReceivedEvent event) {
-        if (enabled) {
+        if (enabled && cancelReceived) {
             blinkedReceivePackets.add(event.getPacket());
             event.setCancelled(true);
         }
@@ -55,9 +55,10 @@ public class BlinkManager {
         for (Packet<?> packet : receiveCopy) PacketUtils.queue(packet);
     }
 
-    public static void enable() {
+    public static void enable(boolean cancelReceivedPackets) {
         blinkedSendPackets.clear();
         blinkedReceivePackets.clear();
+        cancelReceived = cancelReceivedPackets;
         enabled = true;
     }
 

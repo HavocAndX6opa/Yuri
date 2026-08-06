@@ -1,6 +1,7 @@
 package ddlc.yuri.utils.render;
 
 import net.minecraft.client.renderer.GlStateManager;
+import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -60,6 +61,23 @@ public class GLUtils {
 
     public static void endRotate() {
         GlStateManager.popMatrix();
+    }
+
+    public static void start3D() {
+        GL11.glDisable((int)3553);
+        GL11.glDisable((int)2929);
+        GL11.glBlendFunc((int)770, (int)771);
+        GL11.glEnable((int)3042);
+        GL11.glDepthMask((boolean)false);
+        GlStateManager.disableCull();
+    }
+
+    public static void stop3D() {
+        GlStateManager.enableCull();
+        GL11.glEnable((int)3553);
+        GL11.glEnable((int)2929);
+        GL11.glDepthMask((boolean)true);
+        GL11.glDisable((int)3042);
     }
 
 }

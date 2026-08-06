@@ -32,7 +32,7 @@ public class DragUtils {
     private static final double CONTEXT_WIDTH = 60;
     private static final double CONTEXT_HEIGHT = 16;
 
-    private static final double SNAP_THRESHOLD = 5;
+    private static final double SNAP_THRESHOLD = 2;
     private static final double SNAP_PREVIEW = 26;
 
     private static double guideAlphaLineX = 0;

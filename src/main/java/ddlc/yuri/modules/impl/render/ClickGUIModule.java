@@ -1,6 +1,7 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.Yuri;
+import ddlc.yuri.api.gui.click.csgo.CSGOClickGUI;
 import ddlc.yuri.api.gui.click.exhibition.ExhibitionClickGui;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
@@ -19,6 +20,7 @@ public class ClickGUIModule extends Module implements IMinecraft {
 
     public enum Mode {
         NOVOLINE("Novoline"),
+        CSGO("CSGO"),
         EXHIBITION("Exhibition");
 
         public final String name;
@@ -79,6 +81,9 @@ public class ClickGUIModule extends Module implements IMinecraft {
             case NOVOLINE:
                 mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
                 break;
+            case CSGO:
+                mc.displayGuiScreen(Yuri.INSTANCE.getCsgoClickGui());
+                break;
         }
     }
 
@@ -88,6 +93,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
             // exhibition gui handles its own cleanup in onGuiClosed
         } else if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
             Yuri.INSTANCE.getNovolineClickGui().beginClose();
+        } else if (mc.currentScreen instanceof CSGOClickGUI) {
+            Yuri.INSTANCE.getCsgoClickGui().beginClose();
         }
     }
 }

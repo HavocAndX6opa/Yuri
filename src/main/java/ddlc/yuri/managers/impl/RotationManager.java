@@ -78,6 +78,26 @@ public class RotationManager {
         smooth();
     }
 
+    public static void stopRotation() {
+        active = false;
+        releasing = false;
+        rotations = null;
+        targetRotations = null;
+        raycast = null;
+    }
+
+    public static boolean isRotating() {
+        return active;
+    }
+
+    public static float getRotationYaw() {
+        return rotations != null ? rotations.x : mc.thePlayer.rotationYaw;
+    }
+
+    public static float getRotationPitch() {
+        return rotations != null ? rotations.y : mc.thePlayer.rotationPitch;
+    }
+
     @EventHook(value = EventPriority.HIGH)
     public void onPreUpdate(PreUpdateEvent event) {
         if (!active || rotations == null || lastRotations == null || targetRotations == null || lastServerRotations == null) {

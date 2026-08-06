@@ -5,6 +5,7 @@ import ddlc.yuri.api.events.impl.player.ChatEvent;
 import ddlc.yuri.api.events.impl.player.ItemSlowdownEvent;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.managers.impl.SlotManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.MovingSoundMinecartRiding;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -289,6 +290,16 @@ public class EntityPlayerSP extends AbstractClientPlayer
         this.sendQueue.addToSendQueue(new C0DPacketCloseWindow(this.openContainer.windowId));
         this.closeScreenAndDropStack();
     }
+
+    public ItemStack getHeldItem()
+    {
+        if (this == Minecraft.getMinecraft().thePlayer && SlotManager.isServerSwapActive()) {
+            return SlotManager.getVisualStack();
+        }
+
+        return super.getHeldItem();
+    }
+
 
     public void closeScreenAndDropStack()
     {

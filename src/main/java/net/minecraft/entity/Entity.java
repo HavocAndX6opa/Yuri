@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.player.StrafeEvent;
+import ddlc.yuri.api.events.impl.world.LivingUpdateEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFence;
 import net.minecraft.block.BlockFenceGate;
@@ -283,6 +284,8 @@ public abstract class Entity implements ICommandSender
         this.prevPosZ = this.posZ;
         this.prevRotationPitch = this.rotationPitch;
         this.prevRotationYaw = this.rotationYaw;
+
+        Yuri.INSTANCE.getEventBus().post(new LivingUpdateEvent(this));
 
         if (!this.worldObj.isRemote && this.worldObj instanceof WorldServer)
         {

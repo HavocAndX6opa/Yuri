@@ -275,7 +275,7 @@ public class EntityRenderer implements IResourceManagerReloadListener
         }
     }
 
-    private void loadShader(ResourceLocation resourceLocationIn)
+    public void loadShader(ResourceLocation resourceLocationIn)
     {
         if (OpenGlHelper.isFramebufferEnabled())
         {
@@ -1471,9 +1471,6 @@ public class EntityRenderer implements IResourceManagerReloadListener
         this.mc.mcProfiler.endSection();
     }
 
-
-    public Frustum cameraFrustum = new Frustum(new ClippingHelperImpl());
-
     private void renderWorldPass(int pass, float partialTicks, long finishTimeNano)
     {
         boolean flag = Config.isShaders();
@@ -1515,11 +1512,9 @@ public class EntityRenderer implements IResourceManagerReloadListener
         }
 
         ActiveRenderInfo.updateRenderInfo(this.mc.thePlayer, this.mc.gameSettings.thirdPersonView == 2);
-        this.mc.mcProfiler.endStartSection("frustum");
-        this.mc.mcProfiler.endStartSection("culling");
-        cameraFrustum.clippingHelper.disabled = Config.isShaders() && !Shaders.isFrustumCulling();
-        cameraFrustum.clippingHelper.init();
-        ICamera icamera = cameraFrustum;
+        ClippingHelper clippinghelper = ClippingHelperImpl.getInstance();
+        clippinghelper.disabled = Config.isShaders() && !Shaders.isFrustumCulling();
+        ICamera icamera = new Frustum(clippinghelper);
         Entity entity = this.mc.getRenderViewEntity();
         double d0 = entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * (double)partialTicks;
         double d1 = entity.lastTickPosY + (entity.posY - entity.lastTickPosY) * (double)partialTicks;

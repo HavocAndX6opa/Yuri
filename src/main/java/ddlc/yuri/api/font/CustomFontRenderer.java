@@ -560,4 +560,15 @@ public class CustomFontRenderer extends CustomFont {
 
         return stringbuilder.toString();
     }
+
+    public float drawBorderedString(String text, double x, double y, int color, int border) {
+        GlStateManager.pushMatrix();
+        drawString(text, x + 0.5F, y, border, true);
+        drawString(text, x - 0.5F, y, border, true);
+        drawString(text, x, y + 0.5F, border, true);
+        drawString(text, x, y - 0.5F, border, true);
+        float resultX = drawString(text, x, y, color, false);
+        GlStateManager.popMatrix();
+        return resultX;
+    }
 }

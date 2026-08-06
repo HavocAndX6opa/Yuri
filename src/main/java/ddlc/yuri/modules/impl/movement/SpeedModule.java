@@ -1,27 +1,24 @@
 package ddlc.yuri.modules.impl.movement;
 
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
+import ddlc.yuri.api.events.impl.player.MotionEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.StrafeEvent;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.movement.speed.SpeedMode;
-import ddlc.yuri.modules.impl.movement.speed.impl.IntaveSpeed;
-import ddlc.yuri.modules.impl.movement.speed.impl.LegitSpeed;
-import ddlc.yuri.modules.impl.movement.speed.impl.MineplexSpeed;
-import ddlc.yuri.modules.impl.movement.speed.impl.VanillaSpeed;
+import ddlc.yuri.modules.impl.movement.speed.impl.*;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-@ModuleInfo(
-        label = "Speed",
-        category = ModuleCategory.MOVEMENT,
-        description = "Makes you go FAST"
-)
+@ModuleInfo(label = "Speed", description = "Makes you go FAST", category = ModuleCategory.MOVEMENT)
 public class SpeedModule extends Module {
+
     public final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);
     public final NumberProperty speed = new NumberProperty("Speed",
             0.9, 0.1, 5.0, 0.1,
@@ -30,9 +27,9 @@ public class SpeedModule extends Module {
     private enum Mode {
         VANILLA("Vanilla"),
         LEGIT("Legit"),
+        POLAR("Polar"),
         INTAVE("Intave"),
-        MINEPLEX("Mineplex")
-        ;
+        NCP("NCP");
 
         public final String name;
 
@@ -52,8 +49,10 @@ public class SpeedModule extends Module {
 
         speedModes.put(Mode.VANILLA, new VanillaSpeed(this));
         speedModes.put(Mode.LEGIT, new LegitSpeed());
+        speedModes.put(Mode.POLAR, new PolarSpeed());
         speedModes.put(Mode.INTAVE, new IntaveSpeed());
-        speedModes.put(Mode.MINEPLEX, new MineplexSpeed());
+        speedModes.put(Mode.NCP, new NCPSpeed());
+
     }
 
     @EventHook
@@ -66,9 +65,45 @@ public class SpeedModule extends Module {
         }
     }
 
+    @EventHook
+    public void onMotion(MotionEvent event) {
+
+        SpeedMode currentMode = speedModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onMotion(event);
+        }
+    }
+
+    @EventHook
+    public void onStrafe(StrafeEvent event) {
+        SpeedMode currentMode = speedModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onStrafe(event);
+        }
+    }
+
+    @EventHook
+    public void onPacketReceived(PacketReceivedEvent event) {
+
+        SpeedMode currentMode = speedModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPacketReceived(event);
+        }
+    }
+
     @Override
     public void onDisable() {
-        if (mode.getValue() == Mode.INTAVE ||
-                mode.getValue() == Mode.MINEPLEX) mc.timer.timerSpeed = 1.0f;
+        SpeedMode currentMode = speedModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onDisable();
+        }
+    }
+
+    @Override
+    public void onEnable() {
+        SpeedMode currentMode = speedModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onEnable();
+        }
     }
 }

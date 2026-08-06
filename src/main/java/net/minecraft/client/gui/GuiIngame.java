@@ -9,7 +9,12 @@ import java.util.Random;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
-import ddlc.yuri.modules.impl.render.PostProcessingModule;
+import ddlc.yuri.api.font.CustomFontRenderer;
+import ddlc.yuri.managers.impl.SlotManager;
+import ddlc.yuri.modules.Module;
+import ddlc.yuri.modules.ModuleCategory;
+import ddlc.yuri.modules.impl.render.*;
+import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -309,7 +314,11 @@ public class GuiIngame extends Gui
 
         if (scoreobjective1 != null)
         {
-            this.renderScoreboard(scoreobjective1, scaledresolution);
+            if (Yuri.INSTANCE.getModuleManager().getModule(ScoreboardModule.class).isEnabled()) {
+                renderCustomScoreboard(scoreobjective1, scaledresolution);
+            } else {
+                this.renderScoreboard(scoreobjective1, scaledresolution);
+            }
         }
 
         GlStateManager.enableBlend();
@@ -338,26 +347,28 @@ public class GuiIngame extends Gui
         GlStateManager.enableAlpha();
     }
 
-    protected void renderTooltip(ScaledResolution sr, float partialTicks)
-    {
-        if (this.mc.getRenderViewEntity() instanceof EntityPlayer)
-        {
+
+    protected void renderTooltip(ScaledResolution sr, float partialTicks) {
+        if (this.mc.getRenderViewEntity() instanceof EntityPlayer) {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             this.mc.getTextureManager().bindTexture(widgetsTexPath);
-            EntityPlayer entityplayer = (EntityPlayer)this.mc.getRenderViewEntity();
+            EntityPlayer entityplayer = (EntityPlayer) this.mc.getRenderViewEntity();
             int i = sr.getScaledWidth() / 2;
+            int selectedSlot = entityplayer.inventory.currentItem;
+            if (SlotManager.isServerSwapActive()) {
+                selectedSlot = SlotManager.getOriginalSlot();
+            }
             float f = this.zLevel;
             this.zLevel = -90.0F;
             this.drawTexturedModalRect(i - 91, sr.getScaledHeight() - 22, 0, 0, 182, 22);
-            this.drawTexturedModalRect(i - 91 - 1 + entityplayer.inventory.currentItem * 20, sr.getScaledHeight() - 22 - 1, 0, 22, 24, 22);
+            this.drawTexturedModalRect(i - 91 - 1 + selectedSlot * 20, sr.getScaledHeight() - 22 - 1, 0, 22, 24, 22);
             this.zLevel = f;
             GlStateManager.enableRescaleNormal();
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
             RenderHelper.enableGUIStandardItemLighting();
 
-            for (int j = 0; j < 9; ++j)
-            {
+            for (int j = 0; j < 9; ++j) {
                 int k = sr.getScaledWidth() / 2 - 90 + j * 20 + 2;
                 int l = sr.getScaledHeight() - 16 - 3;
                 this.renderHotbarItem(j, k, l, partialTicks, entityplayer);
@@ -1175,4 +1186,141 @@ public class GuiIngame extends Gui
     {
         this.overlayPlayerList.resetFooterHeader();
     }
+
+    // Place this field at the class level of your Scoreboard renderer class
+    private float arraylistOffsetAnim = 0f;
+
+    public void renderCustomScoreboard(ScoreObjective scoreObjective, ScaledResolution resolution) {
+        net.minecraft.scoreboard.Scoreboard scoreboard = scoreObjective.getScoreboard();
+        Collection<Score> scores = scoreboard.getSortedScores(scoreObjective);
+        CustomFontRenderer customFr = FontUtils.getFont("sf", 21);
+
+        boolean useMcFont = !ScoreboardModule.customFont.getValue();
+
+        List<Score> filteredScores = Lists.newArrayList(Iterables.filter(scores, new Predicate<Score>() {
+            @Override
+            public boolean apply(Score score) {
+                return score.getPlayerName() != null && !score.getPlayerName().startsWith("#");
+            }
+        }));
+
+        List<Score> displayedScores;
+        if (filteredScores.size() > 15) {
+            displayedScores = Lists.newArrayList(Iterables.skip(filteredScores, filteredScores.size() - 15));
+        } else {
+            displayedScores = filteredScores;
+        }
+
+        int maxWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(scoreObjective.getDisplayName()) : customFr.getStringWidth(scoreObjective.getDisplayName());
+        for (Score score : displayedScores) {
+            ScorePlayerTeam playerTeam = scoreboard.getPlayersTeam(score.getPlayerName());
+            String scoreText = ScorePlayerTeam.formatPlayerName(playerTeam, score.getPlayerName()) + " " + EnumChatFormatting.RED;
+            int width = useMcFont ? this.mc.fontRendererObj.getStringWidth(scoreText) : customFr.getStringWidth(scoreText);
+            maxWidth = Math.max(maxWidth, width);
+        }
+
+        int fontHeight = useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight();
+
+        int totalHeight = displayedScores.size() * fontHeight;
+        int startX = resolution.getScaledWidth() - maxWidth;
+
+        // --- MODE CHECK & ANIMATION LOGIC START ---
+        float targetOffset = 0f;
+
+        ScoreboardModule scoreboardModule = Yuri.INSTANCE.getModuleManager().getModule(ScoreboardModule.class);
+        ModListModule hudModule = Yuri.INSTANCE.getModuleManager().getModule(ModListModule.class);
+
+        if (scoreboardModule != null && scoreboardModule.isEnabled()) {
+            ScoreboardModule.Mode style = ScoreboardModule.scoreboardStyle.getValue();
+
+            // Handle X positioning
+            if (style == ScoreboardModule.Mode.LEFT) {
+                startX = 0;
+            } else if (style == ScoreboardModule.Mode.LEFT_OFFSET) {
+                startX = 14;
+            } else if (style == ScoreboardModule.Mode.VANILLA_OFFSET) {
+                startX = resolution.getScaledWidth() - maxWidth - 14;
+            }
+
+            // Only calculate and apply Y offset if smartY is enabled AND style matches right-sided options
+            if (ScoreboardModule.smartY.getValue() && (style == ScoreboardModule.Mode.VANILLA_OFFSET || style == ScoreboardModule.Mode.VANILLA)) {
+                if (hudModule != null && hudModule.isEnabled()) {
+                    int visibleModules = 0;
+                    if (ModListModule.moduleCache != null) {
+                        for (Module module : ModListModule.moduleCache) {
+                            if (ModListModule.hideVisuals.getValue() && module.getCategory() == ModuleCategory.RENDER || (ModListModule.hideMisc.getValue() && module.getCategory() == ModuleCategory.MISC)) {
+                                continue;
+                            }
+                            if (module instanceof ClickGUIModule
+                                    || module instanceof WatermarkModule
+                                    || module instanceof ModListModule) {
+                                continue;
+                            }
+                            if (module.isVisible()) {
+                                visibleModules++;
+                            }
+                        }
+                    }
+
+                    if (visibleModules > 0) {
+                        float arrayListBottomY = 2f + (visibleModules * 12f);
+                        float scoreboardTopTarget = arrayListBottomY + 5f;
+                        int scoreboardRenderHeight = (displayedScores.size() + 1) * fontHeight;
+
+                        float desiredStartY = scoreboardTopTarget + scoreboardRenderHeight;
+                        float defaultStartY = (resolution.getScaledHeight() / 2f) + (totalHeight / 3f);
+
+                        targetOffset = desiredStartY - defaultStartY;
+                    }
+                }
+            }
+        }
+
+        // Smooth interpolation (handles clean sliding when toggled on/off)
+        float speedFactor = 0.125f;
+        arraylistOffsetAnim = arraylistOffsetAnim + (targetOffset - arraylistOffsetAnim) * speedFactor;
+
+        int startY = (int) (resolution.getScaledHeight() / 2 + totalHeight / 3 + arraylistOffsetAnim);
+
+        float x = (float) startX;
+        int rowIndex = 0;
+
+        int backgroundColor = 0x50000000;
+        int textColor = 0xFFFFFFFF;
+
+        for (Score score : displayedScores) {
+            rowIndex++;
+            ScorePlayerTeam playerTeam = scoreboard.getPlayersTeam(score.getPlayerName());
+            String playerName = ScorePlayerTeam.formatPlayerName(playerTeam, score.getPlayerName());
+            String scorePoints = "";
+
+            int yPos = startY - rowIndex * fontHeight;
+
+            drawRect(startX - 2, yPos, startX + maxWidth + 2, yPos + fontHeight, backgroundColor);
+
+            int playerNameWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(playerName) : customFr.getStringWidth(playerName);
+            int scorePointsWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(scorePoints) : customFr.getStringWidth(scorePoints);
+
+            if (useMcFont) {
+                this.mc.fontRendererObj.drawString(playerName, x + (maxWidth - playerNameWidth - scorePointsWidth) / 2, yPos, textColor, false);
+                this.mc.fontRendererObj.drawString(scorePoints, x + maxWidth - scorePointsWidth, yPos, textColor, false);
+            } else {
+                customFr.drawString(playerName, x + (maxWidth - playerNameWidth - scorePointsWidth) / 2, (float) yPos, textColor);
+                customFr.drawString(scorePoints, x + maxWidth - scorePointsWidth, (float) yPos, textColor);
+            }
+
+            if (rowIndex == displayedScores.size()) {
+                String header = scoreObjective.getDisplayName();
+                drawRect(startX - 2, yPos - fontHeight - 1, startX + maxWidth + 2, yPos - 1, backgroundColor);
+                drawRect(startX - 2, yPos - 1, startX + maxWidth + 2, yPos, backgroundColor);
+
+                if (useMcFont) {
+                    this.mc.fontRendererObj.drawString(header, x + (maxWidth - this.mc.fontRendererObj.getStringWidth(header)) / 2, yPos - fontHeight, textColor, false);
+                } else {
+                    customFr.drawString(header, x + (maxWidth - customFr.getStringWidth(header)) / 2, (float) (yPos - fontHeight), textColor);
+                }
+            }
+        }
+    }
+
 }

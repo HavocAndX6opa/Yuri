@@ -2,22 +2,30 @@ package ddlc.yuri.modules.impl.movement;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.ItemSlowdownEvent;
+import ddlc.yuri.api.events.impl.player.MotionEvent;
+import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.StrafeEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
+import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
+import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
 import net.minecraft.item.*;
 
-@ModuleInfo(
-        label = "No Slow",
-        description = "Stops slow-down on items",
-        category = ModuleCategory.MOVEMENT
-)
+import java.util.EnumMap;
+import java.util.Map;
+
+@ModuleInfo(label = "No Slow", category = ModuleCategory.MOVEMENT, description = "Prevents you from slowing down while using items")
 public final class NoSlowModule extends Module {
 
-    private enum Mode {
-        VANILLA("Vanilla");
+    public enum Mode {
+        VANILLA("Vanilla"),
+        NCP("NCP"),
+        HYPIXEL("Hypixel");
 
         public final String name;
 
@@ -30,39 +38,72 @@ public final class NoSlowModule extends Module {
         }
     }
 
-    private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);
+    public final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);
+    public final Property<Boolean> food = new Property<Boolean>("Food Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> potion = new Property<Boolean>("Potion Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> sword = new Property<Boolean>("Sword Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> bow = new Property<Boolean>("Bow Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final NumberProperty delay = new NumberProperty("Delay", 8, 0, 30, 1, () -> mode.getValue() == Mode.HYPIXEL);
+    public final NumberProperty finishEating = new NumberProperty("When To Finish Eating", 30, 20, 36, 1, () -> mode.getValue() == Mode.HYPIXEL);
 
-    private final Property<Boolean> food = new Property<>("Food Items", true);
-    private final Property<Boolean> potion = new Property<>("Potion Items", true);
-    private final Property<Boolean> sword = new Property<>("Sword Items", true);
-    private final Property<Boolean> bow = new Property<>("Bow Items", true);
+    public boolean usingItem;
+
+    private final Map<Mode, NoSlowMode> noSlowModes;
+
+    {
+        noSlowModes = new EnumMap<>(Mode.class);
+        noSlowModes.put(Mode.NCP, new NCPNoSlow());
+        noSlowModes.put(Mode.HYPIXEL, new HypixelNoSlow(this));
+    }
+
+    @EventHook
+    public void onPreUpdate(PreUpdateEvent event) {
+        if (mc.thePlayer == null) return;
+
+        setSuffix(mode.getValue().toString());
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPreUpdate(event);
+        }
+    }
+
+    @EventHook
+    public void onStrafe(StrafeEvent event) {
+        if (mc.thePlayer == null) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onStrafe(event);
+        }
+    }
+
+    @EventHook
+    public void onPreMotion(MotionEvent event) {
+        if (mc.thePlayer == null) return;
+        if (!event.isPre()) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onMotion(event);
+        }
+    }
 
     @EventHook
     public void onSlowdown(ItemSlowdownEvent event) {
-        if (!this.isEnabled())
-            return;
-        if (mc.thePlayer == null)
-            return;
+        if (!this.isEnabled() || mc.thePlayer == null || !mc.thePlayer.isUsingItem()) return;
 
-        if (!mc.thePlayer.isUsingItem())
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode instanceof HypixelNoSlow) {
+            (currentMode).onSlowdown(event);
             return;
+        }
 
         Item item = mc.thePlayer.getHeldItem().getItem();
 
-        if (food.getValue() && item instanceof ItemFood) {
-            event.setCancelled(true);
-        }
-
-        if (potion.getValue() && item instanceof ItemPotion) {
-            event.setCancelled(true);
-        }
-
-        if (sword.getValue() && item instanceof ItemSword) {
-            event.setCancelled(true);
-        }
-
-        if (bow.getValue() && item instanceof ItemBow) {
-            event.setCancelled(true);
-        }
+        if (food.getValue() && item instanceof ItemFood) event.setCancelled(true);
+        if (potion.getValue() && item instanceof ItemPotion) event.setCancelled(true);
+        if (sword.getValue() && item instanceof ItemSword) event.setCancelled(true);
+        if (bow.getValue() && item instanceof ItemBow) event.setCancelled(true);
     }
 }

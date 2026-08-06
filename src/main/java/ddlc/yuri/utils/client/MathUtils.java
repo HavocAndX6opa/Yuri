@@ -48,16 +48,16 @@ public class MathUtils implements IMinecraft {
         return (float) (output * Math.exp(-(x * x) / (2.0 * (sigma * sigma))));
     }
 
-    public static double lerp(double pct, double start, double end) {
-        return start + pct * (end - start);
+    public static int lerp(int a, int b, float f) {
+        return a + (int)(f * (float)(b - a));
     }
 
-    public static float lerp(float min, float max, float delta) {
-        return min + (max - min) * delta;
+    public static float lerp(float a, float b, float f) {
+        return a + f * (b - a);
     }
-    public static double incValue(double val, double inc) {
-        double one = 1.0 / inc;
-        return Math.round(val * one) / one;
+
+    public static double lerp(double a, double b, double f) {
+        return a + f * (b - a);
     }
 
     public static float interpolate(float current, float target) {

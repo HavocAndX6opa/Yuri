@@ -2,14 +2,13 @@ package ddlc.yuri.api.properties.impl;
 
 import ddlc.yuri.api.properties.Property;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 
 public class MultiModeProperty<T extends Enum<T>> extends Property<List<T>> {
 
     private final T[] values;
+    private final Map<T, Supplier<Boolean>> suppliers = new LinkedHashMap<>();
 
     @SafeVarargs
     public MultiModeProperty(String label, Supplier<Boolean> dependency, T... values) {
@@ -24,6 +23,16 @@ public class MultiModeProperty<T extends Enum<T>> extends Property<List<T>> {
     @SafeVarargs
     public MultiModeProperty(String label, T... values) {
         this(label, () -> true, values);
+    }
+
+    public MultiModeProperty<T> depend(T variant, Supplier<Boolean> supplier) {
+        suppliers.put(variant, supplier);
+        return this;
+    }
+
+    public boolean isVisible(Enum<?> variant) {
+        Supplier<Boolean> s = suppliers.get(variant);
+        return s == null || s.get();
     }
 
     @SuppressWarnings("unchecked")

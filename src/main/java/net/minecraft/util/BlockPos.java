@@ -257,6 +257,14 @@ public class BlockPos extends Vec3i
         };
     }
 
+    public double distanceTo(BlockPos b) {
+        double d0 = b.getX() - this.getX();
+        double d1 = b.getY() - this.getY();
+        double d2 = b.getZ() - this.getZ();
+        return MathHelper.sqrt_double(d0 * d0 + d1 * d1 + d2 * d2);
+    }
+
+
     public static final class MutableBlockPos extends BlockPos
     {
         private int x;

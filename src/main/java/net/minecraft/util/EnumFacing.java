@@ -24,7 +24,7 @@ public enum EnumFacing implements IStringSerializable
     private final EnumFacing.AxisDirection axisDirection;
     private final Vec3i directionVec;
     public static final EnumFacing[] VALUES = new EnumFacing[6];
-    private static final EnumFacing[] HORIZONTALS = new EnumFacing[4];
+    public static final EnumFacing[] HORIZONTALS = new EnumFacing[4];
     private static final Map<String, EnumFacing> NAME_LOOKUP = Maps.<String, EnumFacing>newHashMap();
 
     private EnumFacing(int indexIn, int oppositeIn, int horizontalIndexIn, String nameIn, EnumFacing.AxisDirection axisDirectionIn, EnumFacing.Axis axisIn, Vec3i directionVecIn)

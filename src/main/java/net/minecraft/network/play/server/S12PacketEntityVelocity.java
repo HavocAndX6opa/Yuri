@@ -102,4 +102,10 @@ public class S12PacketEntityVelocity implements Packet<INetHandlerPlayClient>
     {
         return this.motionZ;
     }
+
+    public void setMotion(int motionX, int motionY, int motionZ) {
+        this.motionX = motionX;
+        this.motionY = motionY;
+        this.motionZ = motionZ;
+    }
 }

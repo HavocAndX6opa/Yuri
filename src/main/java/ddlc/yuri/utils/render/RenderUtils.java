@@ -1,12 +1,19 @@
 package ddlc.yuri.utils.render;
 
+import ddlc.yuri.managers.impl.ColorManager;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static ddlc.yuri.utils.misc.IMinecraft.mc;
 import static org.lwjgl.opengl.GL11.*;
@@ -18,7 +25,77 @@ public class RenderUtils {
     private static float scissorTransformOriginX;
     private static float scissorTransformOriginY;
 
-    // 2D Rendering
+    // 3d !! (I hate this fucking bullshit)
+
+    public static void drawBoundingBox(final AxisAlignedBB a) {
+        final Tessellator tessellator = Tessellator.getInstance();
+        final WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.endVertex();
+        tessellator.draw();
+    }
+
+    public static void drawOutlinedBoundingBox(final AxisAlignedBB a) {
+        final Tessellator tessellator = Tessellator.getInstance();
+        final WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        worldrenderer.begin(3, DefaultVertexFormats.POSITION);
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
+        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.endVertex();
+        tessellator.draw();
+    }
+
+    public static void renderPlayerPosition(double x, double y, double z) {
+        AxisAlignedBB bb = new AxisAlignedBB(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3);
+        GLUtils.start3D();
+        GlStateManager.pushMatrix();
+        GlStateManager.color(ColorManager.getColor().getRed() / 255f, ColorManager.getColor().getGreen() / 255f,
+                ColorManager.getColor().getBlue() / 255f, 80 / 255f);
+        RenderUtils.drawBoundingBox(bb);
+        GlStateManager.popMatrix();
+        GLUtils.stop3D();
+    }
+
+    // 2d rendering
 
     public static void drawGradientRect(double left, double top, double right, double bottom,
                                         boolean sideways,
@@ -68,25 +145,21 @@ public class RenderUtils {
         GlStateManager.enableAlpha();
         GlStateManager.enableTexture2D();
 
-        // reset color so fonts don't inherit gradient color
         GlStateManager.color(1, 1, 1, 1);
     }
 
     public static void drawCenteredGradientRect(double left, double top, double right, double bottom,
                                                 int edgeColor, int centerColor) {
-        // 1. Extract RGBA components for the Edge Color (Left & Right)
         float ea = (edgeColor >> 24 & 255) / 255F;
         float er = (edgeColor >> 16 & 255) / 255F;
         float eg = (edgeColor >> 8 & 255) / 255F;
         float eb = (edgeColor & 255) / 255F;
 
-        // 2. Extract RGBA components for the Center Color (The Glow)
         float ca = (centerColor >> 24 & 255) / 255F;
         float cr = (centerColor >> 16 & 255) / 255F;
         float cg = (centerColor >> 8 & 255) / 255F;
         float cb = (centerColor & 255) / 255F;
 
-        // Setup OpenGL states matching your OG method
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
@@ -95,10 +168,8 @@ public class RenderUtils {
 
         GL11.glBegin(GL11.GL_QUADS);
 
-        // Find the exact horizontal midpoint of the notification box
         double midX = left + (right - left) / 2.0;
 
-        // --- LEFT HALF (Fades from Edge Color to Center Color) ---
         GlStateManager.color(er, eg, eb, ea);
         GL11.glVertex2d(left, top);
         GL11.glVertex2d(left, bottom);
@@ -107,7 +178,6 @@ public class RenderUtils {
         GL11.glVertex2d(midX, bottom);
         GL11.glVertex2d(midX, top);
 
-        // --- RIGHT HALF (Fades from Center Color back to Edge Color) ---
         GlStateManager.color(cr, cg, cb, ca);
         GL11.glVertex2d(midX, top);
         GL11.glVertex2d(midX, bottom);
@@ -118,7 +188,6 @@ public class RenderUtils {
 
         GL11.glEnd();
 
-        // Reset OpenGL states
         GlStateManager.shadeModel(GL11.GL_FLAT);
         GlStateManager.disableBlend();
         GlStateManager.enableAlpha();
@@ -185,21 +254,13 @@ public class RenderUtils {
         float cornerValue = (float) (outlineThickness * .19);
 
         glBegin(GL_LINES);
-        // left start
         glVertex2d(x, y);
-        // left end
         glVertex2d(x, left ? y + height + cornerValue : y);
-        // right start
         glVertex2d(x + width, y + height + cornerValue);
-        // right end
         glVertex2d(x + width, right ? y - cornerValue : y + height + cornerValue);
-        // top start
         glVertex2d(x, y);
-        // top end
         glVertex2d(top ? x + width : x, y);
-        // bottom start
         glVertex2d(x, y + height);
-        // bottom end
         glVertex2d(bottom ? x + width : x, y + height);
         glEnd();
 
@@ -208,7 +269,138 @@ public class RenderUtils {
         glDisable(GL_LINE_SMOOTH);
     }
 
-    // Color Utilities
+    public static void drawBorderedGradientRect(float x, float y, float width, float height, float radius, float thickness, int bgColor, Color gradientStart, Color gradientEnd) {
+        RoundedUtils.drawCustomRoundedRect(x, y, width, height, radius, true, true, true, true, new Color(bgColor, true));
+
+        List<float[]> outerPath = buildRoundedRectPath(x, y, width, height, radius);
+        List<float[]> innerPath = buildRoundedRectPath(x + thickness, y + thickness, width - thickness * 2, height - thickness * 2, Math.max(0, radius - thickness));
+
+        float totalLength = pathLength(outerPath);
+
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.disableAlpha();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.shadeModel(GL11.GL_SMOOTH);
+
+        GL11.glBegin(GL11.GL_QUADS);
+
+        float distance = 0f;
+        int size = outerPath.size();
+        for (int i = 0; i < size; i++) {
+            float[] outerA = outerPath.get(i);
+            float[] outerB = outerPath.get((i + 1) % size);
+            float[] innerA = innerPath.get(i % innerPath.size());
+            float[] innerB = innerPath.get((i + 1) % innerPath.size());
+
+            float segLength = dist(outerA, outerB);
+            float tA = distance / totalLength;
+            distance += segLength;
+            float tB = distance / totalLength;
+
+            Color colorA = interpolateColorC(gradientStart, gradientEnd, triangleWave(tA));
+            Color colorB = interpolateColorC(gradientStart, gradientEnd, triangleWave(tB));
+
+            setGlColor(colorA);
+            GL11.glVertex2f(outerA[0], outerA[1]);
+            GL11.glVertex2f(innerA[0], innerA[1]);
+
+            setGlColor(colorB);
+            GL11.glVertex2f(innerB[0], innerB[1]);
+            GL11.glVertex2f(outerB[0], outerB[1]);
+        }
+
+        GL11.glEnd();
+
+        GlStateManager.shadeModel(GL11.GL_FLAT);
+        GlStateManager.disableBlend();
+        GlStateManager.enableAlpha();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1, 1, 1, 1);
+    }
+
+    private static List<float[]> buildRoundedRectPath(float x, float y, float width, float height, float radius) {
+        List<float[]> points = new ArrayList<>();
+        int segments = 12;
+        radius = Math.min(radius, Math.min(width, height) / 2f);
+
+        float[][] corners = {
+                {x + radius, y + radius, 180, 270},
+                {x + width - radius, y + radius, 270, 360},
+                {x + width - radius, y + height - radius, 0, 90},
+                {x + radius, y + height - radius, 90, 180}
+        };
+
+        for (float[] corner : corners) {
+            float cx = corner[0];
+            float cy = corner[1];
+            float startAngle = corner[2];
+            float endAngle = corner[3];
+            for (int i = 0; i <= segments; i++) {
+                float angle = (float) Math.toRadians(startAngle + (endAngle - startAngle) * i / segments);
+                points.add(new float[]{cx + radius * (float) Math.cos(angle), cy + radius * (float) Math.sin(angle)});
+            }
+        }
+
+        return points;
+    }
+
+    private static float pathLength(List<float[]> path) {
+        float length = 0f;
+        for (int i = 0; i < path.size(); i++) {
+            length += dist(path.get(i), path.get((i + 1) % path.size()));
+        }
+        return length;
+    }
+
+    private static float dist(float[] a, float[] b) {
+        float dx = b[0] - a[0];
+        float dy = b[1] - a[1];
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private static float triangleWave(float t) {
+        float wrapped = t % 1f;
+        return wrapped <= 0.5f ? wrapped * 2f : (1f - wrapped) * 2f;
+    }
+
+    public static void drawCircle(float cx, float cy, float r, int num_segments, int c) {
+        GL11.glPushMatrix();
+        cx *= 2.0F;
+        cy *= 2.0F;
+        float f = (c >> 24 & 0xFF) / 255.0F;
+        float f1 = (c >> 16 & 0xFF) / 255.0F;
+        float f2 = (c >> 8 & 0xFF) / 255.0F;
+        float f3 = (c & 0xFF) / 255.0F;
+        float theta = (float) (6.2831852D / num_segments);
+        float p = (float) Math.cos(theta);
+        float s = (float) Math.sin(theta);
+        float x = r *= 2.0F;
+        float y = 0.0F;
+        GLUtils.setup2DRendering();
+        GL11.glLineWidth(1.5F);
+        GL11.glScalef(0.5F, 0.5F, 0.5F);
+        GL11.glColor4f(f1, f2, f3, f);
+        GL11.glBegin(GL_LINE_LOOP);
+        int ii = 0;
+        while (ii < num_segments) {
+            GL11.glVertex2f(x + cx, y + cy);
+            float t = x;
+            x = p * x - s * y;
+            y = s * t + p * y;
+            ii++;
+        }
+        GL11.glEnd();
+        GL11.glScalef(2.0F, 2.0F, 2.0F);
+        GLUtils.end2DRendering();
+        GL11.glPopMatrix();
+    }
+
+    // color shit
+
+    private static void setGlColor(Color color) {
+        GlStateManager.color(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f);
+    }
 
     public static void color(int color, float alpha) {
         float r = (float) (color >> 16 & 255) / 255.0F;
@@ -315,7 +507,8 @@ public class RenderUtils {
         return value < min ? min : Math.min(value, max);
     }
 
-    // Random GL
+    // gay ass gl shiz
+
     public static void setAlphaLimit(float limit) {
         GlStateManager.enableAlpha();
         GlStateManager.alphaFunc(GL_GREATER, (float) (limit * .01));

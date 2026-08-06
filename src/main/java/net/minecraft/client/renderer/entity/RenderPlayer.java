@@ -1,5 +1,9 @@
 package net.minecraft.client.renderer.entity;
 
+import ddlc.yuri.Yuri;
+import ddlc.yuri.managers.impl.SlotManager;
+import ddlc.yuri.modules.impl.combat.AuraModule;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.model.ModelPlayer;
@@ -17,6 +21,8 @@ import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.util.ResourceLocation;
+
+import static ddlc.yuri.utils.misc.IMinecraft.mc;
 
 public class RenderPlayer extends RendererLivingEntity<AbstractClientPlayer>
 {
@@ -73,6 +79,11 @@ public class RenderPlayer extends RendererLivingEntity<AbstractClientPlayer>
         else
         {
             ItemStack itemstack = clientPlayer.inventory.getCurrentItem();
+            if (clientPlayer == Minecraft.getMinecraft().thePlayer) {
+                if (SlotManager.isServerSwapActive()) {
+                    itemstack = SlotManager.getVisualStack();
+                }
+            }
             modelplayer.setInvisible(true);
             modelplayer.bipedHeadwear.showModel = clientPlayer.isWearing(EnumPlayerModelParts.HAT);
             modelplayer.bipedBodyWear.showModel = clientPlayer.isWearing(EnumPlayerModelParts.JACKET);
@@ -91,6 +102,11 @@ public class RenderPlayer extends RendererLivingEntity<AbstractClientPlayer>
             else
             {
                 modelplayer.heldItemRight = 1;
+
+                if (Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled() && AuraModule.target != null && AuraModule.autoBlocking && clientPlayer == mc.thePlayer)
+                {
+                    modelplayer.heldItemRight = 3;
+                }
 
                 if (clientPlayer.getItemInUseCount() > 0)
                 {

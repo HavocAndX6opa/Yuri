@@ -2,6 +2,12 @@ package ddlc.yuri.utils.player;
 
 import ddlc.yuri.api.events.impl.player.MoveEvent;
 import ddlc.yuri.utils.client.MathUtils;
+import net.minecraft.block.BlockAir;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.potion.Potion;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MathHelper;
 
 import static ddlc.yuri.utils.misc.IMinecraft.mc;
@@ -145,4 +151,81 @@ public class MoveUtils {
         mc.thePlayer.motionX = forward * moveSpeed * mx + strafe * moveSpeed * mz;
         mc.thePlayer.motionZ = forward * moveSpeed * mz - strafe * moveSpeed * mx;
     }
+
+    public static void strafe() {
+        if (!isMoving()) {
+            return;
+        }
+
+        final double yaw = direction();
+        mc.thePlayer.motionX = -MathHelper.sin((float) yaw) * Math.hypot(mc.thePlayer.motionX, mc.thePlayer.motionZ);
+        mc.thePlayer.motionZ = MathHelper.cos((float) yaw) * Math.hypot(mc.thePlayer.motionX, mc.thePlayer.motionZ);
+    }
+
+    public static void strafe(final double speed) {
+        if (!isMoving()) {
+            return;
+        }
+
+        final double yaw = direction();
+        mc.thePlayer.motionX = -MathHelper.sin((float) yaw) * speed;
+        mc.thePlayer.motionZ = MathHelper.cos((float) yaw) * speed;
+    }
+
+    public static double getBaseMoveSpeed() {
+        double baseSpeed = 0.2873;
+        if (mc.thePlayer.isPotionActive(Potion.moveSpeed)) {
+            baseSpeed *= 1.0 + 0.16 * (mc.thePlayer.getActivePotionEffect(Potion.moveSpeed).getAmplifier() + 1);
+        }
+        return baseSpeed;
+    }
+
+    public static double getBaseMoveSpeed(double base) {
+        double baseSpeed = base;
+        if (mc.thePlayer.isPotionActive(Potion.moveSpeed)) {
+            baseSpeed *= 1.0 + 0.2 * (mc.thePlayer.getActivePotionEffect(Potion.moveSpeed).getAmplifier() + 1);
+        }
+        if (mc.thePlayer.isPotionActive(Potion.moveSlowdown)) {
+            baseSpeed /= 1.0 + 0.2 * (mc.thePlayer.getActivePotionEffect(Potion.moveSlowdown).getAmplifier() + 1);
+        }
+        return baseSpeed;
+    }
+
+    public static double predictedMotion(final double motion, final int ticks) {
+        if (ticks == 0) return motion;
+        double predicted = motion;
+
+        for (int i = 0; i < ticks; i++) {
+            predicted = (predicted - 0.08) * 0.98F;
+        }
+
+        return predicted;
+    }
+
+    public static double findGround(EntityPlayer player) {
+        return findGroundB(player).getY();
+    }
+
+    public static BlockPos findGroundB(EntityPlayer player) {
+        for (int i = 0; i < 50; i++) {
+            BlockPos pos = new BlockPos(player.getPositionVector().floor().subtract(0, i, 0));
+            if (!(mc.theWorld.getBlockState(pos).getBlock() instanceof BlockAir)) {
+                return pos;
+            }
+        }
+
+        return BlockPos.ORIGIN;
+    }
+
+    public static boolean isMovingMotion(EntityLivingBase player) {
+        return player != null && getSpeedPosBased(player) != 0;
+    }
+
+    public static double getSpeedPosBased(EntityLivingBase player) {
+        double motionX = player.posX - player.prevPosX;
+        double motionZ = player.posZ - player.prevPosZ;
+
+        return Math.sqrt(motionX * motionX + motionZ * motionZ);
+    }
+
 }

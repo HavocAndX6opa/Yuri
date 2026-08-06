@@ -1,6 +1,7 @@
 package net.minecraft.client.renderer;
 
 import ddlc.yuri.Yuri;
+import ddlc.yuri.managers.impl.SlotManager;
 import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.render.CameraModule;
 import ddlc.yuri.utils.player.InventoryUtils;
@@ -614,16 +615,21 @@ public class ItemRenderer {
         this.prevEquippedProgress = this.equippedProgress;
         EntityPlayer entityplayer = this.mc.thePlayer;
         ItemStack itemstack = entityplayer.inventory.getCurrentItem();
+        int visualSlot = entityplayer.inventory.currentItem;
+        if (SlotManager.isServerSwapActive()) {
+            itemstack = SlotManager.getVisualStack();
+            visualSlot = SlotManager.getOriginalSlot();
+        }
         boolean flag = false;
 
         if (this.itemToRender != null && itemstack != null) {
             if (!this.itemToRender.getIsItemStackEqual(itemstack)) {
                 if (Reflector.ForgeItem_shouldCauseReequipAnimation.exists()) {
-                    boolean flag1 = Reflector.callBoolean(this.itemToRender.getItem(), Reflector.ForgeItem_shouldCauseReequipAnimation, new Object[]{this.itemToRender, itemstack, Boolean.valueOf(this.equippedItemSlot != entityplayer.inventory.currentItem)});
+                    boolean flag1 = Reflector.callBoolean(this.itemToRender.getItem(), Reflector.ForgeItem_shouldCauseReequipAnimation, new Object[]{this.itemToRender, itemstack, Boolean.valueOf(this.equippedItemSlot != visualSlot)});
 
                     if (!flag1) {
                         this.itemToRender = itemstack;
-                        this.equippedItemSlot = entityplayer.inventory.currentItem;
+                        this.equippedItemSlot = visualSlot;
                         return;
                     }
                 }
@@ -643,7 +649,7 @@ public class ItemRenderer {
 
         if (this.equippedProgress < 0.1F) {
             this.itemToRender = itemstack;
-            this.equippedItemSlot = entityplayer.inventory.currentItem;
+            this.equippedItemSlot = visualSlot;
 
             if (Config.isShaders()) {
                 Shaders.setItemToRenderMain(itemstack);

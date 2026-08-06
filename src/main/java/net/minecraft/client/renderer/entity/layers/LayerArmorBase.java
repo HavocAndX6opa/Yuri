@@ -2,6 +2,9 @@ package net.minecraft.client.renderer.entity.layers;
 
 import com.google.common.collect.Maps;
 import java.util.Map;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.modules.impl.render.ShaderESPModule;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RendererLivingEntity;
@@ -155,6 +158,11 @@ public abstract class LayerArmorBase<T extends ModelBase> implements LayerRender
 
     private void renderGlint(EntityLivingBase entitylivingbaseIn, T modelbaseIn, float p_177183_3_, float p_177183_4_, float partialTicks, float p_177183_6_, float p_177183_7_, float p_177183_8_, float scale)
     {
+        ShaderESPModule playerOutlineModule = Yuri.INSTANCE.getModuleManager().getModule(ShaderESPModule.class);
+        if (playerOutlineModule.isEnabled() && !playerOutlineModule.isRenderingESP()) {
+            return;
+        }
+
         if (!Config.isShaders() || !Shaders.isShadowPass)
         {
             float f = (float)entitylivingbaseIn.ticksExisted + partialTicks;

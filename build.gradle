@@ -17,6 +17,9 @@ repositories {
     maven {
         url "https://mvnrepository.com/artifact"
     }
+    maven{
+        url "https://jitpack.io"
+    }
 }
 
 dependencies {
@@ -52,4 +55,9 @@ dependencies {
     compileOnly "org.projectlombok:lombok:1.18.38"
     annotationProcessor "org.projectlombok:lombok:1.18.38"
     implementation 'org.reflections:reflections:0.10.2'
+    implementation("com.github.koxx12-dev:ImGui-Java-Lwjgl2:1.0.0")
+    implementation("io.github.spair:imgui-java-binding:1.86.11")
+    implementation("io.github.spair:imgui-java-natives-windows:1.86.11")
+    implementation("io.github.spair:imgui-java-natives-linux:1.86.11")
+    implementation("io.github.spair:imgui-java-natives-macos:1.86.11")
 }

@@ -5,7 +5,7 @@ import java.util.Base64;
 
 public class TokenEncryption {
 
-    private static final byte[] KEY = "EuphoriaXorKey1337!".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] KEY = "YuriSexLegend!ILoveLesbians!".getBytes(StandardCharsets.UTF_8);
 
     public static String encrypt(String rawToken) {
         if (rawToken == null) return null;

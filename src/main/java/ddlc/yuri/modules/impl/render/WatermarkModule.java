@@ -4,6 +4,7 @@ import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
+import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.managers.impl.ColorManager;
@@ -15,6 +16,7 @@ import ddlc.yuri.utils.client.NetworkUtils;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
+import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -30,7 +32,8 @@ import java.util.Date;
 
 @ModuleInfo(label = "Watermark", category = ModuleCategory.RENDER, description = "Renders the client watermark on your screen")
 public class WatermarkModule extends Module implements IMinecraft {
-    public static final ModeProperty<Type> type = new ModeProperty<>("Type", Type.YURISENSE);
+
+    public static final ModeProperty<Type> type = new ModeProperty<>("Type", Type.YURI);
     public static final Property<String> name = new Property<>("Client Name", "Yuri");
     public static final Property<Boolean> protocol = new Property<>("Protocol", true, () -> type.getValue() == Type.CLASSIC);
     public static final Property<Boolean> time = new Property<>("Time", true, () -> type.getValue() == Type.CLASSIC);
@@ -39,6 +42,7 @@ public class WatermarkModule extends Module implements IMinecraft {
     public static final Property<Boolean> tps = new Property<>("TPS", true, () -> type.getValue() == Type.CLASSIC);
 
     public enum Type {
+        YURI("Yuri"),
         YURISENSE("Yurisense"),
         VIRTUE("Virtue"),
         SIMPLE("Simple"),
@@ -55,6 +59,8 @@ public class WatermarkModule extends Module implements IMinecraft {
             return name;
         }
     }
+
+    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
 
     @EventHook
     public void onRender2D(Render2DEvent event) {
@@ -130,6 +136,76 @@ public class WatermarkModule extends Module implements IMinecraft {
                         128
                 );
                 break;
+            case YURI:
+                CustomFontRenderer textFont = FontUtils.getFont("sf", 18);
+                CustomFontRenderer icons = FontUtils.getFont("icons", 18);
+
+                String mp = mc.isSingleplayer()
+                        ? "singleplayer"
+                        : (mc.getCurrentServerData() != null
+                           ? mc.getCurrentServerData().serverIP
+                           : "unknown");
+
+                String initial = String.valueOf(name.getValue().charAt(0));
+                String nameText = new ChatComponentText(name.getValue().substring(1)).getFormattedText();
+                String protocolText = String.valueOf(ClientInfoUtils.getServerProtocol());
+                String timeText = getTime();
+
+                String iconB = "B";
+                String iconF = "F";
+                String iconM = "M";
+
+                float gap = 4f;
+
+                float width = 8f
+                        + textFont.getStringWidth(initial)
+                        + gap
+                        + textFont.getStringWidth(nameText)
+                        + gap
+                        + icons.getStringWidth(iconB)
+                        + gap
+                        + textFont.getStringWidth(mp)
+                        + gap
+                        + icons.getStringWidth(iconF)
+                        + gap
+                        + textFont.getStringWidth(protocolText)
+                        + gap
+                        + icons.getStringWidth(iconM)
+                        + gap
+                        + textFont.getStringWidth(timeText);
+
+                float height = textFont.getHeight() + 8f;
+
+                RoundedUtils.drawRoundOutline(2, 2, width, height, 6f,  0.2f, BG_COLOR,
+                        ColorManager.getColor());
+
+                float cursorX = 7;
+                float cursorY = 6;
+                float iconY = cursorY + (textFont.getHeight() - icons.getHeight()) / 2f + 0.5f;
+
+                textFont.drawStringWithShadow(initial, cursorX, cursorY, main);
+                cursorX += textFont.getStringWidth(initial);
+
+                textFont.drawStringWithShadow(nameText, cursorX, cursorY, white);
+                cursorX += textFont.getStringWidth(nameText) + gap + 0.5f;
+
+                icons.drawStringWithShadow(iconB, cursorX, iconY - 0.2f, main);
+                cursorX += icons.getStringWidth(iconB) + gap;
+
+                textFont.drawStringWithShadow(mp, cursorX, cursorY, white);
+                cursorX += textFont.getStringWidth(mp) + gap;
+
+                icons.drawStringWithShadow(iconF, cursorX, iconY, main);
+                cursorX += icons.getStringWidth(iconF) + gap;
+
+                textFont.drawStringWithShadow(protocolText, cursorX, cursorY, white);
+                cursorX += textFont.getStringWidth(protocolText) + gap;
+
+                icons.drawStringWithShadow(iconM, cursorX, iconY, main);
+                cursorX += icons.getStringWidth(iconM) + gap;
+
+                textFont.drawStringWithShadow(timeText, cursorX, cursorY, white);
+                break;
             case YURISENSE:
                 String server = mc.isSingleplayer()
                         ? "singleplayer"
@@ -192,9 +268,6 @@ public class WatermarkModule extends Module implements IMinecraft {
     }
 
     private String getTime() {
-        String time = SimpleDateFormat.getDateInstance().format(new Date());
-        if (time.startsWith("0"))
-            time = time.replaceFirst("0", "");
-        return time;
+        return new SimpleDateFormat("h:mm a").format(new Date());
     }
 }

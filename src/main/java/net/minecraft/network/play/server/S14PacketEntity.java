@@ -1,6 +1,8 @@
 package net.minecraft.network.play.server;
 
 import java.io.IOException;
+
+import lombok.Getter;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
@@ -9,9 +11,12 @@ import net.minecraft.world.World;
 
 public class S14PacketEntity implements Packet<INetHandlerPlayClient>
 {
-    protected int entityId;
+    public int entityId;
+    @Getter
     protected byte posX;
+    @Getter
     protected byte posY;
+    @Getter
     protected byte posZ;
     protected byte yaw;
     protected byte pitch;

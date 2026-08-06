@@ -36,8 +36,8 @@ public class ModListModule extends Module implements IMinecraft {
     public NumberProperty arrayBg = new NumberProperty("Background Opacity", 130, 0, 255, 1, bg::getValue);
     private final Property<Boolean> outline = new Property<>("Outline", false);
     private final Property<Boolean> line = new Property<>("Line", true, () -> !outline.getValue());
-    private final Property<Boolean> hideVisuals = new Property<>("Hide Visuals", false);
-    private final Property<Boolean> hideMisc = new Property<>("Hide Misc", false);
+    public static final Property<Boolean> hideVisuals = new Property<>("Hide Visuals", false);
+    public static final Property<Boolean> hideMisc = new Property<>("Hide Misc", false);
     private static final Property<Boolean> useCustomFont = new Property<>("Use Custom Font", true);
     private static final Property<Boolean> hideSuffix = new Property<>("Hide Suffix", false);
     private final ModeProperty<SuffixMode> suffixMode = new ModeProperty<>("Suffix Mode", SuffixMode.SPACE, () -> !hideSuffix.getValue());
@@ -52,7 +52,7 @@ public class ModListModule extends Module implements IMinecraft {
     private static final float TEXT_HEIGHT = 8f;
 
     private static final Map<Module, String> displayLabelCache = new HashMap<>();
-    private static List<Module> moduleCache;
+    public static List<Module> moduleCache;
 
     private final Set<Module> seededModules = new HashSet<>();
     private final Map<Module, Boolean> previousVisibility = new HashMap<>();

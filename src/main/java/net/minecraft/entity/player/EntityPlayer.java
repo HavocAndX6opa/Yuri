@@ -827,6 +827,64 @@ public abstract class EntityPlayer extends EntityLivingBase
         return f;
     }
 
+    public float getToolDigEfficiency(Block p_180471_1_, ItemStack st)
+    {
+        float f = this.inventory.getStrVsBlock(p_180471_1_);
+
+        if (f > 1.0F)
+        {
+            int i = EnchantmentHelper.getEfficiencyModifier(this);
+
+            if (i > 0 && st != null)
+            {
+                f += (float)(i * i + 1);
+            }
+        }
+
+        if (this.isPotionActive(Potion.digSpeed))
+        {
+            f *= 1.0F + (float)(this.getActivePotionEffect(Potion.digSpeed).getAmplifier() + 1) * 0.2F;
+        }
+
+        if (this.isPotionActive(Potion.digSlowdown))
+        {
+            float f1 = 1.0F;
+
+            switch (this.getActivePotionEffect(Potion.digSlowdown).getAmplifier())
+            {
+                case 0:
+                    f1 = 0.3F;
+                    break;
+
+                case 1:
+                    f1 = 0.09F;
+                    break;
+
+                case 2:
+                    f1 = 0.0027F;
+                    break;
+
+                case 3:
+                default:
+                    f1 = 8.1E-4F;
+            }
+
+            f *= f1;
+        }
+
+        if (this.isInsideOfMaterial(Material.water) && !EnchantmentHelper.getAquaAffinityModifier(this))
+        {
+            f /= 5.0F;
+        }
+
+        if (!this.onGround)
+        {
+            f /= 5.0F;
+        }
+
+        return f;
+    }
+
     public boolean canHarvestBlock(Block blockToHarvest)
     {
         return this.inventory.canHeldItemHarvest(blockToHarvest);

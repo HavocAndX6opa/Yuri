@@ -1,15 +1,21 @@
 package ddlc.yuri.modules.impl.movement.speed.impl;
 
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.StrafeEvent;
 import ddlc.yuri.modules.impl.movement.speed.SpeedMode;
 import ddlc.yuri.utils.player.MoveUtils;
 
 public class IntaveSpeed implements SpeedMode {
+
+    @Override
+    public void onStrafe(StrafeEvent event) {
+        if (MoveUtils.isMoving() && mc.thePlayer.onGround && !mc.gameSettings.keyBindJump.pressed && !(mc.thePlayer.isInLava() || mc.thePlayer.isInWater() || mc.thePlayer.isInWeb)) {
+            mc.thePlayer.jump();
+        }
+    }
+
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        mc.gameSettings.keyBindJump.pressed = MoveUtils.isMoving()
-                && MoveUtils.isOnGround();
-
         switch (mc.thePlayer.offGroundTicks) {
             case 1:
                 mc.thePlayer.motionX *= 1.005;
@@ -31,5 +37,10 @@ public class IntaveSpeed implements SpeedMode {
         }
 
         mc.timer.timerSpeed = 1.0075f;
+    }
+
+    @Override
+    public void onDisable() {
+        mc.timer.timerSpeed = 1.0f;
     }
 }

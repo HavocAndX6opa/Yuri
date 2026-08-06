@@ -20,4 +20,12 @@ public class Tuple<A, B>
     {
         return this.b;
     }
+
+    public void setFirst(A a) {
+        this.a = a;
+    }
+
+    public void setSecond(B b) {
+        this.b = b;
+    }
 }

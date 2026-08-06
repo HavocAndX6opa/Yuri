@@ -8,6 +8,7 @@ import java.util.List;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.modules.impl.render.ChamsModule;
 import ddlc.yuri.modules.impl.render.NameTagsModule;
+import ddlc.yuri.modules.impl.render.ShaderESPModule;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
@@ -586,6 +587,11 @@ public abstract class RendererLivingEntity<T extends EntityLivingBase> extends R
     }
 
     protected boolean canRenderName(T entity) {
+        ShaderESPModule playerOutlineModule = Yuri.INSTANCE.getModuleManager().getModule(ShaderESPModule.class);
+        if (playerOutlineModule.isEnabled() && !playerOutlineModule.isRenderingESP()) {
+            return false;
+        }
+
         EntityPlayerSP entityplayersp = Minecraft.getMinecraft().thePlayer;
 
         if (entity instanceof EntityPlayer && entity != entityplayersp) {

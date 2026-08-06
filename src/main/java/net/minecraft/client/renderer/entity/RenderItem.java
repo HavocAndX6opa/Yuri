@@ -2,6 +2,9 @@ package net.minecraft.client.renderer.entity;
 
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.modules.impl.render.ShaderESPModule;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
@@ -216,6 +219,11 @@ public class RenderItem implements IResourceManagerReloadListener
 
     private void renderEffect(IBakedModel model)
     {
+        ShaderESPModule playerOutlineModule = Yuri.INSTANCE.getModuleManager().getModule(ShaderESPModule.class);
+        if (playerOutlineModule.isEnabled() && !playerOutlineModule.isRenderingESP()) {
+            return;
+        }
+
         if (!Config.isCustomItems() || CustomItems.isUseGlint())
         {
             if (!Config.isShaders() || !Shaders.isShadowPass)

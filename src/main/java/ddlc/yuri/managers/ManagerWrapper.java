@@ -12,6 +12,9 @@ public class ManagerWrapper {
     private static CommandManager commandManager;
     private static TargetManager targetManager;
     private static BlinkManager blinkManager;
+    private static LagManager lagManager;
+    private static BreakerWhitelistManager breakerWhitelistManager;
+    private static ProgressBarManager progressBarManager;
     private static BadPacketsManager badPacketsManager;
 
     public static void init() {
@@ -22,6 +25,9 @@ public class ManagerWrapper {
         targetManager = new TargetManager();
         TargetManager.configure(Arrays.asList(TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.INVISIBLES, TargetManager.Targets.TEAMMATES));
         blinkManager = new BlinkManager();
+        lagManager = new LagManager();
+        breakerWhitelistManager = new BreakerWhitelistManager();
+        progressBarManager = new ProgressBarManager();
         badPacketsManager = new BadPacketsManager();
     }
 
@@ -32,6 +38,9 @@ public class ManagerWrapper {
         eventBus.subscribe(commandManager);
         eventBus.subscribe(targetManager);
         eventBus.subscribe(blinkManager);
+        eventBus.subscribe(lagManager);
         eventBus.subscribe(badPacketsManager);
+        eventBus.subscribe(breakerWhitelistManager);
+        eventBus.subscribe(progressBarManager);
     }
 }
