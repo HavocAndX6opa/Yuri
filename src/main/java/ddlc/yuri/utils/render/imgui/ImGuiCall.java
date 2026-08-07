@@ -1,4 +1,4 @@
-package ddlc.yuri.api.gui.click.csgo;
+package ddlc.yuri.utils.render.imgui;
 
 public interface ImGuiCall {
     public void execute();

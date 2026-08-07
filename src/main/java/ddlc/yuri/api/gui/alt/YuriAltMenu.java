@@ -1,18 +1,23 @@
 package ddlc.yuri.api.gui.alt;
 
-import ddlc.yuri.api.gui.click.novoline.GuiTheme;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.alt.comp.CustomTextBox;
 import ddlc.yuri.api.gui.alt.comp.MicrosoftOAuthTranslation;
 import ddlc.yuri.api.gui.alt.comp.SessionChanger;
 import ddlc.yuri.api.gui.alt.comp.TokenEncryption;
 import ddlc.yuri.api.gui.main.YuriMenu;
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
+import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Session;
 import org.lwjgl.input.Keyboard;
@@ -28,22 +33,26 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLConnection;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.Scanner;
 
-public class EuphoriaAltMenu extends GuiScreen {
+public class YuriAltMenu extends GuiScreen {
 
-    private static final Color BACKGROUND = new Color(20, 20, 24);
-    private static final ResourceLocation PLACEHOLDER_HEAD = new ResourceLocation("euphoria/gui/steve.png");
+    private static final Color BACKGROUND = new Color(16, 16, 19);
+    private static final Color BODY_COLOR = new Color(18, 18, 20, 150);
+    private static final ResourceLocation PLACEHOLDER_HEAD = new ResourceLocation("yuri/gui/steve.png");
     private static final String NUMBERS = "0123456789";
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final SecureRandom RANDOM_SOURCE = new SecureRandom();
 
+    private static final float RADIUS = 6f;
     private static final int HEADER_HEIGHT = 44;
     private static final int PADDING = 12;
     private static final int FIELD_HEIGHT = 24;
@@ -55,15 +64,13 @@ public class EuphoriaAltMenu extends GuiScreen {
     private static final int ENTRY_HEIGHT = 42;
     private static final float ADD_PANEL_RATIO = 0.34f;
 
-    private final Random random = new Random();
-    private final ArrayList<Particle> particles = new ArrayList<>();
     private final ArrayList<Integer> selectedAlts = new ArrayList<>();
     private final ArrayList<String> alts = new ArrayList<>();
     private final Map<String, ResourceLocation> headCache = new HashMap<>();
     private final Map<String, Boolean> headLoading = new HashMap<>();
     private final Map<String, Integer> headTries = new HashMap<>();
 
-    private CustomTextBox username, password;
+    private CustomTextBox username, password, tokenField;
     private int scrollOffset = 0;
     private boolean draggingScrollbar = false;
     private int dragStartY;
@@ -79,6 +86,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     private int primaryButtonX, primaryButtonY, primaryButtonWidth;
     private int oauthButtonX, oauthButtonY, oauthButtonWidth;
     private int generateButtonX, generateButtonY, generateButtonWidth;
+    private int tokenButtonX, tokenButtonY, tokenButtonWidth;
     private int statusY, tipsY;
     private int backButtonWidth;
 
@@ -99,16 +107,14 @@ public class EuphoriaAltMenu extends GuiScreen {
         password = new CustomTextBox(0, 0, 0, FIELD_HEIGHT);
         password.setPlaceholder("Password");
 
-        if (particles.isEmpty()) {
-            ScaledResolution sr = new ScaledResolution(mc);
-            for (int i = 0; i < 24; i++) particles.add(spawnParticle(sr, true));
-        }
+        tokenField = new CustomTextBox(0, 0, 0, FIELD_HEIGHT);
+        tokenField.setPlaceholder("Access Token");
 
         super.initGui();
     }
 
     private void loadAltsFromFile() {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Euphoria");
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
         File file = new File(dir, "alts.txt");
         if (!dir.exists()) dir.mkdirs();
         if (!file.exists()) {
@@ -124,7 +130,7 @@ public class EuphoriaAltMenu extends GuiScreen {
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
-                if (!line.isEmpty() && (line.startsWith("cracked|") || line.startsWith("microsoftOAuth|"))) {
+                if (!line.isEmpty() && (line.startsWith("cracked|") || line.startsWith("microsoftOAuth|") || line.startsWith("token|"))) {
                     alts.add(line);
                 }
             }
@@ -134,7 +140,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     }
 
     private void saveAltsToFile() {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Euphoria");
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
         File file = new File(dir, "alts.txt");
 
         try (PrintWriter out = new PrintWriter(file)) {
@@ -147,9 +153,6 @@ public class EuphoriaAltMenu extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         Gui.drawRect(0, 0, width, height, BACKGROUND.getRGB());
-
-        ScaledResolution sr = new ScaledResolution(mc);
-        updateAndDrawParticles(sr);
 
         computeLayout();
 
@@ -199,7 +202,16 @@ public class EuphoriaAltMenu extends GuiScreen {
         generateButtonY = oauthButtonY;
         generateButtonWidth = secondaryWidth;
 
-        statusY = oauthButtonY + BUTTON_HEIGHT + PADDING;
+        int tokenFieldY = oauthButtonY + BUTTON_HEIGHT + BUTTON_SPACING;
+        tokenField.xPosition = addX + PADDING;
+        tokenField.yPosition = tokenFieldY;
+        tokenField.setWidth(addWidth - PADDING * 2);
+
+        tokenButtonX = addX + PADDING;
+        tokenButtonY = tokenFieldY + FIELD_HEIGHT + BUTTON_SPACING;
+        tokenButtonWidth = addWidth - PADDING * 2;
+
+        statusY = tokenButtonY + BUTTON_HEIGHT + PADDING;
         tipsY = statusY + fontHeight + PADDING * 2;
 
         backButtonWidth = FontUtils.getFont("sf", 18).getStringWidth("Back") + 8;
@@ -221,17 +233,28 @@ public class EuphoriaAltMenu extends GuiScreen {
     }
 
     private void drawHeader(int mouseX, int mouseY) {
-        int accent = GuiTheme.getAccent().getRGB();
-        int fontHeight = FontUtils.getFont("sf", 18).getHeight();
+        int accent = ColorManager.getColor().getRGB();
+        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
+        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
+        int fontHeight = regular.getHeight();
 
         boolean backHovered = isMouseOverButton(mouseX, mouseY, PADDING, 0, backButtonWidth, HEADER_HEIGHT);
-        FontUtils.getFont("sf", 18).drawStringWithShadow("Back", PADDING, (HEADER_HEIGHT - fontHeight) / 2, backHovered ? accent : Color.WHITE.getRGB());
+        regular.drawStringWithShadow("Back", PADDING, (HEADER_HEIGHT - fontHeight) / 2, backHovered ? accent : Color.WHITE.getRGB());
 
-        FontUtils.getFont("sf", 18).drawCenteredStringWithShadow("Account Manager", width / 2f, (HEADER_HEIGHT - fontHeight) / 2f, accent);
+        String titleBold = "y";
+        String titleRest = new ChatComponentText("uri account manager").getFormattedText();
+        float titleBoldWidth = bold.getStringWidth(titleBold);
+        float titleRestWidth = regular.getStringWidth(titleRest);
+        float titleTotalWidth = titleBoldWidth + titleRestWidth;
+        float titleX = width / 2f - titleTotalWidth / 2f;
+        float titleY = (HEADER_HEIGHT - fontHeight) / 2f;
+
+        bold.drawStringWithShadow(titleBold, titleX, titleY, accent);
+        regular.drawStringWithShadow(titleRest, titleX + titleBoldWidth, titleY, Color.WHITE.getRGB());
 
         String currentUser = Minecraft.getMinecraft().getSession().getUsername();
-        String pillLabel = "Signed in as " + currentUser;
-        int pillTextWidth = FontUtils.getFont("sf", 18).getStringWidth(pillLabel);
+        String pillLabel = "signed in as " + currentUser;
+        int pillTextWidth = regular.getStringWidth(pillLabel);
         int dotSize = 6;
         int pillPaddingX = 10;
         int pillHeight = 24;
@@ -239,60 +262,25 @@ public class EuphoriaAltMenu extends GuiScreen {
         int pillX = width - PADDING - pillWidth;
         int pillY = (HEADER_HEIGHT - pillHeight) / 2;
 
-        Gui.drawRect(pillX, pillY, pillX + pillWidth, pillY + pillHeight, RenderUtils.withAlpha(GuiTheme.PANEL, 210));
+        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
         int dotX = pillX + pillPaddingX;
         int dotY = pillY + (pillHeight - dotSize) / 2;
         Gui.drawRect(dotX, dotY, dotX + dotSize, dotY + dotSize, accent);
-        FontUtils.getFont("sf", 18).drawString(pillLabel, dotX + dotSize + 6, pillY + (pillHeight - fontHeight) / 2f, Color.WHITE.getRGB());
+        regular.drawString(pillLabel, dotX + dotSize + 6, pillY + (pillHeight - fontHeight) / 2f, Color.WHITE.getRGB());
 
         Gui.drawRect(0, HEADER_HEIGHT, width, HEADER_HEIGHT + 1, RenderUtils.withAlpha(Color.WHITE, 20));
     }
 
-    private void updateAndDrawParticles(ScaledResolution sr) {
-        for (Particle particle : particles) {
-            particle.y -= particle.speed;
-
-            if (particle.y < -4) {
-                Particle respawned = spawnParticle(sr, false);
-                particle.x = respawned.x;
-                particle.y = respawned.y;
-                particle.speed = respawned.speed;
-                particle.alpha = respawned.alpha;
-                particle.size = respawned.size;
-            }
-
-            int alpha = (int) (particle.alpha * 255);
-            Gui.drawRect(
-                    (int) particle.x,
-                    (int) particle.y,
-                    (int) (particle.x + particle.size),
-                    (int) (particle.y + particle.size),
-                    new Color(255, 255, 255, alpha).getRGB()
-            );
-        }
-    }
-
-    private Particle spawnParticle(ScaledResolution sr, boolean randomY) {
-        Particle particle = new Particle();
-        particle.x = random.nextFloat() * sr.getScaledWidth();
-        particle.y = randomY
-                ? random.nextFloat() * sr.getScaledHeight()
-                : sr.getScaledHeight() + random.nextFloat() * 20;
-        particle.speed = 0.05F + random.nextFloat() * 0.15F;
-        particle.alpha = 0.2F + random.nextFloat() * 0.5F;
-        particle.size = 1.0F + random.nextFloat() * 1.5F;
-        return particle;
-    }
-
-    private void drawPanelBackground(int x, int y, int w, int h) {
-        Gui.drawRect(x - 1, y - 1, x + w + 1, y + h + 1, RenderUtils.withAlpha(GuiTheme.getAccent(), 35));
-        Gui.drawRect(x, y, x + w, y + h, RenderUtils.withAlpha(GuiTheme.PANEL, 190));
-    }
-
     private void drawAddAccountPanel(int mouseX, int mouseY) {
-        drawPanelBackground(addX, addY, addWidth, addHeight);
+        RoundedUtils.drawRoundOutline(addX, addY, addWidth, addHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
 
-        FontUtils.getFont("sf", 18).drawStringWithShadow("Add Account", addX + PADDING, addY + PADDING, Color.WHITE.getRGB());
+        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
+        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
+
+        String headerBold = "add";
+        String headerRest = new ChatComponentText(" account").getFormattedText();
+        bold.drawStringWithShadow(headerBold, addX + PADDING, addY + PADDING, ColorManager.getColor().getRGB());
+        regular.drawStringWithShadow(headerRest, addX + PADDING + bold.getStringWidth(headerBold), addY + PADDING, Color.WHITE.getRGB());
 
         username.drawTextBox();
         password.drawTextBox();
@@ -301,56 +289,60 @@ public class EuphoriaAltMenu extends GuiScreen {
         drawSecondaryButton(oauthButtonX, oauthButtonY, oauthButtonWidth, "Microsoft", mouseX, mouseY);
         drawSecondaryButton(generateButtonX, generateButtonY, generateButtonWidth, "Random Alt", mouseX, mouseY);
 
+        tokenField.drawTextBox();
+        drawSecondaryButton(tokenButtonX, tokenButtonY, tokenButtonWidth, "Login via Token", mouseX, mouseY);
+
         if (statusString != null) {
-            FontUtils.getFont("sf", 18).drawCenteredStringWithShadow(statusString, addX + addWidth / 2f, statusY, 0xAAAAAA);
+            regular.drawCenteredStringWithShadow(statusString, addX + addWidth / 2f, statusY, 0xAAAAAA);
         }
 
         Gui.drawRect(addX + PADDING, tipsY - 8, addX + addWidth - PADDING, tipsY - 7, RenderUtils.withAlpha(Color.WHITE, 25));
-        FontUtils.getFont("sf", 18).drawString("Alt+Click select  路  Alt+A all  路  Alt+Backspace delete", addX + PADDING, tipsY, 0x888888);
+        regular.drawString("alt+click select  \u00b7  alt+a all  \u00b7  alt+backspace delete", addX + PADDING, tipsY, 0x888888);
     }
 
     private void drawPrimaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
         boolean hovered = isMouseOverButton(mouseX, mouseY, x, y, w, BUTTON_HEIGHT);
-        Color accent = GuiTheme.getAccent();
+        Color accent = ColorManager.getColor();
 
-        Gui.drawRect(x, y, x + w, y + BUTTON_HEIGHT, RenderUtils.withAlpha(accent, hovered ? 255 : 205));
+        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, hovered ? 1f : 0.2f, accent, accent);
 
-        int textX = x + (w - FontUtils.getFont("sf", 18).getStringWidth(label)) / 2;
-        int textY = y + (BUTTON_HEIGHT - FontUtils.getFont("sf", 18).getHeight()) / 2;
-        FontUtils.getFont("sf", 18).drawStringWithShadow(label, textX, textY, Color.WHITE.getRGB());
+        CustomFontRenderer font = FontUtils.getFont("sf-bold", 18);
+        int textX = x + (w - font.getStringWidth(label)) / 2;
+        int textY = y + (BUTTON_HEIGHT - font.getHeight()) / 2;
+        font.drawStringWithShadow(label, textX, textY, Color.WHITE.getRGB());
     }
 
     private void drawSecondaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
         boolean hovered = isMouseOverButton(mouseX, mouseY, x, y, w, BUTTON_HEIGHT);
-        Color accent = GuiTheme.getAccent();
+        Color accent = ColorManager.getColor();
 
-        Gui.drawRect(x, y, x + w, y + BUTTON_HEIGHT, RenderUtils.withAlpha(GuiTheme.PANEL, hovered ? 255 : 190));
+        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, 0.2f, BODY_COLOR, hovered ? accent : RenderUtils.withAlphaColor(accent, 130));
 
-        int borderColor = hovered ? accent.getRGB() : RenderUtils.withAlpha(accent, 130);
-        Gui.drawRect(x, y, x + w, y + 1, borderColor);
-        Gui.drawRect(x, y + BUTTON_HEIGHT - 1, x + w, y + BUTTON_HEIGHT, borderColor);
-        Gui.drawRect(x, y, x + 1, y + BUTTON_HEIGHT, borderColor);
-        Gui.drawRect(x + w - 1, y, x + w, y + BUTTON_HEIGHT, borderColor);
-
-        int textX = x + (w - FontUtils.getFont("sf", 18).getStringWidth(label)) / 2;
-        int textY = y + (BUTTON_HEIGHT - FontUtils.getFont("sf", 18).getHeight()) / 2;
-        FontUtils.getFont("sf", 18).drawStringWithShadow(label, textX, textY, hovered ? accent.getRGB() : Color.WHITE.getRGB());
+        CustomFontRenderer font = FontUtils.getFont("sf", 18);
+        int textX = x + (w - font.getStringWidth(label)) / 2;
+        int textY = y + (BUTTON_HEIGHT - font.getHeight()) / 2;
+        font.drawStringWithShadow(label, textX, textY, hovered ? accent.getRGB() : Color.WHITE.getRGB());
     }
 
     private void drawAccountsPanel(int mouseX, int mouseY) {
-        drawPanelBackground(accountsX, accountsY, accountsWidth, accountsHeight);
+        RoundedUtils.drawRoundOutline(accountsX, accountsY, accountsWidth, accountsHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
 
-        int fontHeight = FontUtils.getFont("sf", 18).getHeight();
-        String headerLabel = "Accounts (" + alts.size() + ")";
-        FontUtils.getFont("sf", 18).drawStringWithShadow(headerLabel, accountsX + PADDING, accountsY + PADDING, Color.WHITE.getRGB());
+        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
+        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
+        int fontHeight = regular.getHeight();
+
+        String headerBold = "accounts";
+        String headerRest = new ChatComponentText(" (" + alts.size() + ")").getFormattedText();
+        bold.drawStringWithShadow(headerBold, accountsX + PADDING, accountsY + PADDING, ColorManager.getColor().getRGB());
+        regular.drawStringWithShadow(headerRest, accountsX + PADDING + bold.getStringWidth(headerBold), accountsY + PADDING, Color.WHITE.getRGB());
 
         Gui.drawRect(accountsX + PADDING, accountsDividerY, accountsX + accountsWidth - PADDING, accountsDividerY + 1, RenderUtils.withAlpha(Color.WHITE, 25));
 
         if (alts.isEmpty()) {
             float centerX = gridListX + gridListWidth / 2f;
             float centerY = gridListY + gridListHeight / 2f - fontHeight;
-            FontUtils.getFont("sf", 18).drawCenteredStringWithShadow("No accounts yet", centerX, centerY, Color.WHITE.getRGB());
-            FontUtils.getFont("sf", 18).drawCenteredStringWithShadow("Add one using the form on the left", centerX, centerY + fontHeight + 4, 0xAAAAAA);
+            regular.drawCenteredStringWithShadow("no accounts yet", centerX, centerY, Color.WHITE.getRGB());
+            regular.drawCenteredStringWithShadow("add one using the form on the left", centerX, centerY + fontHeight + 4, 0xAAAAAA);
             return;
         }
 
@@ -365,10 +357,11 @@ public class EuphoriaAltMenu extends GuiScreen {
                 int x = gridListX + col * gridCellWidth;
                 int y = gridListY + row * gridRowStride;
 
-                String[] parts = alts.get(altIndex).split("\\|", 2);
-                boolean premium = parts[0].equals("microsoftOAuth");
-                String altName = parts[1];
-                String uuid = premium ? altName : "";
+                String[] parts = alts.get(altIndex).split("\\|", 4);
+                String type = parts[0];
+                boolean premium = type.equals("microsoftOAuth") || type.equals("token");
+                String altName = parts.length > 1 ? parts[1] : "Unknown";
+                String uuid = (type.equals("token") && parts.length > 2) ? parts[2] : (premium ? altName : "");
 
                 drawAccountCell(x, y, gridCellWidth - ENTRY_PADDING, ENTRY_HEIGHT, altName, uuid, premium, altIndex, mouseX, mouseY);
             }
@@ -383,8 +376,8 @@ public class EuphoriaAltMenu extends GuiScreen {
         int thumbHeight = Math.max(scrollbarHeight * gridVisibleRows / Math.max(1, totalRows), 20);
         int thumbY = scrollbarY + (scrollbarHeight - thumbHeight) * scrollOffset / Math.max(1, maxScroll);
 
-        Gui.drawRect(scrollbarX, scrollbarY, scrollbarX + SCROLLBAR_WIDTH, scrollbarY + scrollbarHeight, RenderUtils.withAlpha(GuiTheme.PANEL, 200));
-        Gui.drawRect(scrollbarX, thumbY, scrollbarX + SCROLLBAR_WIDTH, thumbY + thumbHeight, GuiTheme.getAccent().getRGB());
+        Gui.drawRect(scrollbarX, scrollbarY, scrollbarX + SCROLLBAR_WIDTH, scrollbarY + scrollbarHeight, RenderUtils.withAlpha(BODY_COLOR, 200));
+        Gui.drawRect(scrollbarX, thumbY, scrollbarX + SCROLLBAR_WIDTH, thumbY + thumbHeight, ColorManager.getColor().getRGB());
 
         disableScissor();
     }
@@ -392,22 +385,10 @@ public class EuphoriaAltMenu extends GuiScreen {
     private void drawAccountCell(int x, int y, int w, int h, String text, String uuid, boolean premium, int index, int mouseX, int mouseY) {
         boolean selected = selectedAlts.contains(index);
         boolean hovered = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-        Color accent = GuiTheme.getAccent();
+        Color accent = ColorManager.getColor();
 
-        int background;
-        if (selected) background = RenderUtils.withAlpha(accent, 55);
-        else if (hovered) background = RenderUtils.withAlpha(GuiTheme.PANEL, 235);
-        else background = RenderUtils.withAlpha(GuiTheme.PANEL, 150);
-
-        Gui.drawRect(x, y, x + w, y + h, background);
-
-        if (selected) {
-            int border = accent.getRGB();
-            Gui.drawRect(x, y, x + w, y + 2, border);
-            Gui.drawRect(x, y + h - 2, x + w, y + h, border);
-            Gui.drawRect(x, y, x + 2, y + h, border);
-            Gui.drawRect(x + w - 2, y, x + w, y + h, border);
-        }
+        Color outline = selected ? accent : (hovered ? RenderUtils.withAlphaColor(accent, 150) : RenderUtils.withAlphaColor(Color.WHITE, 25));
+        RoundedUtils.drawRoundOutline(x, y, w, h, RADIUS, selected ? 1f : 0.2f, BODY_COLOR, outline);
 
         loadHead(uuid);
         drawHead(x, y, uuid, h);
@@ -420,7 +401,8 @@ public class EuphoriaAltMenu extends GuiScreen {
         Gui.drawRect(dotX, dotY, dotX + dotSize, dotY + dotSize, premium ? accent.getRGB() : new Color(130, 130, 140).getRGB());
 
         int textX = x + ENTRY_PADDING + avatarSize + ENTRY_PADDING;
-        FontUtils.getFont("sf", 18).drawString(text, textX, y + (h - FontUtils.getFont("sf", 18).getHeight()) / 2f, selected ? accent.getRGB() : Color.WHITE.getRGB());
+        CustomFontRenderer font = FontUtils.getFont("sf", 18);
+        font.drawString(text, textX, y + (h - font.getHeight()) / 2f, selected ? accent.getRGB() : Color.WHITE.getRGB());
     }
 
     public void loadHead(String uuid) {
@@ -482,6 +464,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         username.mouseClicked(mouseX, mouseY, mouseButton);
         password.mouseClicked(mouseX, mouseY, mouseButton);
+        tokenField.mouseClicked(mouseX, mouseY, mouseButton);
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
         if (isMouseOverButton(mouseX, mouseY, PADDING, 0, backButtonWidth, HEADER_HEIGHT)) {
@@ -501,6 +484,11 @@ public class EuphoriaAltMenu extends GuiScreen {
 
         if (isMouseOverButton(mouseX, mouseY, generateButtonX, generateButtonY, generateButtonWidth, BUTTON_HEIGHT)) {
             handleCrackedLogin(generateRandomString());
+            return;
+        }
+
+        if (!isLoggingIn && isMouseOverButton(mouseX, mouseY, tokenButtonX, tokenButtonY, tokenButtonWidth, BUTTON_HEIGHT)) {
+            handleTokenLogin();
             return;
         }
 
@@ -528,21 +516,91 @@ public class EuphoriaAltMenu extends GuiScreen {
     }
 
     private void loginWithAlt(String alt) {
+        String[] parts = alt.split("\\|");
         if (alt.startsWith("cracked|")) {
-            String user = alt.split("\\|")[1];
-            SessionChanger.getInstance().setUserOffline(user);
+            SessionChanger.getInstance().setUserOffline(parts[1]);
         } else if (alt.startsWith("microsoftOAuth|")) {
-            String user = alt.split("\\|")[1];
+            String user = parts[1];
             String refreshToken = loadRefreshToken(user);
             if (refreshToken != null) {
                 MicrosoftOAuthTranslation.LoginData login = MicrosoftOAuthTranslation.login(refreshToken);
                 mc.setSession(new Session(login.username, login.uuid, login.mcToken, "microsoft"));
             }
+        } else if (alt.startsWith("token|")) {
+            if (parts.length >= 4) {
+                mc.setSession(new Session(parts[1], parts[2], parts[3], "mojang"));
+            }
+        }
+    }
+
+    private void handleTokenLogin() {
+        if (isLoggingIn) return;
+        String rawToken = tokenField.getText().trim();
+        if (rawToken.isEmpty()) {
+            statusString = "Enter a token first";
+            return;
+        }
+        isLoggingIn = true;
+        statusString = "Authenticating token...";
+
+        new Thread(() -> {
+            try {
+                URL profUrl = new URL("https://api.minecraftservices.com/minecraft/profile");
+                HttpURLConnection profConn = (HttpURLConnection) profUrl.openConnection();
+                profConn.setRequestMethod("GET");
+                profConn.setRequestProperty("Authorization", "Bearer " + rawToken);
+
+                int responseCode = profConn.getResponseCode();
+                if (responseCode != 200) {
+                    mc.addScheduledTask(() -> {
+                        statusString = "Invalid token (HTTP " + responseCode + ")";
+                        isLoggingIn = false;
+                    });
+                    return;
+                }
+
+                StringBuilder profRespStr = new StringBuilder();
+                try (Scanner profScan = new Scanner(profConn.getInputStream(), "UTF-8")) {
+                    while (profScan.hasNextLine()) profRespStr.append(profScan.nextLine());
+                }
+                JsonObject profileRes = new JsonParser().parse(profRespStr.toString()).getAsJsonObject();
+
+                String profileName = profileRes.get("name").getAsString();
+                String profileId = profileRes.get("id").getAsString();
+
+                mc.addScheduledTask(() -> {
+                    mc.setSession(new Session(profileName, profileId, rawToken, "mojang"));
+                    saveTokenAltToFile(profileName, profileId, rawToken);
+                    tokenField.setText("");
+                    statusString = "Logged in via Token as " + profileName;
+                    isLoggingIn = false;
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                mc.addScheduledTask(() -> {
+                    statusString = "Token Auth Failed";
+                    isLoggingIn = false;
+                });
+            }
+        }, "Token Auth Worker").start();
+    }
+
+    private void saveTokenAltToFile(String name, String uuid, String mcToken) {
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
+        File file = new File(dir, "alts.txt");
+        if (!dir.exists()) dir.mkdirs();
+
+        try (FileWriter fw = new FileWriter(file, true); PrintWriter out = new PrintWriter(fw)) {
+            String entry = "token|" + name + "|" + uuid + "|" + mcToken;
+            out.println(entry);
+            alts.add(entry);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     private void saveOAuthAltToFile(String username, String refreshToken) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Euphoria");
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
         File altsFile = new File(dir, "alts.txt");
         if (!dir.exists()) dir.mkdirs();
 
@@ -562,7 +620,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     }
 
     private String loadRefreshToken(String username) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Euphoria");
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
         File file = new File(dir, "tokens.txt");
         if (!file.exists()) return null;
 
@@ -651,7 +709,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     }
 
     private void saveCrackedToFile(String sessionUsername) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Euphoria");
+        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
         File file = new File(dir, "alts.txt");
 
         try (FileWriter fw = new FileWriter(file, true); PrintWriter out = new PrintWriter(fw)) {
@@ -672,6 +730,7 @@ public class EuphoriaAltMenu extends GuiScreen {
     private void clearTextBoxes() {
         username.setText("");
         password.setText("");
+        tokenField.setText("");
     }
 
     @Override
@@ -683,6 +742,12 @@ public class EuphoriaAltMenu extends GuiScreen {
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         username.keyTyped(typedChar, keyCode);
         password.keyTyped(typedChar, keyCode);
+        tokenField.keyTyped(typedChar, keyCode);
+
+        if (tokenField.isFocused() && keyCode == Keyboard.KEY_RETURN) {
+            handleTokenLogin();
+            return;
+        }
 
         if (GuiScreen.isAltKeyDown() && keyCode == Keyboard.KEY_A) {
             selectedAlts.clear();
@@ -703,13 +768,5 @@ public class EuphoriaAltMenu extends GuiScreen {
         }
 
         super.keyTyped(typedChar, keyCode);
-    }
-
-    private static class Particle {
-        float x;
-        float y;
-        float speed;
-        float alpha;
-        float size;
     }
 }

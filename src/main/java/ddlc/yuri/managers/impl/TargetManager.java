@@ -5,6 +5,7 @@ import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.KillEvent;
 import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.utils.client.TimerUtils;
 import lombok.Getter;
 import lombok.NonNull;
@@ -110,18 +111,23 @@ public class TargetManager {
             return;
         }
 
-        selectTarget();
-
         // kill event shiz
         if (target != null && !mc.theWorld.loadedEntityList.contains(target)) {
             Yuri.INSTANCE.getEventBus().post(new KillEvent(target));
             target = null;
         }
+
+        selectTarget();
     };
 
     @EventHook
     public void onPlayerAttack(PlayerAttackEvent event) {
         event.target = target;
+    }
+
+    @EventHook
+    public void onWorldJoin(WorldJoinEvent event) {
+        target = null;
     }
 
     private void selectTarget() {

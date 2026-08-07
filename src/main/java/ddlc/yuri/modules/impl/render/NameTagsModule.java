@@ -32,7 +32,7 @@ public class NameTagsModule extends Module {
     public final NumberProperty scale = new NumberProperty("Scale", 1.0, 0.5, 2.0, 0.1);
 
     private static final String CLIENT_NAME = "Yuri";
-    private static final String CLIENT_TAG_PLACEHOLDER = "unlegit";
+    private static final String CLIENT_TAG = System.getProperty("user.name", "unlegit");;
     private static final int FONT_SIZE = 16;
     private static final int BADGE_PADDING = 2;
     private static final int BADGE_GAP = 4;
@@ -77,7 +77,7 @@ public class NameTagsModule extends Module {
         double distance = mc.thePlayer.getDistanceToEntity(player);
         String distanceText = String.format("%.1f", distance);
         String heart = "\u2764";
-        String tagText = CLIENT_TAG_PLACEHOLDER;
+        String tagText = CLIENT_TAG;
 
         int fontHeight = getFontHeight();
         int clientWidth = mc.gameSettings.thirdPersonView != 0 && renderSelf.getValue() && player.equals(mc.thePlayer) ? getStringWidth(CLIENT_NAME) : 0;

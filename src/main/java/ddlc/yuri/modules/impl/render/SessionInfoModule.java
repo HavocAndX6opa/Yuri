@@ -1,6 +1,7 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.player.KillEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
@@ -17,6 +18,8 @@ import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.network.play.server.S45PacketTitle;
+import net.minecraft.util.StringUtils;
 
 import java.awt.*;
 
@@ -109,6 +112,18 @@ public class SessionInfoModule extends Module implements IMinecraft {
             case YURI:
                 renderYuri();
                 break;
+        }
+    }
+
+    @EventHook
+    public void onPacketReceived(PacketReceivedEvent event) {
+        if (event.getPacket() instanceof S45PacketTitle) {
+            S45PacketTitle s45 = (S45PacketTitle) event.getPacket();
+            if (s45.getMessage() == null) return;
+
+            if (StringUtils.stripControlCodes(s45.getMessage().getUnformattedText()).equals("VICTORY!")) {
+                addWin();
+            }
         }
     }
 
@@ -255,7 +270,13 @@ public class SessionInfoModule extends Module implements IMinecraft {
         long totalMinutes = millis / 60000;
         long hours = totalMinutes / 60;
         long minutes = totalMinutes % 60;
-        return hours + "hrs and " + minutes + " mins";
+        if (hours == 0 && minutes == 0) {
+            return "less than a minute";
+        }
+        if (hours == 0 && minutes > 0) {
+            return minutes + " mins";
+        }
+        return hours + " hrs and " + minutes + " mins";
     }
 
     private String getServerName() {

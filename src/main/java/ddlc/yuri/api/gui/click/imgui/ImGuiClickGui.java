@@ -1,4 +1,4 @@
-package ddlc.yuri.api.gui.click.csgo;
+package ddlc.yuri.api.gui.click.imgui;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.properties.Property;
@@ -11,6 +11,8 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.render.animations.Direction;
 import ddlc.yuri.utils.render.animations.impl.DecelerateAnimation;
+import ddlc.yuri.utils.render.imgui.ImGuiManager;
+import ddlc.yuri.utils.render.imgui.style.ImGuiStyles;
 import imgui.ImGui;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
@@ -28,7 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class CSGOClickGUI extends GuiScreen {
+public class ImGuiClickGui extends GuiScreen {
 
     private final DecelerateAnimation openAnimation = new DecelerateAnimation(280, 1.0D, Direction.FORWARDS);
     private final Set<Module> openModules = new HashSet<>();
@@ -38,7 +40,7 @@ public class CSGOClickGUI extends GuiScreen {
 
     @Override
     public void initGui() {
-        ImGuiManager.get().init();
+        ImGuiManager.get().init(ClickGUIModule.style.getValue().build());
         openAnimation.setDirection(Direction.FORWARDS);
         openAnimation.reset();
         closing = false;

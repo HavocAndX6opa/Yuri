@@ -1,20 +1,21 @@
-package ddlc.yuri.api.gui.click.csgo;
+package ddlc.yuri.utils.render.imgui;
 
 import com.github.koxx12dev.fuckyou.ImGuiGL3;
 import com.github.koxx12dev.fuckyou.ImGuiLwjgl2;
-import ddlc.yuri.api.gui.click.novoline.GuiTheme;
+import ddlc.yuri.utils.render.imgui.style.ImGuiStyleSheet;
 import imgui.ImFontConfig;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.ImGuiStyle;
-import imgui.flag.ImGuiCol;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
+import java.awt.Color;
 import java.io.InputStream;
+import java.util.Map;
 
 public final class ImGuiManager {
 
@@ -34,60 +35,49 @@ public final class ImGuiManager {
         return instance;
     }
 
-    public void init() {
-        if (initialized) {
-            return;
+    public void init(ImGuiStyleSheet style) {
+        if (!initialized) {
+            ImGui.createContext();
+            imGuiLwjgl.init();
+            buildFontAtlas();
+            imGuiGl.init("#version 120");
+            initialized = true;
         }
-        ImGui.createContext();
-        imGuiLwjgl.init();
 
-        setupStyle();
-        buildFontAtlas();
-
-        // GL3 must be initialized AFTER fonts are loaded so the texture atlas builds correctly
-        imGuiGl.init("#version 120");
-
-        initialized = true;
+        applyStyle(style);
     }
 
-    private void setupStyle() {
-        ImGuiStyle style = ImGui.getStyle();
-        style.setWindowRounding(4f);
-        style.setFrameRounding(2f);
-        style.setTabRounding(2f);
-        style.setWindowPadding(10f, 10f);
-        style.setFramePadding(6f, 4f);
-        style.setItemSpacing(8f, 6f);
+    public void applyStyle(ImGuiStyleSheet style) {
+        ImGuiStyle imStyle = ImGui.getStyle();
+        imStyle.setAlpha(style.getAlpha());
+        imStyle.setWindowRounding(style.getWindowRounding());
+        imStyle.setFrameRounding(style.getFrameRounding());
+        imStyle.setTabRounding(style.getTabRounding());
+        imStyle.setWindowPadding(style.getWindowPaddingX(), style.getWindowPaddingY());
+        imStyle.setWindowMinSize(style.getWindowMinSizeX(), style.getWindowMinSizeY());
+        imStyle.setFramePadding(style.getFramePaddingX(), style.getFramePaddingY());
+        imStyle.setItemSpacing(style.getItemSpacingX(), style.getItemSpacingY());
+        imStyle.setItemInnerSpacing(style.getItemInnerSpacingX(), style.getItemInnerSpacingY());
+        imStyle.setIndentSpacing(style.getIndentSpacing());
+        imStyle.setColumnsMinSpacing(style.getColumnsMinSpacing());
+        imStyle.setGrabMinSize(style.getGrabMinSize());
+        imStyle.setGrabRounding(style.getGrabRounding());
+        imStyle.setScrollbarSize(style.getScrollbarSize());
+        imStyle.setScrollbarRounding(style.getScrollbarRounding());
 
-        setColor(ImGuiCol.WindowBg, GuiTheme.PANEL, 245);
-        setColor(ImGuiCol.TitleBgActive, GuiTheme.MODULE_BG, 255);
-        setColor(ImGuiCol.TitleBg, GuiTheme.MODULE_BG, 255);
-        setColor(ImGuiCol.FrameBg, GuiTheme.MODULE_BG, 255);
-        setColor(ImGuiCol.FrameBgHovered, GuiTheme.MODULE_HOVER, 255);
-        setColor(ImGuiCol.FrameBgActive, GuiTheme.MODULE_HOVER, 255);
-        setColor(ImGuiCol.CheckMark, GuiTheme.ACCENT, 255);
-        setColor(ImGuiCol.SliderGrab, GuiTheme.ACCENT, 255);
-        setColor(ImGuiCol.SliderGrabActive, GuiTheme.ACCENT, 255);
-        setColor(ImGuiCol.Header, GuiTheme.ACCENT, 120);
-        setColor(ImGuiCol.HeaderHovered, GuiTheme.ACCENT, 160);
-        setColor(ImGuiCol.HeaderActive, GuiTheme.ACCENT, 200);
-        setColor(ImGuiCol.Tab, GuiTheme.MODULE_BG, 255);
-        setColor(ImGuiCol.TabHovered, GuiTheme.ACCENT, 160);
-        setColor(ImGuiCol.TabActive, GuiTheme.ACCENT, 220);
-        setColor(ImGuiCol.Text, GuiTheme.TEXT, 255);
-        setColor(ImGuiCol.Button, GuiTheme.BUTTON, 180);
-        setColor(ImGuiCol.ButtonHovered, GuiTheme.ACCENT, 160);
-        setColor(ImGuiCol.ButtonActive, GuiTheme.ACCENT, 220);
-        setColor(ImGuiCol.Border, GuiTheme.BUTTON_OUTLINE, 180);
+        for (Map.Entry<Integer, ImGuiStyleSheet.ColorValue> entry : style.getColors().entrySet()) {
+            setColor(imStyle, entry.getKey(), entry.getValue());
+        }
     }
 
-    private void setColor(int slot, java.awt.Color color, int overrideAlpha) {
-        ImGui.getStyle().setColor(
+    private void setColor(ImGuiStyle style, int slot, ImGuiStyleSheet.ColorValue value) {
+        Color color = value.getColor();
+        style.setColor(
                 slot,
                 color.getRed() / 255f,
                 color.getGreen() / 255f,
                 color.getBlue() / 255f,
-                overrideAlpha / 255f
+                value.getAlpha() / 255f
         );
     }
 
@@ -158,7 +148,6 @@ public final class ImGuiManager {
     public void render() {
         ImGui.render();
 
-        // Save Minecraft's OpenGL State
         GlStateManager.pushMatrix();
         GlStateManager.pushAttrib();
         GlStateManager.enableBlend();
@@ -167,12 +156,10 @@ public final class ImGuiManager {
         GlStateManager.disableDepth();
         GlStateManager.disableCull();
         GlStateManager.disableAlpha();
-        GL20.glUseProgram(0); // Unbind Minecraft shaders
+        GL20.glUseProgram(0);
 
-        // Render ImGui
         imGuiGl.renderDrawData(ImGui.getDrawData());
 
-        // Restore OpenGL State for Minecraft
         GlStateManager.enableAlpha();
         GlStateManager.enableDepth();
         GlStateManager.enableLighting();

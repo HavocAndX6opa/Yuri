@@ -3,17 +3,18 @@ package ddlc.yuri.api.gui.main;
 import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.RenderUtils;
-import net.minecraft.client.gui.Gui;
+import ddlc.yuri.utils.render.RoundedUtils;
 
-import java.awt.*;
+import java.awt.Color;
+
 /**
  * Self-contained menu button: owns its hitbox, hover animation, click dispatch,
- * and box rendering. Text drawing is left to the caller since font handling
- * (FontUtils scaled fonts) varies slightly per screen.
+ * and box rendering.
  */
 public class MenuButton {
 
-    public static final float DEFAULT_WIDTH = 70f;
+    public static final float DEFAULT_WIDTH = 85f;
+    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
 
     public final String label;
     public final Runnable action;
@@ -42,19 +43,16 @@ public class MenuButton {
         this.height = height;
     }
 
-    /** Uses a custom width while retaining the normal button height. */
     public MenuButton withWidth(float width) {
         this.widthOverride = width;
         return this;
     }
 
-    /** Restores text-sized layout for this button. */
     public MenuButton autoWidth() {
         this.widthOverride = null;
         return this;
     }
 
-    /** Uses the muted text tone while retaining the normal hover animation. */
     public MenuButton mutedText() {
         this.textColor = GuiTheme.TEXT_MUTE;
         return this;
@@ -68,7 +66,6 @@ public class MenuButton {
         return heightOverride == null ? textHeight + 10f : heightOverride;
     }
 
-    /** Positions/sizes the button so its text box sits at (textX, textY) with the given metrics. */
     public void layout(float textX, float textY, float textWidth, float textHeight) {
         this.x = textX - 8f;
         this.y = textY - 5f;
@@ -76,7 +73,6 @@ public class MenuButton {
         this.height = getLayoutHeight(textHeight);
     }
 
-    /** Positions an icon-only or placeholder button with an explicit box. */
     public void layoutBox(float x, float y, float width, float height) {
         this.x = x;
         this.y = y;
@@ -86,26 +82,31 @@ public class MenuButton {
 
     public void updateHover(float mouseX, float mouseY) {
         float target = this.isHovered(mouseX, mouseY) ? 1.00f : 0.00f;
-        float speed = 12f/1000;
-        hoverAnim += (target - hoverAnim) * (1f - (float)Math.exp(-speed * RenderUtils.delta));
+        float speed = 12f / 1000f;
+        hoverAnim += (target - hoverAnim) * (1f - (float) Math.exp(-speed * RenderUtils.delta));
     }
 
     public int getTextColor() {
         return RenderUtils.interpolateColor(textColor, ColorManager.getColor(), hoverAnim);
     }
 
-    /** Draws the box + animated hover accent line. Call font.drawString(label, x, y, getTextColor()) after this. */
+    /**
+     * Draws the background box + animated hover line along the bottom edge.
+     */
     public void renderBox() {
+        // Draw primary base button background
+        RoundedUtils.drawRoundOutline(this.x, this.y, this.width, this.height, 6f, 0.2f, BG_COLOR,
+                ColorManager.getColor());
 
-        Gui.drawRectOutline(x, y, width, height, 0.5F, GuiTheme.BUTTON.getRGB(), GuiTheme.BUTTON_OUTLINE.getRGB());
-
-        if (this.hoverAnim > 0.01f) {
-
+        // Draw hover underline expansion
+        if (this.hoverAnim > 0.001f) {
             float ease = 1f - (1f - this.hoverAnim) * (1f - this.hoverAnim);
-            float half = (this.width / 2f) * ease;
-            float mid = this.x + this.width / 2f;
+            float animatedWidth = this.width * ease;
+            float animatedX = this.x + (this.width - animatedWidth) / 2f;
+            float animatedHeight = 1.5f;
+            float animatedY = this.y + this.height - animatedHeight;
 
-            RenderUtils.drawCenteredGradientRect(mid - half, this.y, mid + half, this.y + 0.5F, RenderUtils.withAlpha(ColorManager.getColor(), 50), ColorManager.getColor().getRGB());
+            RoundedUtils.drawRoundedRect(animatedX, animatedY, animatedWidth, animatedHeight, 0.2f, ColorManager.getColor());
         }
     }
 

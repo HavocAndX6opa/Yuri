@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.List;
 
-import ddlc.yuri.api.gui.EuphoriaTextField;
+import ddlc.yuri.api.gui.YuriTextField;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.network.play.client.C14PacketTabComplete;
 import net.minecraft.util.BlockPos;
@@ -28,7 +28,7 @@ public class GuiChat extends GuiScreen
     private boolean waitingOnAutocomplete;
     private int autocompleteIndex;
     private List<String> foundPlayerNames = Lists.<String>newArrayList();
-    protected EuphoriaTextField inputField;
+    protected YuriTextField inputField;
     private String defaultInputFieldText = "";
 
 
@@ -49,7 +49,7 @@ public class GuiChat extends GuiScreen
     {
         Keyboard.enableRepeatEvents(true);
         this.sentHistoryCursor = this.mc.ingameGUI.getChatGUI().getSentMessages().size();
-        this.inputField = new EuphoriaTextField(0, FontUtils.getFont("sf", 18), 4, this.height - 12, this.width - 4, 12);
+        this.inputField = new YuriTextField(0, FontUtils.getFont("sf", 18), 4, this.height - 12, this.width - 4, 12);
         this.inputField.setMaxStringLength(100);
         this.inputField.setEnableBackgroundDrawing(false);
         this.inputField.setFocused(true);

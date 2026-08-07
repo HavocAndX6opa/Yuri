@@ -1,5 +1,6 @@
 package ddlc.yuri.modules.impl.combat;
 
+import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.HitSlowDownEvent;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
@@ -18,6 +19,7 @@ import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.modules.impl.player.ScaffoldModule;
 import ddlc.yuri.utils.client.MathUtils;
 import ddlc.yuri.utils.client.TimerUtils;
 import ddlc.yuri.utils.player.InvUtils;
@@ -46,7 +48,8 @@ public class AuraModule extends Module {
     private final MultiModeProperty<TargetManager.Targets> targets = new MultiModeProperty<>("Targets", TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.TEAMMATES, TargetManager.Targets.INVISIBLES);
     private static final ModeProperty<TargetManager.Mode> mode = new ModeProperty<>("Mode", TargetManager.Mode.SINGLE);
     public static NumberProperty seekRange = new NumberProperty("Seek Range", 6.0, 3, 6, 0.1);
-    public static NumberProperty attackRange = new NumberProperty("Attack Range", 3.0, 3, 6, 0.1);
+    public static final Property<Boolean> useOnlyMouse = new Property<>("Use Only Mouse Clicks", true);
+    public static NumberProperty attackRange = new NumberProperty("Attack Range", 3.0, 3, 6, 0.1, () -> !useOnlyMouse.getValue());
     public static NumberProperty swingRange = new NumberProperty("Swing Range", 6.0, 3, 6, 0.1);
     public static NumberProperty blockRange = new NumberProperty("Block Range", 6.0, 3, 6, 0.1);
     private static final NumberProperty min = new NumberProperty("Min CPS", 9.0, 0.0, 20.0, 0.5);
@@ -134,7 +137,7 @@ public class AuraModule extends Module {
     public void onPreUpdate(PreUpdateEvent event) {
         setSuffix(mode.getValue().toString());
 
-        if (mc.thePlayer == null || mc.theWorld == null) {
+        if (mc.thePlayer == null || mc.theWorld == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled()) {
             resetCombatState();
             return;
         }
@@ -385,7 +388,7 @@ public class AuraModule extends Module {
 
         double dist = mc.thePlayer.getDistanceToEntity(target);
 
-        if (dist <= attackRange.getValue()) {
+        if (dist <= attackRange.getValue() && !useOnlyMouse.getValue()) {
             if (rayCast.getValue() && !(RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()) != null
                     && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit != null
                     && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit == target))

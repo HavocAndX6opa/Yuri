@@ -13,7 +13,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ChatAllowedCharacters;
 import net.minecraft.util.MathHelper;
 
-public class EuphoriaTextField extends Gui
+public class YuriTextField extends Gui
 {
     private final int id;
     private final CustomFontRenderer fontRendererInstance;
@@ -37,7 +37,7 @@ public class EuphoriaTextField extends Gui
     private GuiPageButtonList.GuiResponder field_175210_x;
     private Predicate<String> validator = Predicates.<String>alwaysTrue();
 
-    public EuphoriaTextField(int componentId, CustomFontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height)
+    public YuriTextField(int componentId, CustomFontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height)
     {
         this.id = componentId;
         this.fontRendererInstance = fontrendererObj;

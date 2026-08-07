@@ -1,7 +1,7 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.Yuri;
-import ddlc.yuri.api.gui.click.csgo.CSGOClickGUI;
+import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
 import ddlc.yuri.api.gui.click.exhibition.ExhibitionClickGui;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
@@ -9,6 +9,7 @@ import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.misc.IMinecraft;
+import ddlc.yuri.utils.render.imgui.style.ImGuiStyleType;
 import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(label = "ClickGUI", category = ModuleCategory.RENDER, key = Keyboard.KEY_RSHIFT, description = "Opens the click GUI")
@@ -16,11 +17,12 @@ public class ClickGUIModule extends Module implements IMinecraft {
 
     public static final ModeProperty<Color> color = new ModeProperty<>("Color", Color.YURI);
     public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NOVOLINE);
+    public static final ModeProperty<ImGuiStyleType> style = new ModeProperty<>("Style", ImGuiStyleType.REGULAR, () -> mode.getValue() == Mode.IMGUI);
     private final Property<Boolean> closePrevious = new Property<>("Close Previous", true);
 
     public enum Mode {
         NOVOLINE("Novoline"),
-        CSGO("CSGO"),
+        IMGUI("ImGui"),
         EXHIBITION("Exhibition");
 
         public final String name;
@@ -81,8 +83,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
             case NOVOLINE:
                 mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
                 break;
-            case CSGO:
-                mc.displayGuiScreen(Yuri.INSTANCE.getCsgoClickGui());
+            case IMGUI:
+                mc.displayGuiScreen(Yuri.INSTANCE.getImGUIClickGui());
                 break;
         }
     }
@@ -93,8 +95,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
             // exhibition gui handles its own cleanup in onGuiClosed
         } else if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
             Yuri.INSTANCE.getNovolineClickGui().beginClose();
-        } else if (mc.currentScreen instanceof CSGOClickGUI) {
-            Yuri.INSTANCE.getCsgoClickGui().beginClose();
+        } else if (mc.currentScreen instanceof ImGuiClickGui) {
+            Yuri.INSTANCE.getImGUIClickGui().beginClose();
         }
     }
 }

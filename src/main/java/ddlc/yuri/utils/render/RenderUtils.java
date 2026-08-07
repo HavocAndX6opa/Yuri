@@ -492,6 +492,10 @@ public class RenderUtils {
         return new Color(red, green, blue, alpha).getRGB();
     }
 
+    public static Color withAlphaColor(Color color, int alpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
+    }
+
     public static int withAlpha(Color color, int alpha) {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha).getRGB();
     }
