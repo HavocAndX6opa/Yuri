@@ -38,9 +38,10 @@ import org.lwjgl.util.vector.Vector2f;
 public final class ScaffoldModule extends Module {
 
     private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NORMAL);
-    private final NumberProperty tellyStraightTicks = new NumberProperty("Telly Straight Ticks", 6, 0, 8, 1, () -> mode.getValue() == Mode.TELLY);
-    private final NumberProperty tellyDiagonalTicks = new NumberProperty("Telly Diagonal Ticks", 4, 0, 8, 1, () -> mode.getValue() == Mode.TELLY);
-    private final NumberProperty tellyJumpDownTicks = new NumberProperty("Telly Jump Down Ticks", 1, 0, 8, 1, () -> mode.getValue() == Mode.TELLY);
+    public final Property<Boolean> hypixelTelly = new Property<>("Hypixel Telly", false, () -> mode.getValue() == Mode.TELLY);
+    private final NumberProperty tellyStraightTicks = new NumberProperty("Telly Straight Ticks", 6, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
+    private final NumberProperty tellyDiagonalTicks = new NumberProperty("Telly Diagonal Ticks", 4, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
+    private final NumberProperty tellyJumpDownTicks = new NumberProperty("Telly Jump Down Ticks", 1, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL, () -> mode.getValue() != Mode.TELLY);
     public final ModeProperty<SearchAlgorithm> searchAlgorithm = new ModeProperty<>("Search Algorithm", SearchAlgorithm.NORMAL);
     private final NumberProperty minRotationSpeed = new NumberProperty("Min Rotation Speed", 3, 0, 10, 0.5f);
@@ -316,7 +317,7 @@ public final class ScaffoldModule extends Module {
             }
         } else if (mc.theWorld.checkBlockCollision(mc.thePlayer.getEntityBoundingBox().offset(mc.thePlayer.motionX, mc.thePlayer.motionY + 0.1, mc.thePlayer.motionZ))) {
             tellyNoPlace = true;
-        } else {
+        } else if (!hypixelTelly.getValue()) {
             if (mc.gameSettings.keyBindJump.isKeyDown()) {
                 if (mc.thePlayer.offGroundTicks >= tellyJumpDownTicks.getValue().intValue()) {
                     tellyNoPlace = false;
@@ -329,6 +330,10 @@ public final class ScaffoldModule extends Module {
                 if (mc.thePlayer.offGroundTicks == tellyStraightTicks.getValue().intValue()) {
                     tellyNoPlace = false;
                 }
+            }
+        } else {
+            if (mc.thePlayer.offGroundTicks == 1) {
+                tellyNoPlace = false;
             }
         }
     }
@@ -572,10 +577,17 @@ public final class ScaffoldModule extends Module {
                 if (recursion == 0) {
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving()) {
-                        rotSpeed = 4.9f;
+                        if (hypixelTelly.getValue()) {
+                            rotSpeed = 10.0f;
+                        }
                         target[0] = mc.thePlayer.rotationYaw;
                         target[1] = (float) MathUtils.getRandom(68, 90);
+                        canPlace = false;
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
+                        if (hypixelTelly.getValue()) {
+                            rotSpeed = 0.99f;
+                        }
+                        canPlace = true;
                         if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
                             ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
                                     searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
@@ -614,7 +626,8 @@ public final class ScaffoldModule extends Module {
     }
 
     public void jump() {
-        if (mc.gameSettings.keyBindJump.isKeyDown() || Yuri.INSTANCE.getModuleManager().getModule(SpeedModule.class).isEnabled()) return;
+        if (mc.gameSettings.keyBindJump.isKeyDown() || Yuri.INSTANCE.getModuleManager().getModule(SpeedModule.class).isEnabled())
+            return;
 
         if (mode.getValue() == Mode.TELLY) {
             if (!autoJump.getValue()) autoJump.setValue(true);
@@ -634,7 +647,7 @@ public final class ScaffoldModule extends Module {
     }
 
     private void handleJump() {
-        if (mode.getValue() == Mode.TELLY && mc.thePlayer.offGroundTicks == 0 && mc.thePlayer.onGroundTicks == 0)
+        if (mode.getValue() == Mode.TELLY && !hypixelTelly.getValue() && mc.thePlayer.offGroundTicks == 0 && mc.thePlayer.onGroundTicks == 0)
             return;
         if (autoJump.getValue()) mc.thePlayer.jump();
     }
@@ -675,7 +688,8 @@ public final class ScaffoldModule extends Module {
     }
 
     public void tower() {
-        if (towerMode.getValue() == TowerMode.NONE || !mc.gameSettings.keyBindJump.isKeyDown() || !PlayerUtils.isBlockUnder(2)) return;
+        if (towerMode.getValue() == TowerMode.NONE || !mc.gameSettings.keyBindJump.isKeyDown() || !PlayerUtils.isBlockUnder(2))
+            return;
         if (!towerMove.getValue() && !MoveUtils.isMoving()) return;
 
         switch (towerMode.getValue()) {

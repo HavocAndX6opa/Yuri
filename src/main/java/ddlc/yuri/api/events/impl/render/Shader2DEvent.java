@@ -14,9 +14,7 @@ public class Shader2DEvent implements Event {
         this.shaderType = shaderType;
     }
 
-    // not doing bloom because it's a bit more complicated and I don't want to deal with it right now
-
     public enum ShaderType {
-        BLUR, SHADOW
+        BLUR, BLOOM, SHADOW
     }
 }

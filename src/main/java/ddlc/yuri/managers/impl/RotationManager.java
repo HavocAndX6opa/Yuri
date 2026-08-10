@@ -78,18 +78,6 @@ public class RotationManager {
         smooth();
     }
 
-    public static void stopRotation() {
-        active = false;
-        releasing = false;
-        rotations = null;
-        targetRotations = null;
-        raycast = null;
-    }
-
-    public static boolean isRotating() {
-        return active;
-    }
-
     public static float getRotationYaw() {
         return rotations != null ? rotations.x : mc.thePlayer.rotationYaw;
     }

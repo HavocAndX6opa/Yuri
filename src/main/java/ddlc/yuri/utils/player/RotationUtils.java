@@ -83,7 +83,7 @@ public class RotationUtils implements IMinecraft {
     public static float[] getRotationFromPosition(double x, double y, double z) {
         double xDiff = x - (Minecraft.getMinecraft()).thePlayer.posX;
         double zDiff = z - (Minecraft.getMinecraft()).thePlayer.posZ;
-        double yDiff = y - (Minecraft.getMinecraft()).thePlayer.posY - 1.2D;
+        double yDiff = y - (Minecraft.getMinecraft()).thePlayer.posY - 1.5f;
         double dist = MathHelper.sqrt_double(xDiff * xDiff + zDiff * zDiff);
         float yaw = (float) (Math.atan2(zDiff, xDiff) * 180.0D / Math.PI) - 90.0F;
         float pitch = (float) -(Math.atan2(yDiff, dist) * 180.0D / Math.PI);

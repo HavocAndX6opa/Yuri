@@ -226,7 +226,7 @@ public class ModListModule extends Module implements IMinecraft {
 
                 float textX = line.getValue() ? (float) (translateX - 1.2f) : (float) ((float) offset.getValue().floatValue() == 0 ? translateX - 0.5f : (float) translateX);
 
-                drawText(fr, name, textX, (float) translateY, aColor);
+                drawText(fr, name, useCustomFont.getValue() ? textX : textX + 0.8f, (float) translateY, aColor);
 
                 if (outline.getValue()) {
                     Gui.drawRect((float) translateX - pad - lw, (float) translateY - pad, (float) translateX - pad, (float) translateY + TEXT_HEIGHT + pad, aColor);
@@ -331,16 +331,16 @@ public class ModListModule extends Module implements IMinecraft {
     }
 
     private int getColorForModule(int visibleModuleIndex) {
-        int offset = colorMode.getValue() == ColorMode.FADE ? visibleModuleIndex * 75 : 75;
+        int index = colorMode.getValue() == ColorMode.FADE ? visibleModuleIndex : 0;
 
         if (ClickGUIModule.color.getValue() == ClickGUIModule.Color.ASTOLFO) {
-            return RenderUtils.astolfoColors(offset / 2, offset).getRGB();
+            return RenderUtils.astolfoColors(0, index * 10).getRGB();
         }
 
         if (ClickGUIModule.color.getValue() == ClickGUIModule.Color.RAINBOW) {
             float hue = (System.currentTimeMillis() % 3000) / 3000f;
             if (colorMode.getValue() == ColorMode.FADE) {
-                hue += visibleModuleIndex * 0.035f;
+                hue += index * 0.035f;
             }
             if (hue > 1.0f) {
                 hue %= 1.0f;
@@ -351,7 +351,7 @@ public class ModListModule extends Module implements IMinecraft {
         if (ClickGUIModule.color.getValue() == ClickGUIModule.Color.NOVOLINE) {
             float hue = (System.currentTimeMillis() % 3000) / 3000f;
             if (colorMode.getValue() == ColorMode.FADE) {
-                hue += visibleModuleIndex * 0.035f;
+                hue += index * 0.035f;
             }
             if (hue > 1.0f) {
                 hue %= 1.0f;
@@ -359,7 +359,7 @@ public class ModListModule extends Module implements IMinecraft {
             return Color.getHSBColor(hue, 0.25f, 0.9f).getRGB();
         }
 
-        return RenderUtils.interpolateColorsBackAndForth(15, offset, ColorManager.colors.getFirst(), ColorManager.colors.getSecond(), false).getRGB();
+        return RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), index * 10, ColorManager.colors.getFirst(), ColorManager.colors.getSecond(), false).getRGB();
     }
 
     private String getDisplayLabel(Module m) {

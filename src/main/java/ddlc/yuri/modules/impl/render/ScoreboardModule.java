@@ -46,6 +46,7 @@ public class ScoreboardModule extends Module {
     public void onShader2D(Shader2DEvent e) {
         if (!this.isEnabled()) return;
         if (renderedThisFrame) return;
+        if (e.getShaderType() == Shader2DEvent.ShaderType.BLOOM) return;
 
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null || mc.thePlayer == null) return;

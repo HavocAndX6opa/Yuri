@@ -37,10 +37,7 @@ import java.util.concurrent.FutureTask;
 import javax.imageio.ImageIO;
 
 import ddlc.yuri.Yuri;
-import ddlc.yuri.api.events.impl.client.ClientTickEvent;
-import ddlc.yuri.api.events.impl.client.GameStartupEvent;
-import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
-import ddlc.yuri.api.events.impl.client.KeyPressEvent;
+import ddlc.yuri.api.events.impl.client.*;
 import ddlc.yuri.api.events.impl.player.MiddleClickEvent;
 import ddlc.yuri.api.events.impl.player.RightClickEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
@@ -2169,6 +2166,10 @@ public class Minecraft implements IThreadListener, IPlayerUsage
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        if (thePlayer != null && theWorld != null) {
+            Yuri.INSTANCE.getEventBus().post(new PostTickEvent());
         }
     }
 

@@ -1,4 +1,4 @@
-package ddlc.yuri.modules.impl.player;
+package ddlc.yuri.modules.impl.misc;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
@@ -14,7 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
 
-@ModuleInfo(label = "Auto Swap", description = "Automatically swaps to the best tool for the block you're mining.", category = ModuleCategory.PLAYER)
+@ModuleInfo(label = "Auto Swap", description = "Automatically swaps to the best tool for the block you're mining.", category = ModuleCategory.MISC)
 public final class AutoSwapModule extends Module {
 
     public enum SwapMode {

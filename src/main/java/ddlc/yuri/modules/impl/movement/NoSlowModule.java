@@ -1,10 +1,8 @@
 package ddlc.yuri.modules.impl.movement;
 
 import ddlc.yuri.api.events.annotations.EventHook;
-import ddlc.yuri.api.events.impl.player.ItemSlowdownEvent;
-import ddlc.yuri.api.events.impl.player.MotionEvent;
-import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
-import ddlc.yuri.api.events.impl.player.StrafeEvent;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
+import ddlc.yuri.api.events.impl.player.*;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
@@ -14,6 +12,8 @@ import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
 import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
+import ddlc.yuri.utils.player.InvUtils;
+import ddlc.yuri.utils.player.PlayerUtils;
 import net.minecraft.item.*;
 
 import java.util.EnumMap;
@@ -41,10 +41,8 @@ public final class NoSlowModule extends Module {
     public final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);
     public final Property<Boolean> food = new Property<Boolean>("Food Items", true, () -> mode.getValue() != Mode.HYPIXEL);
     public final Property<Boolean> potion = new Property<Boolean>("Potion Items", true, () -> mode.getValue() != Mode.HYPIXEL);
-    public final Property<Boolean> sword = new Property<Boolean>("Sword Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> sword = new Property<Boolean>("Sword Items", true);
     public final Property<Boolean> bow = new Property<Boolean>("Bow Items", true, () -> mode.getValue() != Mode.HYPIXEL);
-    public final NumberProperty delay = new NumberProperty("Delay", 8, 0, 30, 1, () -> mode.getValue() == Mode.HYPIXEL);
-    public final NumberProperty finishEating = new NumberProperty("When To Finish Eating", 30, 20, 36, 1, () -> mode.getValue() == Mode.HYPIXEL);
 
     public boolean usingItem;
 
@@ -65,6 +63,26 @@ public final class NoSlowModule extends Module {
         NoSlowMode currentMode = noSlowModes.get(mode.getValue());
         if (currentMode != null) {
             currentMode.onPreUpdate(event);
+        }
+    }
+
+    @EventHook
+    public void onPacketSend(PacketSendEvent event) {
+        if (mc.thePlayer == null) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPacketSend(event);
+        }
+    }
+
+    @EventHook
+    public void onRightClick(RightClickEvent event) {
+        if (mc.thePlayer == null) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onRightClick(event);
         }
     }
 
@@ -105,5 +123,20 @@ public final class NoSlowModule extends Module {
         if (potion.getValue() && item instanceof ItemPotion) event.setCancelled(true);
         if (sword.getValue() && item instanceof ItemSword) event.setCancelled(true);
         if (bow.getValue() && item instanceof ItemBow) event.setCancelled(true);
+    }
+
+    public boolean isSwordActive() {
+        return this.sword.getValue() && InvUtils.isHoldingSword();
+    }
+
+    @Override
+    public void onDisable() {
+        if (mc.thePlayer == null) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode instanceof HypixelNoSlow) {
+            HypixelNoSlow.release();
+            HypixelNoSlow.resetCycle();
+        }
     }
 }

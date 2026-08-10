@@ -17,7 +17,7 @@ import net.minecraft.network.play.client.C0APacketAnimation;
 import java.util.HashSet;
 import java.util.UUID;
 
-@ModuleInfo(label = "AntiFireball", description = "Automatically attacks fireballs that are close to you", category = ModuleCategory.PLAYER)
+@ModuleInfo(label = "Anti Fireball", description = "Automatically attacks fireballs that are close to you", category = ModuleCategory.PLAYER)
 public class AntiFireballModule extends Module {
 
     public final TimerUtils stopWatch = new TimerUtils();

@@ -2,9 +2,10 @@ package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
-import ddlc.yuri.api.gui.click.exhibition.ExhibitionClickGui;
+import ddlc.yuri.api.gui.click.neverlose.NeverloseClickGui;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
@@ -16,6 +17,7 @@ import org.lwjgl.input.Keyboard;
 public class ClickGUIModule extends Module implements IMinecraft {
 
     public static final ModeProperty<Color> color = new ModeProperty<>("Color", Color.YURI);
+    public static final NumberProperty colorSpeed = new NumberProperty("Color Speed", 5, 1, 10, 1);
     public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NOVOLINE);
     public static final ModeProperty<ImGuiStyleType> style = new ModeProperty<>("Style", ImGuiStyleType.REGULAR, () -> mode.getValue() == Mode.IMGUI);
     private final Property<Boolean> closePrevious = new Property<>("Close Previous", true);
@@ -23,7 +25,7 @@ public class ClickGUIModule extends Module implements IMinecraft {
     public enum Mode {
         NOVOLINE("Novoline"),
         IMGUI("ImGui"),
-        EXHIBITION("Exhibition");
+        NEVERLOSE("Neverlose");
 
         public final String name;
 
@@ -77,8 +79,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
     @Override
     public void onEnable() {
         switch (mode.getValue()) {
-            case EXHIBITION:
-                mc.displayGuiScreen(new ExhibitionClickGui());
+            case NEVERLOSE:
+                mc.displayGuiScreen(Yuri.INSTANCE.getNeverloseClickGui());
                 break;
             case NOVOLINE:
                 mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
@@ -91,11 +93,11 @@ public class ClickGUIModule extends Module implements IMinecraft {
 
     @Override
     public void onDisable() {
-        if (mc.currentScreen instanceof ExhibitionClickGui) {
-            // exhibition gui handles its own cleanup in onGuiClosed
+        if (mc.currentScreen == Yuri.INSTANCE.getNeverloseClickGui() && !Yuri.INSTANCE.getNeverloseClickGui().isClosing()) {
+            Yuri.INSTANCE.getNeverloseClickGui().beginClose();
         } else if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
             Yuri.INSTANCE.getNovolineClickGui().beginClose();
-        } else if (mc.currentScreen instanceof ImGuiClickGui) {
+        } else if (mc.currentScreen == Yuri.INSTANCE.getImGUIClickGui() && !Yuri.INSTANCE.getImGUIClickGui().isClosing()) {
             Yuri.INSTANCE.getImGUIClickGui().beginClose();
         }
     }

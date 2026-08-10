@@ -19,6 +19,7 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
@@ -36,6 +37,7 @@ public class ImGuiClickGui extends GuiScreen {
     private final Set<Module> openModules = new HashSet<>();
     private final Map<Property<?>, ImString> stringBuffers = new HashMap<>();
     private Property<Integer> listeningKeybind;
+    @Getter
     private boolean closing;
 
     @Override

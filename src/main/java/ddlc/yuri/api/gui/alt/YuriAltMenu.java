@@ -7,6 +7,7 @@ import ddlc.yuri.api.gui.alt.comp.CustomTextBox;
 import ddlc.yuri.api.gui.alt.comp.MicrosoftOAuthTranslation;
 import ddlc.yuri.api.gui.alt.comp.SessionChanger;
 import ddlc.yuri.api.gui.alt.comp.TokenEncryption;
+import ddlc.yuri.api.gui.main.MenuShaderBackground;
 import ddlc.yuri.api.gui.main.YuriMenu;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
@@ -75,7 +76,7 @@ public class YuriAltMenu extends GuiScreen {
     private boolean draggingScrollbar = false;
     private int dragStartY;
     private int scrollStart;
-    private String statusString;
+    private String statusString = "Ready To Work!";
     private boolean isLoggingIn = false;
 
     private int contentY, contentHeight;
@@ -152,7 +153,8 @@ public class YuriAltMenu extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        Gui.drawRect(0, 0, width, height, BACKGROUND.getRGB());
+        Gui.drawRect(0, 0, (int) width, (int) height, BACKGROUND.getRGB());
+        MenuShaderBackground.get().render(width, height);
 
         computeLayout();
 
@@ -241,8 +243,8 @@ public class YuriAltMenu extends GuiScreen {
         boolean backHovered = isMouseOverButton(mouseX, mouseY, PADDING, 0, backButtonWidth, HEADER_HEIGHT);
         regular.drawStringWithShadow("Back", PADDING, (HEADER_HEIGHT - fontHeight) / 2, backHovered ? accent : Color.WHITE.getRGB());
 
-        String titleBold = "y";
-        String titleRest = new ChatComponentText("uri account manager").getFormattedText();
+        String titleBold = "Y";
+        String titleRest = new ChatComponentText("uri Account Manager").getFormattedText();
         float titleBoldWidth = bold.getStringWidth(titleBold);
         float titleRestWidth = regular.getStringWidth(titleRest);
         float titleTotalWidth = titleBoldWidth + titleRestWidth;
@@ -253,7 +255,7 @@ public class YuriAltMenu extends GuiScreen {
         regular.drawStringWithShadow(titleRest, titleX + titleBoldWidth, titleY, Color.WHITE.getRGB());
 
         String currentUser = Minecraft.getMinecraft().getSession().getUsername();
-        String pillLabel = "signed in as " + currentUser;
+        String pillLabel = "Signed In As " + currentUser;
         int pillTextWidth = regular.getStringWidth(pillLabel);
         int dotSize = 6;
         int pillPaddingX = 10;
@@ -265,10 +267,8 @@ public class YuriAltMenu extends GuiScreen {
         RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
         int dotX = pillX + pillPaddingX;
         int dotY = pillY + (pillHeight - dotSize) / 2;
-        Gui.drawRect(dotX, dotY, dotX + dotSize, dotY + dotSize, accent);
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, 0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
         regular.drawString(pillLabel, dotX + dotSize + 6, pillY + (pillHeight - fontHeight) / 2f, Color.WHITE.getRGB());
-
-        Gui.drawRect(0, HEADER_HEIGHT, width, HEADER_HEIGHT + 1, RenderUtils.withAlpha(Color.WHITE, 20));
     }
 
     private void drawAddAccountPanel(int mouseX, int mouseY) {
@@ -277,8 +277,8 @@ public class YuriAltMenu extends GuiScreen {
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
 
-        String headerBold = "add";
-        String headerRest = new ChatComponentText(" account").getFormattedText();
+        String headerBold = "Add";
+        String headerRest = new ChatComponentText(" Account").getFormattedText();
         bold.drawStringWithShadow(headerBold, addX + PADDING, addY + PADDING, ColorManager.getColor().getRGB());
         regular.drawStringWithShadow(headerRest, addX + PADDING + bold.getStringWidth(headerBold), addY + PADDING, Color.WHITE.getRGB());
 
@@ -287,17 +287,17 @@ public class YuriAltMenu extends GuiScreen {
 
         drawPrimaryButton(primaryButtonX, primaryButtonY, primaryButtonWidth, "Login", mouseX, mouseY);
         drawSecondaryButton(oauthButtonX, oauthButtonY, oauthButtonWidth, "Microsoft", mouseX, mouseY);
-        drawSecondaryButton(generateButtonX, generateButtonY, generateButtonWidth, "Random Alt", mouseX, mouseY);
+        drawSecondaryButton(generateButtonX, generateButtonY, generateButtonWidth, "Generate Random Cracked Alt", mouseX, mouseY);
 
         tokenField.drawTextBox();
-        drawSecondaryButton(tokenButtonX, tokenButtonY, tokenButtonWidth, "Login via Token", mouseX, mouseY);
+        drawSecondaryButton(tokenButtonX, tokenButtonY, tokenButtonWidth, "Login Via Token", mouseX, mouseY);
 
         if (statusString != null) {
             regular.drawCenteredStringWithShadow(statusString, addX + addWidth / 2f, statusY, 0xAAAAAA);
         }
 
         Gui.drawRect(addX + PADDING, tipsY - 8, addX + addWidth - PADDING, tipsY - 7, RenderUtils.withAlpha(Color.WHITE, 25));
-        regular.drawString("alt+click select  \u00b7  alt+a all  \u00b7  alt+backspace delete", addX + PADDING, tipsY, 0x888888);
+        regular.drawString("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete", (float) regular.getStringWidth("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete") / 2f - 24f, tipsY, 0x888888);
     }
 
     private void drawPrimaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
@@ -331,7 +331,7 @@ public class YuriAltMenu extends GuiScreen {
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
         int fontHeight = regular.getHeight();
 
-        String headerBold = "accounts";
+        String headerBold = "Accounts";
         String headerRest = new ChatComponentText(" (" + alts.size() + ")").getFormattedText();
         bold.drawStringWithShadow(headerBold, accountsX + PADDING, accountsY + PADDING, ColorManager.getColor().getRGB());
         regular.drawStringWithShadow(headerRest, accountsX + PADDING + bold.getStringWidth(headerBold), accountsY + PADDING, Color.WHITE.getRGB());
@@ -341,8 +341,8 @@ public class YuriAltMenu extends GuiScreen {
         if (alts.isEmpty()) {
             float centerX = gridListX + gridListWidth / 2f;
             float centerY = gridListY + gridListHeight / 2f - fontHeight;
-            regular.drawCenteredStringWithShadow("no accounts yet", centerX, centerY, Color.WHITE.getRGB());
-            regular.drawCenteredStringWithShadow("add one using the form on the left", centerX, centerY + fontHeight + 4, 0xAAAAAA);
+            regular.drawCenteredStringWithShadow("No Accounts Yet", centerX, centerY, Color.WHITE.getRGB());
+            regular.drawCenteredStringWithShadow("Add One Using The Form On The Left", centerX, centerY + fontHeight + 4, 0xAAAAAA);
             return;
         }
 
@@ -397,8 +397,7 @@ public class YuriAltMenu extends GuiScreen {
         int dotSize = 6;
         int dotX = x + ENTRY_PADDING + avatarSize - dotSize + 2;
         int dotY = y + ENTRY_PADDING + avatarSize - dotSize + 2;
-        Gui.drawRect(dotX - 1, dotY - 1, dotX + dotSize + 1, dotY + dotSize + 1, BACKGROUND.getRGB());
-        Gui.drawRect(dotX, dotY, dotX + dotSize, dotY + dotSize, premium ? accent.getRGB() : new Color(130, 130, 140).getRGB());
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, 0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
 
         int textX = x + ENTRY_PADDING + avatarSize + ENTRY_PADDING;
         CustomFontRenderer font = FontUtils.getFont("sf", 18);
@@ -442,7 +441,7 @@ public class YuriAltMenu extends GuiScreen {
         ResourceLocation head = uuid == null || uuid.isEmpty() ? PLACEHOLDER_HEAD : headCache.getOrDefault(uuid, PLACEHOLDER_HEAD);
         int size = cellHeight - (ENTRY_PADDING * 2);
 
-        RenderUtils.drawImage(head, x + ENTRY_PADDING, y + ENTRY_PADDING, size, size);
+        RoundedUtils.drawRoundedImage(head, x + ENTRY_PADDING, y + ENTRY_PADDING, size, size, RADIUS);
     }
 
     private void enableScissor(int x, int y, int w, int h) {
@@ -537,11 +536,11 @@ public class YuriAltMenu extends GuiScreen {
         if (isLoggingIn) return;
         String rawToken = tokenField.getText().trim();
         if (rawToken.isEmpty()) {
-            statusString = "Enter a token first";
+            statusString = "Enter A Token First!";
             return;
         }
         isLoggingIn = true;
-        statusString = "Authenticating token...";
+        statusString = "Authenticating Token...";
 
         new Thread(() -> {
             try {
@@ -553,7 +552,7 @@ public class YuriAltMenu extends GuiScreen {
                 int responseCode = profConn.getResponseCode();
                 if (responseCode != 200) {
                     mc.addScheduledTask(() -> {
-                        statusString = "Invalid token (HTTP " + responseCode + ")";
+                        statusString = "Invalid Token! (HTTP " + responseCode + ")";
                         isLoggingIn = false;
                     });
                     return;
@@ -572,13 +571,13 @@ public class YuriAltMenu extends GuiScreen {
                     mc.setSession(new Session(profileName, profileId, rawToken, "mojang"));
                     saveTokenAltToFile(profileName, profileId, rawToken);
                     tokenField.setText("");
-                    statusString = "Logged in via Token as " + profileName;
+                    statusString = "Logged In Via Token As " + profileName + "!";
                     isLoggingIn = false;
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 mc.addScheduledTask(() -> {
-                    statusString = "Token Auth Failed";
+                    statusString = "Token Auth Failed!";
                     isLoggingIn = false;
                 });
             }
@@ -678,7 +677,7 @@ public class YuriAltMenu extends GuiScreen {
         mc.setSession(new Session(loginUsername, loginUsername, "0", "legacy"));
         saveCrackedToFile(loginUsername);
 
-        statusString = "Logged in with " + loginUsername;
+        statusString = "Logged In With " + loginUsername + "!";
         clearTextBoxes();
         isLoggingIn = false;
     }
@@ -686,7 +685,7 @@ public class YuriAltMenu extends GuiScreen {
     private void handleOAuthLogin() {
         if (isLoggingIn) return;
         isLoggingIn = true;
-        statusString = "Awaiting response for Microsoft login...";
+        statusString = "Awaiting Response For Microsoft Login...";
 
         MicrosoftOAuthTranslation.getRefreshToken(refreshToken -> {
             try {
@@ -695,12 +694,12 @@ public class YuriAltMenu extends GuiScreen {
                     if (login.isGood()) {
                         mc.setSession(new Session(login.username, login.uuid, login.mcToken, "microsoft"));
                         saveOAuthAltToFile(login.username, login.newRefreshToken);
-                        statusString = "Logged in with " + login.username;
+                        statusString = "Logged In With " + login.username + "!";
                     } else {
-                        statusString = "Failed to login with Microsoft OAuth";
+                        statusString = "Failed To Login With Microsoft OAuth!";
                     }
                 } else {
-                    statusString = "Failed to get refresh token";
+                    statusString = "Failed To Get Refresh Token!";
                 }
             } finally {
                 isLoggingIn = false;

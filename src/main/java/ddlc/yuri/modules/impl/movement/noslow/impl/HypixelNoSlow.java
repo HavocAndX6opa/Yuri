@@ -1,69 +1,193 @@
 package ddlc.yuri.modules.impl.movement.noslow.impl;
 
+import ddlc.yuri.Yuri;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
+import ddlc.yuri.api.events.impl.player.ItemSlowdownEvent;
+import ddlc.yuri.api.events.impl.player.MotionEvent;
+import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.RightClickEvent;
+import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.movement.NoSlowModule;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
+import ddlc.yuri.utils.player.InvUtils;
+import ddlc.yuri.utils.player.packet.PacketUtils;
+import net.minecraft.client.multiplayer.PlayerControllerMP;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.*;
+import net.minecraft.network.play.client.C07PacketPlayerDigging;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.network.play.client.C09PacketHeldItemChange;
+import net.minecraft.network.play.server.S19PacketEntityStatus;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.MovingObjectPosition;
 
 public final class HypixelNoSlow implements NoSlowMode {
 
-    private final NoSlowModule parentModule;
+    private final NoSlowModule parent;
 
     public HypixelNoSlow(NoSlowModule parentModule) {
-        this.parentModule = parentModule;
+        this.parent = parentModule;
     }
 
-    /*private int usedTicks = 0;
-    private boolean wasUsingItem;
-
-    @Override
-    public void onMotion(MotionEvent event) {
-        if (!event.isPre()) return;
-
-        ItemStack held = mc.thePlayer.getHeldItem();
-        if (held == null) return;
-        Item item = held.getItem();
-
-        if (!(item instanceof ItemSword || item instanceof ItemFood && mc.thePlayer.isEating() || item instanceof ItemPotion && !ItemPotion.isSplash(held.getMetadata()) && parentModule.potion.getValue() && mc.thePlayer.isEating())) return;
-
-        if (mc.thePlayer.isUsingItem()) {
-            usedTicks++;
-            wasUsingItem = true;
-        } else if (wasUsingItem) {
-            wasUsingItem = false;
-            usedTicks = 0;
-        }
-
-        if (usedTicks > parentModule.finishEating.getValue().intValue() && item instanceof ItemFood) {
-            mc.gameSettings.keyBindUseItem.setPressed(false);
-            usedTicks = 0;
-        }
-    }
+    private static int nextCycleTick = -1;
+    private static boolean runThisTick = false;
+    private static boolean stopUse = false;
+    private static boolean blocking = false;
+    private int slotChangeTick = -1;
 
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        if (Euphoria.client().getModuleManager().getModule(KillAuraModule.class).isEnabled() && KillAuraModule.target != null) return;
-        if (mc.thePlayer.onGround) return;
-        if (mc.gameSettings.keyBindForward.isKeyDown() || mc.gameSettings.keyBindBack.isKeyDown()) return;
-        if (mc.thePlayer.ticksExisted <= 5) return;
-        if (!mc.thePlayer.isUsingItem()) return;
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || !InvUtils.isHoldingSword() || AuraModule.autoBlocking) {
+            resetCycle();
+            release();
+            return;
+        }
 
-        ItemStack held = mc.thePlayer.getHeldItem();
-        if (held != null && held.getItem() instanceof ItemSword) return;
+        if (stopUse) {
+            if (mc.thePlayer.isUsingItem()) {
+                block();
+                mc.thePlayer.stopUsingItem();
+            }
+            stopUse = false;
+        } else if (!parent.isSwordActive()) {
+            if (!mc.thePlayer.isUsingItem()) {
+                release();
+            }
+        }
 
-        RotationListener.setRotations(mc.thePlayer.rotationYaw + 45.0F, mc.thePlayer.rotationPitch, 10f, RotationListener.MovementFix.NORMAL);
+        int age = mc.thePlayer.ticksExisted;
+
+        boolean rightPressed = mc.gameSettings.keyBindUseItem.isKeyDown();
+
+        if (parent.isSwordActive()) {
+            if (rightPressed) {
+                if (nextCycleTick < 0) {
+                    nextCycleTick = age;
+                }
+
+                if (age >= nextCycleTick) {
+                    if (blocking) {
+                        release();
+                    }
+                    runThisTick = true;
+                    nextCycleTick = age + 2;
+                } else if (!blocking) {
+                    block();
+                }
+            } else {
+                resetCycle();
+                if (!mc.thePlayer.isUsingItem()) {
+                    release();
+                }
+            }
+
+            if (runThisTick && parent.isSwordActive()) {
+                if (rightPressed) {
+                    if (!mc.thePlayer.isUsingItem() || !blocking) {
+                        if (mc.objectMouseOver != null
+                                && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                                && mc.objectMouseOver.getBlockPos() != null) {
+                            net.minecraft.block.Block block =
+                                    mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock();
+                            PlayerControllerMP accessor = mc.playerController;
+                            if (isInteractableBlock(block) || accessor.getIsHittingBlock()) {
+                                runThisTick = false;
+                                return;
+                            }
+                        }
+
+                        this.stopUse = true;
+                        mc.gameSettings.keyBindUseItem.setPressed(true);
+                    } else {
+                        mc.gameSettings.keyBindUseItem.setPressed(false);
+                    }
+                } else {
+                    this.stopUse = false;
+                }
+                runThisTick = false;
+            }
+        }
     }
 
     @Override
-    public void onSlowdown(ItemSlowdownEvent event) {
-        ItemStack held = mc.thePlayer.getHeldItem();
-        if (held == null) return;
-        Item item = held.getItem();
-
-        if (!(item instanceof ItemSword || item instanceof ItemFood || item instanceof ItemPotion)) return;
-
-        if (!mc.thePlayer.isUsingItem()) return;
-        if (usedTicks > parentModule.delay.getValue().intValue()) {
-            event.setCancelled(true);
-            mc.thePlayer.setSprinting(true);
+    public void onRightClick(RightClickEvent event) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.autoBlocking) {
+            return;
         }
-    }*/
+        if (parent.isSwordActive()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.autoBlocking) {
+            return;
+        }
+
+        if (event.getPacket() instanceof C09PacketHeldItemChange) {
+            if (mc.thePlayer.ticksExisted - slotChangeTick != 1) {
+                release();
+                resetCycle();
+            }
+            slotChangeTick = mc.thePlayer.ticksExisted;
+        }
+
+        if (event.getPacket() instanceof S19PacketEntityStatus) {
+            S19PacketEntityStatus statusPacket = (S19PacketEntityStatus) event.getPacket();
+            if (statusPacket.getEntity(mc.theWorld) == mc.thePlayer && statusPacket.getOpCode() == 9) {
+                release();
+            }
+        }
+    }
+
+    private void block() {
+        if (mc.thePlayer.getHeldItem() != null
+                && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword) {
+            PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+            mc.thePlayer.setItemInUse(
+                    mc.thePlayer.getHeldItem(), mc.thePlayer.getHeldItem().getMaxItemUseDuration());
+            blocking = true;
+        }
+    }
+
+    public static void release() {
+        PacketUtils.sendPacket(
+                new C07PacketPlayerDigging(
+                        C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+        mc.thePlayer.stopUsingItem();
+        blocking = false;
+    }
+
+    public static void resetCycle() {
+        stopUse = false;
+        runThisTick = false;
+        nextCycleTick = -1;
+    }
+
+    private boolean isInteractableBlock(net.minecraft.block.Block block) {
+        return block instanceof net.minecraft.block.BlockDoor
+                || block instanceof net.minecraft.block.BlockChest
+                || block instanceof net.minecraft.block.BlockFurnace
+                || block instanceof net.minecraft.block.BlockWorkbench
+                || block instanceof net.minecraft.block.BlockAnvil
+                || block instanceof net.minecraft.block.BlockEnchantmentTable
+                || block instanceof net.minecraft.block.BlockBrewingStand
+                || block instanceof net.minecraft.block.BlockBeacon
+                || block instanceof net.minecraft.block.BlockLever
+                || block instanceof net.minecraft.block.BlockButtonWood
+                || block instanceof net.minecraft.block.BlockButtonStone
+                || block instanceof net.minecraft.block.BlockTrapDoor
+                || block instanceof net.minecraft.block.BlockFenceGate
+                || block instanceof net.minecraft.block.BlockRedstoneRepeater
+                || block instanceof net.minecraft.block.BlockRedstoneComparator
+                || block instanceof net.minecraft.block.BlockHopper
+                || block instanceof net.minecraft.block.BlockDropper
+                || block instanceof net.minecraft.block.BlockDispenser
+                || block instanceof net.minecraft.block.BlockEnderChest
+                || block == Blocks.anvil
+                || block == Blocks.enchanting_table
+                || block == Blocks.brewing_stand;
+    }
 }

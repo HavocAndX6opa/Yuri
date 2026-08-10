@@ -16,7 +16,7 @@ import net.minecraft.item.ItemAppleGold;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.Potion;
 
-@ModuleInfo(label = "AutoApple", category = ModuleCategory.COMBAT, description = "Automatically eats a golden apple when your health is low")
+@ModuleInfo(label = "Auto Apple", category = ModuleCategory.COMBAT, description = "Automatically eats a golden apple when your health is low")
 public final class AutoAppleModule extends Module {
 
     private final NumberProperty health = new NumberProperty("Health", 15, 1, 20, 1);

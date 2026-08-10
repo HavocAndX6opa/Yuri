@@ -14,9 +14,7 @@ import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.utils.render.FontUtils;
-import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.network.play.server.S45PacketTitle;
 import net.minecraft.util.StringUtils;
@@ -201,14 +199,16 @@ public class SessionInfoModule extends Module implements IMinecraft {
         CustomFontRenderer body = FontUtils.getFont("sf", 16);
         if (title == null || welcome == null || body == null) return;
 
-        String titleText = "session info";
+        String titleText = "Session Info";
         String welcomeText = "Welcome, " + mc.getSession().getUsername() + "!";
+        String singleplayerText = "No stats to render.";
         String killsText = "You have " + kills + " kills.";
         String timeText = "You have been playing for " + formatTimeYuri(System.currentTimeMillis() - sessionStart) + ".";
         String serverText = "Server: " + getServerName();
 
         float titleWidth = title.getStringWidth(titleText);
         float welcomeWidth = welcome.getStringWidth(welcomeText);
+        float singleplayerWidth = body.getStringWidth(singleplayerText);
         float killsWidth = body.getStringWidth(killsText);
         float timeWidth = body.getStringWidth(timeText);
         float serverWidth = body.getStringWidth(serverText);
@@ -244,18 +244,22 @@ public class SessionInfoModule extends Module implements IMinecraft {
         float cursorY = y + PADDING_Y;
 
         title.drawStringWithShadow(titleText, cx - titleWidth / 2f, cursorY, Color.WHITE.getRGB());
-        cursorY += titleHeight + gapTitleWelcome;
+        cursorY += getServerName().equals("Singleplayer") ? titleHeight + gapTitleWelcome + 10f : titleHeight + gapTitleWelcome;
 
         welcome.drawStringWithShadow(welcomeText, cx - welcomeWidth / 2f, cursorY, Color.WHITE.getRGB());
         cursorY += welcomeHeight + gapWelcomeKills;
 
-        body.drawStringWithShadow(killsText, cx - killsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
-        cursorY += lineHeight + gapLine;
+        if (getServerName().equals("Singleplayer")) {
+            body.drawStringWithShadow(singleplayerText, cx - singleplayerWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+        } else {
+            body.drawStringWithShadow(killsText, cx - killsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+            cursorY += lineHeight + gapLine;
 
-        body.drawStringWithShadow(timeText, cx - timeWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
-        cursorY += lineHeight + gapKillsServer;
+            body.drawStringWithShadow(timeText, cx - timeWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+            cursorY += lineHeight + gapKillsServer;
 
-        body.drawStringWithShadow(serverText, cx - serverWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+            body.drawStringWithShadow(serverText, cx - serverWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+        }
     }
 
     private String formatTime(long millis) {

@@ -8,6 +8,7 @@ import ddlc.yuri.api.events.impl.client.GameStartupEvent;
 import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
+import ddlc.yuri.api.gui.click.neverlose.NeverloseClickGui;
 import ddlc.yuri.api.gui.click.novoline.NovolineClickGUI;
 import ddlc.yuri.managers.ManagerWrapper;
 import ddlc.yuri.modules.ModuleManager;
@@ -31,6 +32,8 @@ public class Yuri {
     private final NovolineClickGUI novolineClickGui = new NovolineClickGUI();
     @Getter
     private final ImGuiClickGui imGUIClickGui = new ImGuiClickGui();
+    @Getter
+    private final NeverloseClickGui neverloseClickGui = new NeverloseClickGui();
     private BindsConfig bindsConfig;
 
     private Yuri() {

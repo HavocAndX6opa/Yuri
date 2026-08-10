@@ -15,7 +15,7 @@ import ddlc.yuri.modules.impl.player.antivoid.impl.VanillaAntiVoid;
 import java.util.EnumMap;
 import java.util.Map;
 
-@ModuleInfo(label = "AntiVoid", description = "Prevents you from falling into the void", category = ModuleCategory.PLAYER)
+@ModuleInfo(label = "Anti Void", description = "Prevents you from falling into the void", category = ModuleCategory.PLAYER)
 public final class AntiVoidModule extends Module {
 
     public final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);

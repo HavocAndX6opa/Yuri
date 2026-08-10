@@ -2,6 +2,7 @@ package ddlc.yuri.modules.impl.combat;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.HitSlowDownEvent;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
@@ -11,15 +12,12 @@ import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.MultiModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
-import ddlc.yuri.managers.impl.BadPacketsManager;
-import ddlc.yuri.managers.impl.ColorManager;
-import ddlc.yuri.managers.impl.RotationLearnerManager;
-import ddlc.yuri.managers.impl.RotationManager;
-import ddlc.yuri.managers.impl.TargetManager;
+import ddlc.yuri.managers.impl.*;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.player.ScaffoldModule;
+import ddlc.yuri.utils.client.LoggingUtils;
 import ddlc.yuri.utils.client.MathUtils;
 import ddlc.yuri.utils.client.TimerUtils;
 import ddlc.yuri.utils.player.InvUtils;
@@ -29,14 +27,10 @@ import ddlc.yuri.utils.player.packet.PacketUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
-import net.minecraft.network.play.client.C09PacketHeldItemChange;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.Vec3;
+import net.minecraft.network.play.client.C0BPacketEntityAction;
+import net.minecraft.util.*;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Vector2f;
 
@@ -45,10 +39,11 @@ import java.util.Arrays;
 
 @ModuleInfo(label = "Aura", description = "Automatically attacks entities around you", category = ModuleCategory.COMBAT)
 public class AuraModule extends Module {
+
     private final MultiModeProperty<TargetManager.Targets> targets = new MultiModeProperty<>("Targets", TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.TEAMMATES, TargetManager.Targets.INVISIBLES);
     private static final ModeProperty<TargetManager.Mode> mode = new ModeProperty<>("Mode", TargetManager.Mode.SINGLE);
     public static NumberProperty seekRange = new NumberProperty("Seek Range", 6.0, 3, 6, 0.1);
-    public static final Property<Boolean> useOnlyMouse = new Property<>("Use Only Mouse Clicks", true);
+    public static final Property<Boolean> useOnlyMouse = new Property<>("Simulate Mouse Clicks", true);
     public static NumberProperty attackRange = new NumberProperty("Attack Range", 3.0, 3, 6, 0.1, () -> !useOnlyMouse.getValue());
     public static NumberProperty swingRange = new NumberProperty("Swing Range", 6.0, 3, 6, 0.1);
     public static NumberProperty blockRange = new NumberProperty("Block Range", 6.0, 3, 6, 0.1);
@@ -65,6 +60,7 @@ public class AuraModule extends Module {
     public static final Property<Boolean> rayCast = new Property<>("Ray Cast", true);
     public static final ModeProperty<MoveFix> fix = new ModeProperty<>("Move Fix", MoveFix.SILENT);
     public static final Property<Boolean> sprint = new Property<>("Keep Sprint", false);
+    public static final Property<Boolean> hypixelSprint = new Property<>("Hypixel Keep Sprint", false, sprint::getValue);
     public static final Property<Boolean> targetEsp = new Property<>("Target ESP", true);
     public static final Property<Boolean> astolfoPentagram = new Property<>("Astolfo Pentagram", true);
     public static final Property<Boolean> autoDisable = new Property<>("Auto Disable", true);
@@ -123,7 +119,13 @@ public class AuraModule extends Module {
         }
     }
 
+    private enum HypixelPhase {
+        BLOCK,
+        RELEASE
+    }
+
     public static EntityLivingBase target;
+    private boolean hitSlow = false;
     public static boolean autoBlocking = false;
     public static boolean canAttack = true;
     private static final TimerUtils attackTimer = new TimerUtils();
@@ -132,6 +134,14 @@ public class AuraModule extends Module {
     public int hitTicks;
     private EntityLivingBase lastTarget;
     private Vec3 smoothedBodyPoint;
+    private HypixelPhase hypixelPhase = HypixelPhase.BLOCK;
+
+    private static int nextCycleTick = -1;
+    private static boolean runThisTick = false;
+    private static boolean stopUse = false;
+    private static boolean blocking = false;
+    private int slotChangeTick = -1;
+
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
@@ -188,7 +198,8 @@ public class AuraModule extends Module {
 
     @EventHook
     public void onHitSlowDown(HitSlowDownEvent e) {
-        if (sprint.getValue()) {
+        hitSlow = true;
+        if (sprint.getValue() && !hypixelSprint.getValue()) {
             e.setSprint(true);
             e.setSlowDown(1.0);
         }
@@ -206,6 +217,21 @@ public class AuraModule extends Module {
     public void onRender3D(Render3DEvent event) {
         render3D();
         renderAstolfoPentagram();
+    }
+
+    @EventHook
+    public void onPacketSend(PacketSendEvent event) {
+        if (event.getPacket() instanceof C0BPacketEntityAction) {
+            C0BPacketEntityAction packet = (C0BPacketEntityAction) event.getPacket();
+
+            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && target != null && hitSlow && mc.thePlayer.isSprinting()) {
+                if (sprint.getValue() && hypixelSprint.getValue() && mc.thePlayer.hurtTime == 0) {
+                    event.setCancelled(true);
+                    PacketUtils.TimedPacket timedPacket = new PacketUtils.TimedPacket(packet, 200);
+                    PacketUtils.sendSilentPacket(timedPacket.getPacket());
+                }
+            }
+        }
     }
 
     private void calculateRotations() {
@@ -255,6 +281,16 @@ public class AuraModule extends Module {
         return new Vector2f(rot[0], rot[1]);
     }
 
+    private int getSwapSlot() {
+        int current = mc.thePlayer.inventory.currentItem;
+        for (int i = 0; i < 9; i++) {
+            if (i == current) continue;
+            if (mc.thePlayer.inventory.getStackInSlot(i) == null) {
+                return i;
+            }
+        }
+        return current == 0 ? 1 : 0;
+    }
 
     private void autoblock() {
         if (mc.thePlayer == null || mc.playerController == null) return;
@@ -274,7 +310,7 @@ public class AuraModule extends Module {
                 autoBlocking = true;
                 break;
             case LEGIT:
-                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 5 && mc.thePlayer.hurtTime >= 5);
+                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 4 && mc.thePlayer.hurtTime >= 4);
                 autoBlocking = true;
                 blockTicks++;
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
@@ -283,39 +319,13 @@ public class AuraModule extends Module {
                 canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 2;
                 break;
             case HYPIXEL:
-                if (RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()) != null && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit != null && RayCastUtils.rayCast(RotationManager.rotations, blockRange.getValue().floatValue()).entityHit == target) {
-                    int heldSlot = mc.thePlayer.inventory.currentItem;
-                    switch (blockTicks) {
-                        case 0:
-                            if (!isPlayerBlocking()) {
-                                PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
-                                mc.thePlayer.setItemInUse(mc.thePlayer.getHeldItem(), mc.thePlayer.getHeldItem().getMaxItemUseDuration());
-                            }
-                            autoBlocking = true;
-                            blockTicks = 1;
-                            canAttack = false;
-                            break;
-                        case 1:
-                            if (isPlayerBlocking()) {
-                                int emptySlot = findEmptySlot(heldSlot);
-                                PacketUtils.sendPacket(new C09PacketHeldItemChange(emptySlot));
-                            }
-                            autoBlocking = true;
-                            canAttack = false;
-                            blockTicks = 2;
-                            break;
-                        case 2:
-                            if (isPlayerBlocking()) PacketUtils.sendPacket(new C09PacketHeldItemChange(heldSlot));
-                            autoBlocking = true;
-                            canAttack = !BadPacketsManager.bad(true, false, false, true, false);
-                            blockTicks = 0;
-                            break;
-                        default:
-                            blockTicks = 0;
-                            canAttack = true;
-                            break;
-                    }
+                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 1);
+                autoBlocking = true;
+                blockTicks++;
+                if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
+                    blockTicks = 0;
                 }
+                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 1;
                 break;
             case VANILLA:
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
@@ -329,25 +339,6 @@ public class AuraModule extends Module {
                 }
                 break;
         }
-    }
-
-    public boolean isPlayerBlocking() {
-        return mc.thePlayer.isUsingItem() && InvUtils.isHoldingSword();
-    }
-
-    private int findEmptySlot(int currentSlot) {
-        for (int i = 0; i < 9; i++) {
-            if (i != currentSlot && mc.thePlayer.inventory.getStackInSlot(i) == null) {
-                return i;
-            }
-        }
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
-            if (i != currentSlot && stack != null && !stack.isItemStackDamageable()) {
-                return i;
-            }
-        }
-        return Math.floorMod(currentSlot - 1, 9);
     }
 
     private void unblock() {
@@ -364,7 +355,18 @@ public class AuraModule extends Module {
             return;
         }
 
-        if ((ab.getValue() == AutoBlock.LEGIT || ab.getValue() == AutoBlock.HYPIXEL) && mc.gameSettings.keyBindUseItem.isKeyDown()) {
+        if (ab.getValue() == AutoBlock.HYPIXEL) {
+            if (SlotManager.isActive()) {
+                SlotManager.swapBack();
+            }
+            mc.gameSettings.keyBindUseItem.setPressed(false);
+            hypixelPhase = HypixelPhase.BLOCK;
+            autoBlocking = false;
+            canAttack = true;
+            return;
+        }
+
+        if (ab.getValue() == AutoBlock.LEGIT && mc.gameSettings.keyBindUseItem.isKeyDown()) {
             mc.gameSettings.keyBindUseItem.setPressed(false);
             autoBlocking = false;
             canAttack = true;
@@ -423,8 +425,14 @@ public class AuraModule extends Module {
         canAttack = true;
         autoBlocking = false;
         blockTicks = -1;
+        hypixelPhase = HypixelPhase.BLOCK;
         TargetManager.configure(Arrays.asList(targets.getValues()));
         attackTimer.reset();
+        if (rotations.getValue() == Rotations.ML) {
+            if (!RotationLearnerManager.hasModelLoaded()) {
+                LoggingUtils.sendChatMessage("ML model not loaded, use .rot load <name> to load a rotation model!");
+            }
+        }
         super.onEnable();
     }
 
@@ -454,10 +462,14 @@ public class AuraModule extends Module {
         } else {
             canAttack = true;
         }
-
+        if (SlotManager.isActive()) {
+            SlotManager.swapBack();
+        }
+        hypixelPhase = HypixelPhase.BLOCK;
         target = null;
         lastTarget = null;
         smoothedBodyPoint = null;
+        hitSlow = false;
         RotationLearnerManager.resetSmoothing();
         delay = 0;
         blockTicks = -1;
@@ -466,14 +478,6 @@ public class AuraModule extends Module {
 
     private void getTarget() {
         target = TargetManager.getTarget();
-    }
-
-    private double getAngleTo(EntityLivingBase entity) {
-        double dx = entity.posX - mc.thePlayer.posX;
-        double dz = entity.posZ - mc.thePlayer.posZ;
-        double targetYaw = Math.toDegrees(Math.atan2(dz, dx)) - 90.0;
-        double delta = Math.abs(mc.thePlayer.rotationYaw - targetYaw) % 360.0;
-        return delta > 180.0 ? 360.0 - delta : delta;
     }
 
     public void render3D() {

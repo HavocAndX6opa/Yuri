@@ -141,7 +141,7 @@ public class WatermarkModule extends Module implements IMinecraft {
                 CustomFontRenderer icons = FontUtils.getFont("icons", 18);
 
                 String mp = mc.isSingleplayer()
-                        ? "singleplayer"
+                        ? "Singleplayer"
                         : (mc.getCurrentServerData() != null
                            ? mc.getCurrentServerData().serverIP
                            : "unknown");

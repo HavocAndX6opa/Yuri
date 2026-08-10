@@ -14,7 +14,7 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 
-@ModuleInfo(label = "AutoExtinguish", category = ModuleCategory.COMBAT, description = "Automatically extinguishes you when you're on fire")
+@ModuleInfo(label = "Auto Extinguish", category = ModuleCategory.COMBAT, description = "Automatically extinguishes you when you're on fire")
 public class AutoExtinguishModule extends Module {
 
     private int prevSlot = -1;

@@ -27,7 +27,7 @@ import net.minecraft.util.Vec3;
 import java.util.Comparator;
 import java.util.List;
 
-@ModuleInfo(label = "BackTrack", category = ModuleCategory.COMBAT, description = "Allows you to backtrack players' positions")
+@ModuleInfo(label = "Back Track", category = ModuleCategory.COMBAT, description = "Allows you to backtrack players' positions")
 public class BackTrackModule extends Module {
 
     public final NumberProperty minDelayProperty = new NumberProperty("Min Delay", 50.0, 0.0, 5000.0, 10.0);

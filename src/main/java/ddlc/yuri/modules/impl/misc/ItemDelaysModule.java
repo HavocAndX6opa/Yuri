@@ -1,4 +1,4 @@
-package ddlc.yuri.modules.impl.player;
+package ddlc.yuri.modules.impl.misc;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
@@ -11,7 +11,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemEgg;
 import net.minecraft.item.ItemSnowball;
 
-@ModuleInfo(label = "Item Delays", description = "Uses items faster", category = ModuleCategory.PLAYER)
+@ModuleInfo(label = "Item Delays", description = "Uses items faster", category = ModuleCategory.MISC)
 public final class ItemDelaysModule extends Module {
     
     private final NumberProperty delay = new NumberProperty("Delay", 1, 0, 3, 1);

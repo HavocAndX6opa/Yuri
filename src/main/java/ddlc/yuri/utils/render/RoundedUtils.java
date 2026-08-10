@@ -6,6 +6,8 @@ import ddlc.yuri.utils.render.shader.ShaderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -156,5 +158,23 @@ public class RoundedUtils extends RenderUtils {
                                              Color color) {
         drawCustomRoundedRect((float) x, (float) y, (float) width, (float) height, (float) radius,
                 topLeft, topRight, bottomRight, bottomLeft, color);
+    }
+
+    public static void drawRoundedImage(ResourceLocation resourceLocation, float x, float y, float imgWidth, float imgHeight, float radius) {
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+        GL11.glColorMask(false, false, false, false);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+
+        RoundedUtils.drawRoundedRect(x, y, imgWidth, imgHeight, radius, Color.WHITE);
+
+        GL11.glColorMask(true, true, true, true);
+        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+
+        drawImage(resourceLocation, x, y, imgWidth, imgHeight);
+
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 }

@@ -14,7 +14,7 @@ import java.awt.Color;
 public class MenuButton {
 
     public static final float DEFAULT_WIDTH = 85f;
-    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
+    private static final Color BG_COLOR = new Color(40, 40, 44, 220).darker().darker();
 
     public final String label;
     public final Runnable action;

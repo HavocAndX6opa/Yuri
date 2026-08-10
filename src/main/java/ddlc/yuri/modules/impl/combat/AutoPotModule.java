@@ -21,7 +21,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import org.lwjgl.util.vector.Vector2f;
 
-@ModuleInfo(label = "AutoPot", category = ModuleCategory.COMBAT, description = "Automatically throws a potion when your health is low")
+@ModuleInfo(label = "Auto Pot", category = ModuleCategory.COMBAT, description = "Automatically throws a potion when your health is low")
 public final class AutoPotModule extends Module {
 
     private final NumberProperty health = new NumberProperty("Health", 15, 1, 20, 1);

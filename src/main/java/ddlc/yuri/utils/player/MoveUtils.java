@@ -49,6 +49,34 @@ public class MoveUtils {
         event.setStrafe(closestStrafe);
     }
 
+
+    private static float adjustYaw(float yaw, float forward, float strafe) {
+        if (forward < 0.0F) {
+            yaw += 180.0F;
+        }
+
+        if (strafe != 0.0F) {
+            float multiplier = forward == 0.0F ? 1.0F : 0.5F * Math.signum(forward);
+            yaw += -90.0F * multiplier * Math.signum(strafe);
+        }
+
+        return MathHelper.wrapAngleTo180_float(yaw);
+    }
+
+    private static float[] sectorValues(int sector, float fallbackForward, float fallbackStrafe) {
+        switch (sector) {
+            case 0: return new float[]{-1F, 0F};
+            case 1: return new float[]{-1F, 1F};
+            case 2: return new float[]{0F, 1F};
+            case 3: return new float[]{1F, 1F};
+            case 4: return new float[]{1F, 0F};
+            case 5: return new float[]{1F, -1F};
+            case 6: return new float[]{0F, -1F};
+            case 7: return new float[]{-1F, -1F};
+            default: return new float[]{fallbackForward, fallbackStrafe};
+        }
+    }
+
     public static double direction() {
         float rotationYaw = mc.thePlayer.movementYaw;
 

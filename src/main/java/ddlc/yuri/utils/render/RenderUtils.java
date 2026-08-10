@@ -31,30 +31,30 @@ public class RenderUtils {
         final Tessellator tessellator = Tessellator.getInstance();
         final WorldRenderer worldrenderer = tessellator.getWorldRenderer();
         worldrenderer.begin(7, DefaultVertexFormats.POSITION);
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.minZ).endVertex();
         worldrenderer.endVertex();
         tessellator.draw();
     }
@@ -64,22 +64,22 @@ public class RenderUtils {
         final WorldRenderer worldrenderer = tessellator.getWorldRenderer();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         worldrenderer.begin(3, DefaultVertexFormats.POSITION);
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.minY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.maxZ).endVertex();
-        worldrenderer.pos((float)a.maxX, (float)a.maxY, (float)a.minZ).endVertex();
-        worldrenderer.pos((float)a.minX, (float)a.maxY, (float)a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.minY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.maxZ).endVertex();
+        worldrenderer.pos((float) a.maxX, (float) a.maxY, (float) a.minZ).endVertex();
+        worldrenderer.pos((float) a.minX, (float) a.maxY, (float) a.minZ).endVertex();
         worldrenderer.endVertex();
         tessellator.draw();
     }
@@ -474,8 +474,15 @@ public class RenderUtils {
     }
 
     public static Color interpolateColorsBackAndForth(int speed, int index, Color start, Color end, boolean trueColor) {
-        int angle = (int) (((System.currentTimeMillis()) / speed + index) % 360);
+        // Clamp speed between 1 and 10 to avoid invalid inputs or divide-by-zero
+        int clampedSpeed = Math.max(1, Math.min(10, speed));
+
+        // Convert 1-10 speed to a step multiplier (e.g., speed 1 = 0.05x, speed 10 = 0.50x)
+        double speedMultiplier = clampedSpeed * 0.05;
+
+        int angle = (int) ((System.currentTimeMillis() * speedMultiplier + index) % 360);
         angle = (angle >= 180 ? 360 - angle : angle) * 2;
+
         return trueColor ? interpolateColorHue(start, end, angle / 360f) : interpolateColorC(start, end, angle / 360f);
     }
 
@@ -517,6 +524,7 @@ public class RenderUtils {
         GlStateManager.enableAlpha();
         GlStateManager.alphaFunc(GL_GREATER, (float) (limit * .01));
     }
+
     public static void setScissorTransform(float scale, float originX, float originY) {
         scissorTransformScale = scale;
         scissorTransformOriginX = originX;
@@ -546,6 +554,7 @@ public class RenderUtils {
         }
         return framebuffer;
     }
+
     public static boolean needsNewFramebuffer(Framebuffer framebuffer) {
         return framebuffer == null || framebuffer.framebufferWidth != mc.displayWidth || framebuffer.framebufferHeight != mc.displayHeight;
     }
@@ -553,4 +562,10 @@ public class RenderUtils {
     public static void resetColor() {
         GlStateManager.color(1, 1, 1, 1);
     }
+
+    public static void bindTexture(int texture) {
+        glBindTexture(GL_TEXTURE_2D, texture);
+    }
+
+
 }
