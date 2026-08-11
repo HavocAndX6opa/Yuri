@@ -43,7 +43,7 @@ public class ColorManager {
 
             case YURI: {
                 first = new Color(161, 82, 230);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -66,7 +66,7 @@ public class ColorManager {
             }
             case AMETHYST: {
                 first = new Color(106, 43, 170);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -74,7 +74,7 @@ public class ColorManager {
 
             case ROYAL: {
                 first = new Color(74, 37, 184);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -82,7 +82,7 @@ public class ColorManager {
 
             case INDIGO: {
                 first = new Color(22, 84, 147);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -90,7 +90,7 @@ public class ColorManager {
 
             case OCEAN: {
                 first = new Color(36, 150, 179);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -98,7 +98,7 @@ public class ColorManager {
 
             case CRYSTAL: {
                 first = new Color(142, 197, 203);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -106,7 +106,7 @@ public class ColorManager {
 
             case PETAL: {
                 first = new Color(218, 76, 152);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -114,7 +114,7 @@ public class ColorManager {
 
             case CITRUS: {
                 first = new Color(138, 166, 25);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -122,7 +122,7 @@ public class ColorManager {
 
             case EVERGREEN: {
                 first = new Color(19, 129, 56);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -130,7 +130,7 @@ public class ColorManager {
 
             case LEMON: {
                 first = new Color(194, 181, 29);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -138,7 +138,7 @@ public class ColorManager {
 
             case EMBER: {
                 first = new Color(160, 64, 16);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -146,7 +146,7 @@ public class ColorManager {
 
             case CRIMSON: {
                 first = new Color(117, 23, 39);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -154,7 +154,7 @@ public class ColorManager {
 
             case ICE: {
                 first = new Color(255, 255, 255);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -162,7 +162,7 @@ public class ColorManager {
 
             case GRAPHITE: {
                 first = new Color(150, 150, 150);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;
@@ -170,7 +170,7 @@ public class ColorManager {
 
             case LAVENDER: {
                 first = new Color(106, 81, 144);
-                second = first.darker().darker().darker();
+                second = first.darker().darker();
                 color = RenderUtils.interpolateColorsBackAndForth(ClickGUIModule.colorSpeed.getValue().intValue(), 10, first, second, false);
                 colors = Pair.of(first, second);
                 break;

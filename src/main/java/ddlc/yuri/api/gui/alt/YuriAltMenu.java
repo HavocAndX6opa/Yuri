@@ -47,7 +47,7 @@ import java.util.Scanner;
 public class YuriAltMenu extends GuiScreen {
 
     private static final Color BACKGROUND = new Color(16, 16, 19);
-    private static final Color BODY_COLOR = new Color(18, 18, 20, 150);
+    private static final Color BODY_COLOR = new Color(0, 0, 0, 130);
     private static final ResourceLocation PLACEHOLDER_HEAD = new ResourceLocation("yuri/gui/steve.png");
     private static final String NUMBERS = "0123456789";
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -213,7 +213,7 @@ public class YuriAltMenu extends GuiScreen {
         tokenButtonY = tokenFieldY + FIELD_HEIGHT + BUTTON_SPACING;
         tokenButtonWidth = addWidth - PADDING * 2;
 
-        statusY = tokenButtonY + BUTTON_HEIGHT + PADDING;
+        statusY = tokenButtonY + BUTTON_HEIGHT + PADDING + 6;
         tipsY = statusY + fontHeight + PADDING * 2;
 
         backButtonWidth = FontUtils.getFont("sf", 18).getStringWidth("Back") + 8;
@@ -264,15 +264,15 @@ public class YuriAltMenu extends GuiScreen {
         int pillX = width - PADDING - pillWidth;
         int pillY = (HEADER_HEIGHT - pillHeight) / 2;
 
-        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
+        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
         int dotX = pillX + pillPaddingX;
         int dotY = pillY + (pillHeight - dotSize) / 2;
-        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, 0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
         regular.drawString(pillLabel, dotX + dotSize + 6, pillY + (pillHeight - fontHeight) / 2f, Color.WHITE.getRGB());
     }
 
     private void drawAddAccountPanel(int mouseX, int mouseY) {
-        RoundedUtils.drawRoundOutline(addX, addY, addWidth, addHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
+        RoundedUtils.drawRoundOutline(addX, addY, addWidth, addHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
 
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
@@ -285,7 +285,7 @@ public class YuriAltMenu extends GuiScreen {
         username.drawTextBox();
         password.drawTextBox();
 
-        drawPrimaryButton(primaryButtonX, primaryButtonY, primaryButtonWidth, "Login", mouseX, mouseY);
+        drawSecondaryButton(primaryButtonX, primaryButtonY, primaryButtonWidth, "Login", mouseX, mouseY);
         drawSecondaryButton(oauthButtonX, oauthButtonY, oauthButtonWidth, "Microsoft", mouseX, mouseY);
         drawSecondaryButton(generateButtonX, generateButtonY, generateButtonWidth, "Generate Random Cracked Alt", mouseX, mouseY);
 
@@ -297,26 +297,14 @@ public class YuriAltMenu extends GuiScreen {
         }
 
         Gui.drawRect(addX + PADDING, tipsY - 8, addX + addWidth - PADDING, tipsY - 7, RenderUtils.withAlpha(Color.WHITE, 25));
-        regular.drawString("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete", (float) regular.getStringWidth("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete") / 2f - 24f, tipsY, 0x888888);
-    }
-
-    private void drawPrimaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
-        boolean hovered = isMouseOverButton(mouseX, mouseY, x, y, w, BUTTON_HEIGHT);
-        Color accent = ColorManager.getColor();
-
-        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, hovered ? 1f : 0.2f, accent, accent);
-
-        CustomFontRenderer font = FontUtils.getFont("sf-bold", 18);
-        int textX = x + (w - font.getStringWidth(label)) / 2;
-        int textY = y + (BUTTON_HEIGHT - font.getHeight()) / 2;
-        font.drawStringWithShadow(label, textX, textY, Color.WHITE.getRGB());
+        regular.drawString("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete", (float) regular.getStringWidth("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete") / 3f + 4f, tipsY, 0x888888);
     }
 
     private void drawSecondaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
         boolean hovered = isMouseOverButton(mouseX, mouseY, x, y, w, BUTTON_HEIGHT);
         Color accent = ColorManager.getColor();
 
-        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, 0.2f, BODY_COLOR, hovered ? accent : RenderUtils.withAlphaColor(accent, 130));
+        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, -0.5f, BODY_COLOR, hovered ? accent : RenderUtils.withAlphaColor(accent, 130));
 
         CustomFontRenderer font = FontUtils.getFont("sf", 18);
         int textX = x + (w - font.getStringWidth(label)) / 2;
@@ -325,7 +313,7 @@ public class YuriAltMenu extends GuiScreen {
     }
 
     private void drawAccountsPanel(int mouseX, int mouseY) {
-        RoundedUtils.drawRoundOutline(accountsX, accountsY, accountsWidth, accountsHeight, RADIUS, 0.2f, BODY_COLOR, ColorManager.getColor());
+        RoundedUtils.drawRoundOutline(accountsX, accountsY, accountsWidth, accountsHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
 
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
@@ -388,7 +376,7 @@ public class YuriAltMenu extends GuiScreen {
         Color accent = ColorManager.getColor();
 
         Color outline = selected ? accent : (hovered ? RenderUtils.withAlphaColor(accent, 150) : RenderUtils.withAlphaColor(Color.WHITE, 25));
-        RoundedUtils.drawRoundOutline(x, y, w, h, RADIUS, selected ? 1f : 0.2f, BODY_COLOR, outline);
+        RoundedUtils.drawRoundOutline(x, y, w, h, RADIUS, selected ? 0.5f : -0.5f, BODY_COLOR, outline);
 
         loadHead(uuid);
         drawHead(x, y, uuid, h);
@@ -397,7 +385,7 @@ public class YuriAltMenu extends GuiScreen {
         int dotSize = 6;
         int dotX = x + ENTRY_PADDING + avatarSize - dotSize + 2;
         int dotY = y + ENTRY_PADDING + avatarSize - dotSize + 2;
-        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, 0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
 
         int textX = x + ENTRY_PADDING + avatarSize + ENTRY_PADDING;
         CustomFontRenderer font = FontUtils.getFont("sf", 18);

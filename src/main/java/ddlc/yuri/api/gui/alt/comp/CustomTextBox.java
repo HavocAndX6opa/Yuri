@@ -4,6 +4,7 @@ import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
+import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -16,7 +17,7 @@ import java.awt.*;
 
 public class CustomTextBox extends Gui {
 
-    private static final Color FIELD_BACKGROUND = new Color(15, 15, 18);
+    private static final Color FIELD_BACKGROUND = new Color(0, 0, 0);
     private final int maxStringLength = 9999;
     private final Minecraft mc = Minecraft.getMinecraft();
 
@@ -39,9 +40,7 @@ public class CustomTextBox extends Gui {
     }
 
     public void drawTextBox() {
-        int borderColor = focused ? ColorManager.getColor().getRGB() : RenderUtils.withAlpha(GuiTheme.PANEL, 255);
-        drawRect(xPosition, yPosition, xPosition + width, yPosition + height, borderColor);
-        drawRect(xPosition + 1, yPosition + 1, xPosition + width - 1, yPosition + height - 1, RenderUtils.withAlpha(FIELD_BACKGROUND, 255));
+        RoundedUtils.drawRoundOutline(xPosition, yPosition, width, height, 6, -0.5f, FIELD_BACKGROUND, ColorManager.getColor());
 
         boolean empty = text.isEmpty();
         String renderText = empty ? placeholder : text;

@@ -50,4 +50,59 @@ public class FontUtils {
         return new CustomFontRenderer(name, size, Font.PLAIN, true, false);
     }
 
+    public static String getIconString(IconStrings icon) {
+        return icon.getString();
+    }
+
+    public enum IconStrings {
+
+        // HUD / System
+        COMPUTER('A'),
+        CLOUD('B'),
+        SEARCH('C'),
+        TAG('D'),
+        USER('E'),
+        TARGET('F'),
+        BUG('G'),
+        ACTION('H'),
+        EDIT('I'),
+        CHECK('J'),
+        SETTINGS('K'),
+        EDIT_BOX('L'),
+        GLOBE('M'),
+        FEATHER('N'),
+        LOCATION('O'),
+        NETWORK('P'),
+        AIRPLANE('Q'),
+
+        // Directional
+        DOWN_LEFT('R'),
+        DOWN_RIGHT('S'),
+        LEFT('T'),
+        UP_LEFT('U'),
+        RIGHT('V'),
+        DOWN('W'),
+        Y('X'),
+        UP_RIGHT('Y');
+
+        private final char character;
+
+        IconStrings(char character) {
+            this.character = character;
+        }
+
+        public char getCharacter() {
+            return character;
+        }
+
+        public String getString() {
+            return String.valueOf(character);
+        }
+
+        @Override
+        public String toString() {
+            return getString();
+        }
+    }
+
 }

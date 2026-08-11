@@ -14,7 +14,7 @@ import java.awt.Color;
 public class MenuButton {
 
     public static final float DEFAULT_WIDTH = 85f;
-    private static final Color BG_COLOR = new Color(40, 40, 44, 220).darker().darker();
+    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
 
     public final String label;
     public final Runnable action;
@@ -95,7 +95,7 @@ public class MenuButton {
      */
     public void renderBox() {
         // Draw primary base button background
-        RoundedUtils.drawRoundOutline(this.x, this.y, this.width, this.height, 6f, 0.2f, BG_COLOR,
+        RoundedUtils.drawRoundOutline(this.x, this.y, this.width, this.height, 6f, -0.5f, BG_COLOR,
                 ColorManager.getColor());
 
         // Draw hover underline expansion

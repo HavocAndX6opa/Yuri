@@ -172,7 +172,6 @@ public class ModListModule extends Module implements IMinecraft {
         float off = offset.getValue().floatValue();
         float screenX = sr.getScaledWidth() - off;
         float screenRight = sr.getScaledWidth();
-        float startY = 2 + off;
         float rowStep = TEXT_HEIGHT + (pad * 2);
 
         List<Module> filteredModules = new ArrayList<>();
@@ -183,7 +182,7 @@ public class ModListModule extends Module implements IMinecraft {
             filteredModules.add(module);
         }
 
-        updatePositions(filteredModules, fr, screenX, screenRight, startY, pad, lw, rowStep);
+        updatePositions(filteredModules, fr, screenX, screenRight, off, pad, lw, rowStep);
 
         final int moduleCacheSize = filteredModules.size();
         int lastVisibleModuleIndex = moduleCacheSize - 1;
@@ -275,7 +274,7 @@ public class ModListModule extends Module implements IMinecraft {
 
                 if (line.getValue() && !outline.getValue()) {
                     if (i == firstVisibleModuleIndex) {
-                        Gui.drawRect(screenX - lw, startY - pad, screenX, (float) translateY + TEXT_HEIGHT + pad, aColor);
+                        Gui.drawRect(screenX - lw, off - pad, screenX, (float) translateY + TEXT_HEIGHT + pad, aColor);
                     } else {
                         Module prevModule = null;
                         for (int j = i - 1; j >= 0; j--) {

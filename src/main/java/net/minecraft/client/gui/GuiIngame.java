@@ -145,7 +145,9 @@ public class GuiIngame extends Gui
         }
         else
         {
-            this.renderTooltip(scaledresolution, partialTicks);
+            if (!Yuri.INSTANCE.getModuleManager().getModule(HotbarModule.class).isEnabled()) {
+                this.renderTooltip(scaledresolution, partialTicks);
+            }
         }
 
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);

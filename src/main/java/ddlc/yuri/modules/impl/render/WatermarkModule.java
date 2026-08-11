@@ -60,7 +60,7 @@ public class WatermarkModule extends Module implements IMinecraft {
         }
     }
 
-    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
+    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
 
     @EventHook
     public void onRender2D(Render2DEvent event) {
@@ -138,7 +138,7 @@ public class WatermarkModule extends Module implements IMinecraft {
                 break;
             case YURI:
                 CustomFontRenderer textFont = FontUtils.getFont("sf", 18);
-                CustomFontRenderer icons = FontUtils.getFont("icons", 18);
+                CustomFontRenderer icons = FontUtils.getFont("hud-icons", 18);
 
                 String mp = mc.isSingleplayer()
                         ? "Singleplayer"
@@ -148,12 +148,12 @@ public class WatermarkModule extends Module implements IMinecraft {
 
                 String initial = String.valueOf(name.getValue().charAt(0));
                 String nameText = new ChatComponentText(name.getValue().substring(1)).getFormattedText();
-                String protocolText = String.valueOf(ClientInfoUtils.getServerProtocol());
+                String fpsText = String.valueOf(Minecraft.getDebugFPS()) + " FPS";
                 String timeText = getTime();
 
-                String iconB = "B";
-                String iconF = "F";
-                String iconM = "M";
+                String iconServer = FontUtils.getIconString(FontUtils.IconStrings.GLOBE);
+                String iconFps = FontUtils.getIconString(FontUtils.IconStrings.SETTINGS);
+                String iconTime = "a";
 
                 float gap = 4f;
 
@@ -162,21 +162,21 @@ public class WatermarkModule extends Module implements IMinecraft {
                         + gap
                         + textFont.getStringWidth(nameText)
                         + gap
-                        + icons.getStringWidth(iconB)
+                        + icons.getStringWidth(iconServer)
                         + gap
                         + textFont.getStringWidth(mp)
                         + gap
-                        + icons.getStringWidth(iconF)
+                        + icons.getStringWidth(iconFps)
                         + gap
-                        + textFont.getStringWidth(protocolText)
+                        + textFont.getStringWidth(fpsText)
                         + gap
-                        + icons.getStringWidth(iconM)
+                        + icons.getStringWidth(iconTime)
                         + gap
                         + textFont.getStringWidth(timeText);
 
                 float height = textFont.getHeight() + 8f;
 
-                RoundedUtils.drawRoundOutline(2, 2, width, height, 6f,  0.2f, BG_COLOR,
+                RoundedUtils.drawRoundOutline(2, 2, width, height, 6f,  -0.5f, BG_COLOR,
                         ColorManager.getColor());
 
                 float cursorX = 7;
@@ -189,20 +189,20 @@ public class WatermarkModule extends Module implements IMinecraft {
                 textFont.drawStringWithShadow(nameText, cursorX, cursorY, white);
                 cursorX += textFont.getStringWidth(nameText) + gap + 0.5f;
 
-                icons.drawStringWithShadow(iconB, cursorX, iconY - 0.2f, main);
-                cursorX += icons.getStringWidth(iconB) + gap;
+                icons.drawStringWithShadow(iconServer, cursorX, iconY - 0.2f, main);
+                cursorX += icons.getStringWidth(iconServer) + gap;
 
                 textFont.drawStringWithShadow(mp, cursorX, cursorY, white);
                 cursorX += textFont.getStringWidth(mp) + gap;
 
-                icons.drawStringWithShadow(iconF, cursorX, iconY, main);
-                cursorX += icons.getStringWidth(iconF) + gap;
+                icons.drawStringWithShadow(iconFps, cursorX, iconY, main);
+                cursorX += icons.getStringWidth(iconFps) + gap;
 
-                textFont.drawStringWithShadow(protocolText, cursorX, cursorY, white);
-                cursorX += textFont.getStringWidth(protocolText) + gap;
+                textFont.drawStringWithShadow(fpsText, cursorX, cursorY, white);
+                cursorX += textFont.getStringWidth(fpsText) + gap;
 
-                icons.drawStringWithShadow(iconM, cursorX, iconY, main);
-                cursorX += icons.getStringWidth(iconM) + gap;
+                icons.drawStringWithShadow(iconTime, cursorX, iconY, main);
+                cursorX += icons.getStringWidth(iconTime) + gap;
 
                 textFont.drawStringWithShadow(timeText, cursorX, cursorY, white);
                 break;

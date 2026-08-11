@@ -227,8 +227,7 @@ public class AuraModule extends Module {
             if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && target != null && hitSlow && mc.thePlayer.isSprinting()) {
                 if (sprint.getValue() && hypixelSprint.getValue() && mc.thePlayer.hurtTime == 0) {
                     event.setCancelled(true);
-                    PacketUtils.TimedPacket timedPacket = new PacketUtils.TimedPacket(packet, 200);
-                    PacketUtils.sendSilentPacket(timedPacket.getPacket());
+                    PacketUtils.sendSilentPacket(packet);
                 }
             }
         }
@@ -310,7 +309,7 @@ public class AuraModule extends Module {
                 autoBlocking = true;
                 break;
             case LEGIT:
-                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 4 && mc.thePlayer.hurtTime >= 4);
+                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 5 && mc.thePlayer.hurtTime >= 5);
                 autoBlocking = true;
                 blockTicks++;
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {

@@ -51,7 +51,7 @@ public class SessionInfoModule extends Module implements IMinecraft {
     private static final float GAP_TIME = 3f;
     private static final float GAP_LINE = 2f;
 
-    private static final Color BG_COLOR = new Color(40, 40, 44, 220);
+    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
     private static final Color HEADER_COLOR = new Color(40, 40, 44, 100);
     private static final Color BODY_COLOR = new Color(18, 18, 20, 150);
 
@@ -237,7 +237,7 @@ public class SessionInfoModule extends Module implements IMinecraft {
         if (x > sr.getScaledWidth()) x = sr.getScaledWidth() - width;
         if (y > sr.getScaledHeight()) y = sr.getScaledHeight() - height;
 
-        RoundedUtils.drawRoundOutline(x, y, width, height, RADIUS, 0.2f, BG_COLOR,
+        RoundedUtils.drawRoundOutline(x, y, width, height, RADIUS, -0.5f, BG_COLOR,
                 ColorManager.getColor());
 
         float cx = x + width / 2f;

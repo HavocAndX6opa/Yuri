@@ -25,7 +25,7 @@ public class ProgressBarEntry {
 
     public void tick() {
         long now = System.currentTimeMillis();
-        float delta = lastRenderTime < 0 ? 0f : (now - lastRenderTime) / 1000f;
+        float delta = lastRenderTime < 0 ? 0f : (now - lastRenderTime) / 500f;
         lastRenderTime = now;
 
         float target = fadingOut ? 0f : 1f;
