@@ -16,7 +16,6 @@ import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.client.MathUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.animations.impl.ContinualAnimation;
-import javafx.beans.property.BooleanProperty;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
