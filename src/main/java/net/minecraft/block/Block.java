@@ -3,7 +3,6 @@ package net.minecraft.block;
 import java.util.List;
 import java.util.Random;
 
-import com.sun.security.ntlm.Client;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.player.BlockCollideEvent;
 import net.minecraft.block.material.MapColor;
