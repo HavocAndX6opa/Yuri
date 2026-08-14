@@ -8,7 +8,6 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.misc.Pair;
-import javafx.beans.property.BooleanProperty;
 import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 
