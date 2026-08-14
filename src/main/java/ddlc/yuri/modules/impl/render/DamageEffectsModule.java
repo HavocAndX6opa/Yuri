@@ -8,7 +8,6 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
-import javafx.beans.property.BooleanProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.var;
