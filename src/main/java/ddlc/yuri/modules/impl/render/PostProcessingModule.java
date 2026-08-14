@@ -11,7 +11,6 @@ import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.shader.impl.Bloom;
 import ddlc.yuri.utils.render.shader.impl.Blur;
 import ddlc.yuri.utils.render.shader.impl.Shadow;
-import javafx.beans.property.BooleanProperty;
 import net.minecraft.client.shader.Framebuffer;
 
 @ModuleInfo(label = "Post Processing", description = "Handles post-processing effects like blur and shadows.", category = ModuleCategory.RENDER)
