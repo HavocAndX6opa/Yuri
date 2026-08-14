@@ -5,6 +5,15 @@ plugins {
 group = 'unlegit.yuri'
 version = '1.8.9'
 
+application {
+    mainClass = 'Start'
+}
+
+tasks.named('run') {
+    workingDir = file('run')
+    systemProperty "java.library.path", file('run')
+}
+
 repositories {
     mavenCentral()
     maven {
