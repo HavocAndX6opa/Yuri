@@ -19,18 +19,16 @@ jobs:
           java-version: 8
           cache: "gradle"
 
-      - name: Set outputs
-        id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
       - name: Gradle build
-        run: chmod +x ./gradlew && ./gradlew build
+        run: chmod +x ./gradlew && ./gradlew jar
 
-      - name: Rename build artifacts
-        run: mv build/libs/Yuri-*.jar build/libs/Yuri.jar
+      - name: Find and rename artifact
+        run: |
+          mkdir -p output
+          cp build/libs/*.jar output/Yuri.jar
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Yuri
-          path: build/libs/Yuri.jar
+          path: output/Yuri.jar
