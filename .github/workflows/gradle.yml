@@ -20,7 +20,7 @@ jobs:
           cache: "gradle"
 
       - name: Gradle build
-        run: chmod +x ./gradlew && ./gradlew jar
+        run: chmod +x ./gradlew && ./gradlew clean compileJava jar
 
       - name: Find and rename artifact
         run: |
