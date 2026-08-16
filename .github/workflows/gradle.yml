@@ -18,6 +18,7 @@ jobs:
           distribution: "corretto"
           java-version: 8
           cache: "gradle"
+          cache-dependency-path: "**/build.gradle"
 
       - name: Gradle build
         run: chmod +x ./gradlew && ./gradlew clean compileJava jar
