@@ -30,7 +30,10 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0BPacketEntityAction;
-import net.minecraft.util.*;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Vector2f;
 
@@ -322,7 +325,7 @@ public class AuraModule extends Module {
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
                     blockTicks = 0;
                 }
-                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 1;
+                canAttack = !BadPacketsManager.bad(false, false, false, true, false);
                 break;
             case VANILLA:
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));

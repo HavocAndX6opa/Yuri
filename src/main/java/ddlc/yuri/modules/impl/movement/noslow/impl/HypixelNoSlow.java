@@ -1,19 +1,15 @@
 package ddlc.yuri.modules.impl.movement.noslow.impl;
 
-import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.client.PacketSendEvent;
-import ddlc.yuri.api.events.impl.player.ItemSlowdownEvent;
-import ddlc.yuri.api.events.impl.player.MotionEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.player.RightClickEvent;
-import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.movement.NoSlowModule;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.utils.player.InvUtils;
 import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.*;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
@@ -38,83 +34,84 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || !InvUtils.isHoldingSword() || AuraModule.target != null) {
-            if (AuraModule.target == null) {
-                resetCycle();
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || !InvUtils.isHoldingSword()) {
+            if (blocking) {
                 release();
             }
+            resetCycle();
+            return;
+        }
+
+        if (!parent.isSwordActive()) {
+            if (blocking) {
+                release();
+            }
+            resetCycle();
             return;
         }
 
         if (stopUse) {
-            if (mc.thePlayer.isUsingItem()) {
+            if (mc.thePlayer.isUsingItem() && parent.isSwordActive()) {
                 block();
                 mc.thePlayer.stopUsingItem();
             }
             stopUse = false;
-        } else if (!parent.isSwordActive()) {
-            if (!mc.thePlayer.isUsingItem()) {
+        }
+
+        int age = mc.thePlayer.ticksExisted;
+        boolean rightPressed = mc.gameSettings.keyBindUseItem.isKeyDown();
+
+        if (rightPressed) {
+            if (nextCycleTick < 0) {
+                nextCycleTick = age;
+            }
+
+            if (age >= nextCycleTick) {
+                if (blocking) {
+                    release();
+                }
+                runThisTick = true;
+                nextCycleTick = age + 2;
+            } else if (!blocking) {
+                block();
+            }
+        } else {
+            resetCycle();
+            if (blocking) {
                 release();
             }
         }
 
-        int age = mc.thePlayer.ticksExisted;
-
-        boolean rightPressed = mc.gameSettings.keyBindUseItem.isKeyDown();
-
-        if (parent.isSwordActive()) {
+        if (runThisTick) {
             if (rightPressed) {
-                if (nextCycleTick < 0) {
-                    nextCycleTick = age;
-                }
-
-                if (age >= nextCycleTick) {
-                    if (blocking) {
-                        release();
+                if (!mc.thePlayer.isUsingItem() || !blocking) {
+                    if (mc.objectMouseOver != null
+                            && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                            && mc.objectMouseOver.getBlockPos() != null) {
+                        net.minecraft.block.Block block =
+                                mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock();
+                        PlayerControllerMP accessor = mc.playerController;
+                        if (isInteractableBlock(block) || accessor.getIsHittingBlock()) {
+                            runThisTick = false;
+                            return;
+                        }
                     }
-                    runThisTick = true;
-                    nextCycleTick = age + 2;
-                } else if (!blocking) {
-                    block();
+
+                    this.stopUse = true;
+                    mc.gameSettings.keyBindUseItem.setPressed(true);
+                } else {
+                    mc.gameSettings.keyBindUseItem.setPressed(false);
                 }
             } else {
-                resetCycle();
-                if (!mc.thePlayer.isUsingItem()) {
-                    release();
-                }
+                this.stopUse = false;
             }
-
-            if (runThisTick && parent.isSwordActive()) {
-                if (rightPressed) {
-                    if (!mc.thePlayer.isUsingItem() || !blocking) {
-                        if (mc.objectMouseOver != null
-                                && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                                && mc.objectMouseOver.getBlockPos() != null) {
-                            net.minecraft.block.Block block =
-                                    mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock();
-                            PlayerControllerMP accessor = mc.playerController;
-                            if (isInteractableBlock(block) || accessor.getIsHittingBlock()) {
-                                runThisTick = false;
-                                return;
-                            }
-                        }
-
-                        this.stopUse = true;
-                        mc.gameSettings.keyBindUseItem.setPressed(true);
-                    } else {
-                        mc.gameSettings.keyBindUseItem.setPressed(false);
-                    }
-                } else {
-                    this.stopUse = false;
-                }
-                runThisTick = false;
-            }
+            runThisTick = false;
         }
     }
 
     @Override
     public void onRightClick(RightClickEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.target != null) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null) {
             return;
         }
         if (parent.isSwordActive()) {
@@ -124,12 +121,12 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.target != null) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null) {
             return;
         }
 
         if (event.getPacket() instanceof C09PacketHeldItemChange) {
-            if (mc.thePlayer.ticksExisted - slotChangeTick != 1) {
+            if (mc.thePlayer.ticksExisted - slotChangeTick != 1 && blocking) {
                 release();
                 resetCycle();
             }
@@ -138,7 +135,7 @@ public final class HypixelNoSlow implements NoSlowMode {
 
         if (event.getPacket() instanceof S19PacketEntityStatus) {
             S19PacketEntityStatus statusPacket = (S19PacketEntityStatus) event.getPacket();
-            if (statusPacket.getEntity(mc.theWorld) == mc.thePlayer && statusPacket.getOpCode() == 9) {
+            if (statusPacket.getEntity(mc.theWorld) == mc.thePlayer && statusPacket.getOpCode() == 9 && blocking) {
                 release();
             }
         }
@@ -155,11 +152,13 @@ public final class HypixelNoSlow implements NoSlowMode {
     }
 
     public static void release() {
-        PacketUtils.sendPacket(
-                new C07PacketPlayerDigging(
-                        C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-        mc.thePlayer.stopUsingItem();
-        blocking = false;
+        if (blocking) {
+            PacketUtils.sendPacket(
+                    new C07PacketPlayerDigging(
+                            C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+            mc.thePlayer.stopUsingItem();
+            blocking = false;
+        }
     }
 
     public static void resetCycle() {

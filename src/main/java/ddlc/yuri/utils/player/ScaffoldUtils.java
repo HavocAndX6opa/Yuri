@@ -67,7 +67,6 @@ public final class ScaffoldUtils {
 
     private static void computeAStarRotations(BlockPos blockFace, EnumFacingOffset enumFacing,
                                               float[] target, boolean strict) {
-        PriorityQueue<AStarNode> open = new PriorityQueue<>();
         Vector2f server = serverRotations();
         float serverYaw = server.x;
         float serverPitch = server.y;
@@ -82,40 +81,84 @@ public final class ScaffoldUtils {
 
         float hBase = stabilityPenalty(blockFace) + directionalCost(blockFace, enumFacing);
 
-        for (float dy = -20; dy <= 20; dy += 2.5f) {
-            for (float dp = -20; dp <= 20; dp += 2.5f) {
-                float testYaw = baseYaw + dy;
-                float testPitch = MathHelper.clamp_float(basePitch + dp, -90, 90);
-                Vector2f testRot = new Vector2f(testYaw, testPitch);
+        float[][] passes = {
+                {20f, 2.5f},
+                {45f, 5f},
+                {90f, 7.5f},
+                {180f, 10f}
+        };
 
-                if (!RayCastUtils.overBlock(testRot, enumFacing.getEnumFacing(), blockFace, strict)) continue;
+        AStarNode best = null;
+        AStarNode bestUnstrict = null;
 
-                float yawDiff = Math.abs(MathHelper.wrapAngleTo180_float(testYaw - serverYaw));
-                float pitchDiff = Math.abs(testPitch - serverPitch);
-                float g = (float) Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff);
-                float h = hBase;
+        for (float[] pass : passes) {
+            float range = pass[0];
+            float step = pass[1];
+            PriorityQueue<AStarNode> open = new PriorityQueue<>();
+            PriorityQueue<AStarNode> openUnstrict = strict ? new PriorityQueue<>() : null;
 
-                Vec3 hitVec = new Vec3(
-                        blockFace.getX() + 0.5,
-                        blockFace.getY() + 0.5,
-                        blockFace.getZ() + 0.5);
+            for (float dy = -range; dy <= range; dy += step) {
+                for (float dp = -range; dp <= range; dp += step) {
+                    float testYaw = MathHelper.wrapAngleTo180_float(baseYaw + dy);
+                    float testPitch = MathHelper.clamp_float(basePitch + dp, -90, 90);
+                    Vector2f testRot = new Vector2f(testYaw, testPitch);
 
-                open.add(new AStarNode(testYaw, testPitch, g, h, hitVec));
+                    float yawDiff = Math.abs(MathHelper.wrapAngleTo180_float(testYaw - serverYaw));
+                    float pitchDiff = Math.abs(testPitch - serverPitch);
+                    float g = (float) Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff);
+
+                    Vec3 hitVec = new Vec3(
+                            blockFace.getX() + 0.5,
+                            blockFace.getY() + 0.5,
+                            blockFace.getZ() + 0.5);
+
+                    if (RayCastUtils.overBlock(testRot, enumFacing.getEnumFacing(), blockFace, strict)) {
+                        open.add(new AStarNode(testYaw, testPitch, g, hBase, hitVec));
+                    } else if (openUnstrict != null && RayCastUtils.overBlock(testRot, enumFacing.getEnumFacing(), blockFace, false)) {
+                        openUnstrict.add(new AStarNode(testYaw, testPitch, g, hBase, hitVec));
+                    }
+                }
+            }
+
+            if (!open.isEmpty()) {
+                best = open.poll();
+                break;
+            }
+            if (openUnstrict != null && bestUnstrict == null && !openUnstrict.isEmpty()) {
+                bestUnstrict = openUnstrict.poll();
             }
         }
 
-        AStarNode best = open.poll();
         if (best != null) {
             target[0] = best.yaw;
             target[1] = best.pitch;
-        } else {
-            final Vector2f fallback = RotationUtils.calculate(
-                    new Vector3d(blockFace.getX(), blockFace.getY(), blockFace.getZ()),
-                    enumFacing.getEnumFacing());
-            target[0] = fallback.x;
-            target[1] = fallback.y;
+            return;
         }
+
+        if (bestUnstrict != null) {
+            target[0] = bestUnstrict.yaw;
+            target[1] = bestUnstrict.pitch;
+            return;
+        }
+
+        for (EnumFacing face : EnumFacing.VALUES) {
+            if (face == enumFacing.getEnumFacing()) continue;
+            Vector2f fallback = RotationUtils.calculate(
+                    new Vector3d(blockFace.getX(), blockFace.getY(), blockFace.getZ()), face);
+            if (RayCastUtils.overBlock(fallback, face, blockFace, false)) {
+                target[0] = fallback.x;
+                target[1] = fallback.y;
+                return;
+            }
+        }
+
+        final Vector2f fallback = RotationUtils.calculate(
+                new Vector3d(blockFace.getX(), blockFace.getY(), blockFace.getZ()),
+                enumFacing.getEnumFacing());
+        target[0] = fallback.x;
+        target[1] = fallback.y;
     }
+
 
     public static void computeNormalRotations(BlockPos blockFace, EnumFacingOffset enumFacing,
                                               float[] target, float[] drift,
@@ -200,7 +243,7 @@ public final class ScaffoldUtils {
                 break;
             }
             case ULTRA_SAFE: {
-                computeAStarRotations(blockFace, enumFacing, target, strict);
+                computeAStarRotations(blockFace, enumFacing, target, true);
                 break;
             }
         }

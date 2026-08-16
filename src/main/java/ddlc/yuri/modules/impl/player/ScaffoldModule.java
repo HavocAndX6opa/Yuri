@@ -579,6 +579,13 @@ public final class ScaffoldModule extends Module {
 
             case TELLY:
                 if (recursion == 0) {
+                    if (blocksPlaced <= 0 && target[0] == mc.thePlayer.rotationYaw) {
+                        target[0] = mc.thePlayer.rotationYaw - 180;
+                        target[1] = 82.5f;
+                    }
+                    if (mc.gameSettings.keyBindJump.isKeyDown() && hypixelTelly.getValue()) {
+                        stop = mc.thePlayer.onGroundTicks == 1 || mc.thePlayer.onGroundTicks == 2 || mc.thePlayer.onGroundTicks == 3;
+                    }
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving()) {
                         if (hypixelTelly.getValue()) {

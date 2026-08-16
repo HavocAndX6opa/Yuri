@@ -1,20 +1,17 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
-
 group = 'unlegit.yuri'
 version = '1.8.9'
-
 application {
     mainClass = 'net.minecraft.client.main.Main'
 }
-
 tasks.named('run') {
     workingDir = file('run')
     systemProperty "java.library.path", file('run')
 }
-
 repositories {
     mavenCentral()
     maven {
@@ -25,13 +22,9 @@ repositories {
         url "https://libraries.minecraft.net/"
     }
     maven {
-        url "https://mvnrepository.com/artifact"
-    }
-    maven {
         url "https://jitpack.io"
     }
 }
-
 dependencies {
     implementation "io.netty:netty-all:4.0.23.Final"
     implementation "com.mojang:patchy:1.7.7"
@@ -71,15 +64,20 @@ dependencies {
     implementation("io.github.spair:imgui-java-natives-linux:1.86.11")
     implementation("io.github.spair:imgui-java-natives-macos:1.86.11")
 }
-
-jar {
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+shadowJar {
+    archiveBaseName.set('Yuri')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    mergeServiceFiles()
     manifest {
         attributes(
                 'Main-Class': 'net.minecraft.client.main.Main'
         )
     }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
+}
+build {
+    dependsOn shadowJar
 }

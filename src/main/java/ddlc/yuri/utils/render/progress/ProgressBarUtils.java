@@ -8,7 +8,6 @@ import java.awt.*;
 
 public class ProgressBarUtils {
     private static final Color COLOR = new Color(0, 0, 0, 130);
-    private static final Color BORDER_COLOR = new Color(255, 255, 255, 40);
 
     public static void draw(float progress, float alpha, float centerX, float centerY, float width, float thickness) {
         float percentage = Math.min(1.0f, Math.max(0.0f, progress));
