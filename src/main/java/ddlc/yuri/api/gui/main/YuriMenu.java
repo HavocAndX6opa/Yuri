@@ -3,10 +3,12 @@ package ddlc.yuri.api.gui.main;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.alt.YuriAltMenu;
+import ddlc.yuri.api.gui.main.api.MenuButton;
+import ddlc.yuri.api.gui.main.api.MenuShaderBackground;
+import ddlc.yuri.api.gui.main.windows.WelcomeWindow;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
-import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
@@ -20,11 +22,10 @@ import java.util.Random;
 public class YuriMenu extends GuiScreen {
 
     private final List<MenuButton> buttons = new ArrayList<>();
+    private WelcomeWindow welcomeWindow;
 
     private static final Color BASE_BG = new Color(10, 9, 13, 255);
-    private static final Color CARD_BG = new Color(40, 40, 44, 220).darker();
     private static final Color ERROR_COLOR = new Color(214, 64, 69);
-    private static final float CARD_RADIUS = 10f;
     private static final float CARD_PADDING_TOP = 32f;
     private static final float CARD_PADDING_BOTTOM = 28f;
 
@@ -67,6 +68,7 @@ public class YuriMenu extends GuiScreen {
 
     @Override
     public void initGui() {
+        sr = new ScaledResolution(mc);
 
         Random rng = new Random();
 
@@ -84,12 +86,21 @@ public class YuriMenu extends GuiScreen {
         buttons.add(new MenuButton("Settings", () -> mc.displayGuiScreen(new GuiOptions(this, mc.gameSettings))));
         buttons.add(new MenuButton("Exit", () -> mc.shutdown()));
 
-        if (sr == null) sr = new ScaledResolution(mc);
+        // Initialize Welcome Window
+        float windowWidth = 250f;
+        float windowHeight = 100f;
+        float windowX = 12f;
+        float windowY = 12f;
+
+        String placeholderText = "Welcome to Yuri Client!\n\n" +
+                "Any questions? Join our Discord! https://discord.gg/8VhKD2QQHc\n\n" +
+                "Happy Halloween!";
+
+        welcomeWindow = new WelcomeWindow(windowX, windowY, windowWidth, windowHeight, "Welcome Back!", placeholderText);
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-
         sr = new ScaledResolution(mc);
 
         float w = sr.getScaledWidth();
@@ -107,6 +118,11 @@ public class YuriMenu extends GuiScreen {
         float center = w / 2f;
 
         drawContent(w, h, mouseX, mouseY, center);
+
+        // Render Welcome Window if active
+        if (welcomeWindow != null && !welcomeWindow.shouldWindowClose()) {
+            welcomeWindow.render(mouseX, mouseY);
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -127,7 +143,6 @@ public class YuriMenu extends GuiScreen {
 
         float cardHeight = CARD_PADDING_TOP + logoHeight + logoGap + buttonsHeight + lineGap + lineHeight + CARD_PADDING_BOTTOM;
 
-        float cardX = center - cardWidth / 2f;
         float cardY = h / 2f - cardHeight / 2f;
 
         float logoY = cardY + CARD_PADDING_TOP;
@@ -220,6 +235,10 @@ public class YuriMenu extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        if (welcomeWindow != null && !welcomeWindow.shouldWindowClose()) {
+            welcomeWindow.mouseClicked(mouseX, mouseY, mouseButton);
+        }
+
         if (mouseButton == 0) {
             for (MenuButton button : buttons) {
                 if (button.isHovered(mouseX, mouseY)) {
@@ -229,5 +248,13 @@ public class YuriMenu extends GuiScreen {
             }
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    protected void mouseReleased(int mouseX, int mouseY, int state) {
+        if (welcomeWindow != null) {
+            welcomeWindow.mouseReleased();
+        }
+        super.mouseReleased(mouseX, mouseY, state);
     }
 }

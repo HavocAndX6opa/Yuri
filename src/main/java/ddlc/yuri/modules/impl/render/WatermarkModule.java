@@ -69,6 +69,7 @@ public class WatermarkModule extends Module implements IMinecraft {
 
     @EventHook
     public void onShader2D(Shader2DEvent event) {
+        if (event.getShaderType() == Shader2DEvent.ShaderType.BLUR && (type.getValue() != Type.VIRTUE || type.getValue() != Type.YURI || type.getValue() != Type.YURISENSE)) return;
         renderWatermark();
     }
 
@@ -125,7 +126,7 @@ public class WatermarkModule extends Module implements IMinecraft {
                         2 + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth,
                         2,
                         white);
-                FontUtils.getFont("sf", 14).drawStringWithShadow("dev", FontUtils.getFont("sf", 14).getStringWidth("dev") + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth, FontUtils.getFont("sf", 18).getHeight(), white);
+                FontUtils.getFont("sf", 14).drawStringWithShadow(Yuri.BUILD.toLowerCase(), FontUtils.getFont("sf", 14).getStringWidth(Yuri.BUILD.toLowerCase()) + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth, FontUtils.getFont("sf", 18).getHeight(), white);
                 break;
             case LOGO:
                 RenderUtils.drawImage(

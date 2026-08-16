@@ -1,4 +1,4 @@
-package ddlc.yuri.api.gui.main;
+package ddlc.yuri.api.gui.main.api;
 
 import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;

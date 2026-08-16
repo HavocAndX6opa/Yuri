@@ -2,24 +2,29 @@ package ddlc.yuri.utils.render.progress;
 
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.RenderUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
+import ddlc.yuri.utils.render.RoundedUtils;
 
 import java.awt.*;
 
 public class ProgressBarUtils {
-
-    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final Color COLOR = new Color(0, 0, 0, 130);
+    private static final Color BORDER_COLOR = new Color(255, 255, 255, 40);
 
     public static void draw(float progress, float alpha, float centerX, float centerY, float width, float thickness) {
         float percentage = Math.min(1.0f, Math.max(0.0f, progress));
-        float half = width / 2;
+        float half = width / 2f;
+        float radius = thickness / 2f;
 
-        int backgroundColor = RenderUtils.applyOpacity(Color.BLACK.getRGB(), alpha);
-        int firstColor = RenderUtils.applyOpacity(ColorManager.getColors().getFirst().getRGB(), alpha);
-        int secondColor = RenderUtils.applyOpacity(ColorManager.getColors().getSecond().getRGB(), alpha);
+        Color trackColor = RenderUtils.applyOpacity(COLOR, alpha);
+        Color fillColor = RenderUtils.applyOpacity(ColorManager.getColor(), alpha);
 
-        Gui.drawRect(centerX - half - 0.5, centerY - 0.5, centerX + half + 0.5, centerY + thickness + 0.5, backgroundColor);
-        Gui.drawGradientRect(centerX - half, centerY, centerX - half + (width * percentage), centerY + thickness, firstColor, secondColor);
+        float fillWidth = width * percentage;
+        if (fillWidth <= 0f) return;
+
+        float fillRadius = Math.min(radius, fillWidth / 2f);
+
+        RoundedUtils.drawRoundOutline(centerX - half, centerY, width, 4f, radius, -0.5f, trackColor, fillColor.darker().darker());
+        RoundedUtils.drawRoundedRect(centerX - half + 0.5f, centerY + 1, fillWidth - 2f, 4f - 2.5f, fillRadius, fillColor);
     }
+
 }

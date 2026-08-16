@@ -7,7 +7,7 @@ import ddlc.yuri.api.gui.alt.comp.CustomTextBox;
 import ddlc.yuri.api.gui.alt.comp.MicrosoftOAuthTranslation;
 import ddlc.yuri.api.gui.alt.comp.SessionChanger;
 import ddlc.yuri.api.gui.alt.comp.TokenEncryption;
-import ddlc.yuri.api.gui.main.MenuShaderBackground;
+import ddlc.yuri.api.gui.main.api.MenuShaderBackground;
 import ddlc.yuri.api.gui.main.YuriMenu;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;

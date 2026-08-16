@@ -7,7 +7,7 @@ group = 'unlegit.yuri'
 version = '1.8.9'
 
 application {
-    mainClass = 'Start'
+    mainClass = 'net.minecraft.client.main.Main'
 }
 
 tasks.named('run') {
@@ -27,7 +27,7 @@ repositories {
     maven {
         url "https://mvnrepository.com/artifact"
     }
-    maven{
+    maven {
         url "https://jitpack.io"
     }
 }
@@ -70,4 +70,16 @@ dependencies {
     implementation("io.github.spair:imgui-java-natives-windows:1.86.11")
     implementation("io.github.spair:imgui-java-natives-linux:1.86.11")
     implementation("io.github.spair:imgui-java-natives-macos:1.86.11")
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'net.minecraft.client.main.Main'
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }

@@ -1,4 +1,4 @@
-package ddlc.yuri.api.gui.main;
+package ddlc.yuri.api.gui.main.api;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;

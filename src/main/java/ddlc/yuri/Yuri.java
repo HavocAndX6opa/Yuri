@@ -9,7 +9,7 @@ import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
 import ddlc.yuri.api.gui.click.neverlose.NeverloseClickGui;
-import ddlc.yuri.api.gui.click.novoline.NovolineClickGUI;
+import ddlc.yuri.api.gui.click.novoline.NovolineClickGui;
 import ddlc.yuri.managers.ManagerWrapper;
 import ddlc.yuri.modules.ModuleManager;
 import ddlc.yuri.modules.impl.render.ClickGUIModule;
@@ -19,7 +19,7 @@ import lombok.Getter;
 public class Yuri {
     public static final Yuri INSTANCE = new Yuri();
     public static final String NAME = "Yuri";
-    public static final String BUILD = "Dev";
+    public static final String BUILD = "Beta";
     public static final String VERSION = "1.0.0";
     public static final String FULL = NAME + " " + VERSION + " " + BUILD;
 
@@ -29,9 +29,9 @@ public class Yuri {
     @Getter
     private ConfigManager configManager;
     @Getter
-    private final NovolineClickGUI novolineClickGui = new NovolineClickGUI();
+    private final NovolineClickGui novolineClickGui = new NovolineClickGui();
     @Getter
-    private final ImGuiClickGui imGUIClickGui = new ImGuiClickGui();
+    private final ImGuiClickGui imGuiClickGui = new ImGuiClickGui();
     @Getter
     private final NeverloseClickGui neverloseClickGui = new NeverloseClickGui();
     private BindsConfig bindsConfig;

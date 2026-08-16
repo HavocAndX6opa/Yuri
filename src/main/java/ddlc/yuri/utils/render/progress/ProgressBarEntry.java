@@ -10,7 +10,7 @@ public class ProgressBarEntry {
     private float progress;
     private float x, y;
     private float width = 80.0f;
-    private float thickness = 2.5f;
+    private float thickness = 10f;
     private float alpha = 0f;
     private long lastRenderTime = -1L;
     private boolean fadingOut = false;

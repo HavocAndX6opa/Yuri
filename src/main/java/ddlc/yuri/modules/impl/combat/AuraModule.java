@@ -224,11 +224,9 @@ public class AuraModule extends Module {
         if (event.getPacket() instanceof C0BPacketEntityAction) {
             C0BPacketEntityAction packet = (C0BPacketEntityAction) event.getPacket();
 
-            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && target != null && hitSlow && mc.thePlayer.isSprinting()) {
-                if (sprint.getValue() && hypixelSprint.getValue() && mc.thePlayer.hurtTime == 0) {
-                    event.setCancelled(true);
-                    PacketUtils.sendSilentPacket(packet);
-                }
+            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && target != null && hitSlow && mc.thePlayer.isSprinting() && target != null && mc.thePlayer.onGround && sprint.getValue() && hypixelSprint.getValue()) {
+                event.setCancelled(true);
+                PacketUtils.sendSilentPacket(packet);
             }
         }
     }
@@ -397,8 +395,7 @@ public class AuraModule extends Module {
             swing();
             mc.playerController.attackEntity(mc.thePlayer, target);
             this.hitTicks = 0;
-        }
-        else if (dist <= swingRange.getValue()) {
+        } else if (dist <= swingRange.getValue()) {
             mc.clickMouse();
             this.hitTicks = 0;
         }

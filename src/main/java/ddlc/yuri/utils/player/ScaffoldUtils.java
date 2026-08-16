@@ -199,7 +199,7 @@ public final class ScaffoldUtils {
                 }
                 break;
             }
-            case ASTAR: {
+            case ULTRA_SAFE: {
                 computeAStarRotations(blockFace, enumFacing, target, strict);
                 break;
             }

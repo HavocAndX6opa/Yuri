@@ -205,6 +205,15 @@ public class RenderUtils {
         GlStateManager.disableBlend();
     }
 
+    public static void drawImage(ResourceLocation resourceLocation, float x, float y, float croppedX, float croppedY, float croppedWidth, float croppedHeight, float imgWidth, float imgHeight) {
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        mc.getTextureManager().bindTexture(resourceLocation);
+        Gui.drawModalRectWithCustomSizedTexture(x, y, croppedX, croppedY, croppedWidth, croppedHeight, imgWidth, imgHeight);
+        GlStateManager.disableBlend();
+    }
+
     public static void drawArrow(float x, float y, float size, int color, double rotation) {
         float red = (color >> 16 & 255) / 255.0F;
         float green = (color >> 8 & 255) / 255.0F;

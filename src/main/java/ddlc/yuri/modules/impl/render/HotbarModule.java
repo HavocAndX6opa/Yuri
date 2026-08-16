@@ -2,7 +2,10 @@ package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.properties.Property;
+import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
@@ -23,12 +26,35 @@ import java.awt.*;
 @ModuleInfo(label = "Hotbar", description = "Renders a custom DDLC themed hotbar", category = ModuleCategory.RENDER)
 public class HotbarModule extends Module {
 
-    private static final Color BODY_COLOR = new Color(0, 0, 0, 80);
-    private final TimerUtils stopwatch = new TimerUtils();
-    private float rPosX;
+    private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.YURI);
+
+    private enum Mode {
+        YURI("Yuri"),
+        DDLC("DDLC");
+
+        public final String name;
+
+        Mode(String name) {
+            this.name = name;
+        }
+
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
+    private static final Color HIGHLIGHT_FILL_COLOR = new Color(255, 255, 255, 45);
+    private static final float SLOT_SIZE = 20f;
+    private static final float SLOT_RADIUS = 4f;
 
     @EventHook
     public void onRender2D(Render2DEvent event) {
+        renderHotbar();
+    }
+
+    @EventHook
+    public void onShader2D(Shader2DEvent event) {
         renderHotbar();
     }
 
@@ -49,7 +75,18 @@ public class HotbarModule extends Module {
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
-        RenderUtils.drawImage(new ResourceLocation("yuri/gui/textbox.png"), posX + 1, posY + 18, scaleX, scaleY - 18);
+        if (mode.getValue() == Mode.YURI) {
+            RoundedUtils.drawRoundOutline(posX, posY + 18, scaleX, scaleY - 18, 5, -0.5f, BG_COLOR,
+                    ColorManager.getColor());
+        } else if (mode.getValue() == Mode.DDLC) {
+            RenderUtils.drawImage(new ResourceLocation("yuri/gui/textbox.png"), posX + 1, posY + 18, scaleX, scaleY - 18);
+        }
+
+        for (int j = 0; j < 9; ++j) {
+            final int k = sr.getScaledWidth() / 2 - 90 + j * 21 - 2;
+            final int l = sr.getScaledHeight() - 16 - 3;
+            renderSlotHighlight(j, k, l - 1, entityplayer);
+        }
 
         for (int j = 0; j < 9; ++j) {
             final int k = sr.getScaledWidth() / 2 - 90 + j * 21 - 2;
@@ -60,6 +97,20 @@ public class HotbarModule extends Module {
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.disableRescaleNormal();
         GlStateManager.disableBlend();
+    }
+
+    private void renderSlotHighlight(final int index, final int xPos, final int yPos, final EntityPlayer entityPlayer) {
+        if (entityPlayer.inventory.currentItem != index) {
+            return;
+        }
+
+        final float x = xPos - 2f;
+        final float y = yPos - 2f;
+
+        RoundedUtils.drawCustomRoundedRect(x, y, SLOT_SIZE, SLOT_SIZE, SLOT_RADIUS,
+                true, true, true, true, HIGHLIGHT_FILL_COLOR);
+        RoundedUtils.drawRoundOutline(x, y, SLOT_SIZE, SLOT_SIZE, SLOT_RADIUS, -0.5f,
+                new Color(0, 0, 0, 0), ColorManager.getColor());
     }
 
     private void renderHotBarItem(final int index, final int xPos, final int yPos, final float partialTicks, final EntityPlayer entityPlayer) {
@@ -80,9 +131,7 @@ public class HotbarModule extends Module {
             GlStateManager.translate((float) (-(xPos + 8)), (float) (-(yPos + 12)), 0.0F);
         }
 
-        if (mc.thePlayer.inventory.currentItem != index) {
-            RenderHelper.enableGUIStandardItemLighting();
-        }
+        RenderHelper.enableGUIStandardItemLighting();
         itemRenderer.renderItemAndEffectIntoGUI(itemstack, xPos, yPos);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -91,8 +140,6 @@ public class HotbarModule extends Module {
         }
 
         itemRenderer.renderItemOverlays(mc.fontRendererObj, itemstack, xPos, yPos);
-        if (mc.thePlayer.inventory.currentItem != index) {
-            RenderHelper.disableStandardItemLighting();
-        }
+        RenderHelper.disableStandardItemLighting();
     }
 }

@@ -177,4 +177,22 @@ public class RoundedUtils extends RenderUtils {
 
         GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
+
+    public static void drawRoundedImage(ResourceLocation resourceLocation, float x, float y, float croppedX, float croppedY, float croppedWidth, float croppedHeight, float imgWidth, float imgHeight, float radius) {
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+        GL11.glColorMask(false, false, false, false);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+
+        RoundedUtils.drawRoundedRect(x, y, imgWidth, imgHeight, radius, Color.WHITE);
+
+        GL11.glColorMask(true, true, true, true);
+        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+
+        drawImage(resourceLocation, x, y, croppedX, croppedY, croppedWidth, croppedHeight, imgWidth, imgHeight);
+
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+    }
 }

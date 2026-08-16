@@ -52,6 +52,7 @@ public final class ClientInfoModule extends Module {
 
     @EventHook
     public void onShader2D(Shader2DEvent event) {
+        if (event.getShaderType() == Shader2DEvent.ShaderType.BLUR) return;
         renderClientInfo();
     }
 

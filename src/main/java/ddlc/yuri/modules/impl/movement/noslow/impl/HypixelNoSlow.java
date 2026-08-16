@@ -38,9 +38,11 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || !InvUtils.isHoldingSword() || AuraModule.autoBlocking) {
-            resetCycle();
-            release();
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || !InvUtils.isHoldingSword() || AuraModule.target != null) {
+            if (AuraModule.target == null) {
+                resetCycle();
+                release();
+            }
             return;
         }
 
@@ -112,7 +114,7 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     @Override
     public void onRightClick(RightClickEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.autoBlocking) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.target != null) {
             return;
         }
         if (parent.isSwordActive()) {
@@ -122,7 +124,7 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
-        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.autoBlocking) {
+        if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null || AuraModule.target != null) {
             return;
         }
 

@@ -2,11 +2,13 @@ package ddlc.yuri.modules.impl.misc.disabler.impl;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.modules.impl.misc.DisablerModule;
 import ddlc.yuri.modules.impl.misc.disabler.DisablerMode;
 import ddlc.yuri.modules.impl.player.ManagerModule;
+import ddlc.yuri.utils.client.LoggingUtils;
 import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiInventory;
@@ -29,7 +31,8 @@ public final class HypixelInvDisabler implements DisablerMode {
 
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        if (mc.thePlayer == null) return;
+        LoggingUtils.sendChatMessage("Disabler broken for now! Please use the Manager module with Not Moving toggled on and Inv Only toggled off!");
+      /*  if (mc.thePlayer == null) return;
         if (isInventoryMovePausedForChest()) {
             resetInventoryMoveState();
             return;
@@ -44,33 +47,37 @@ public final class HypixelInvDisabler implements DisablerMode {
                 sentFirstOpen = true;
             }
 
-            if (mc.thePlayer.ticksExisted % (mc.thePlayer.isPotionActive(Potion.moveSpeed) ? 3 : 4) == 0)
-                PacketUtils.sendSilentPacket(new C0DPacketCloseWindow());
-            else if (mc.thePlayer.ticksExisted % (mc.thePlayer.isPotionActive(Potion.moveSpeed) ? 3 : 4) == 1)
-                PacketUtils.sendPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
-        } else sentFirstOpen = false;
-    }
+            int safePacketTick = mc.thePlayer.isPotionActive(Potion.moveSpeed) ? 3 : 4;
 
+            if (mc.thePlayer.ticksExisted % safePacketTick == 0) {
+                PacketUtils.sendSilentPacket(new C0DPacketCloseWindow());
+            } else if (mc.thePlayer.ticksExisted % safePacketTick == 1) {
+                PacketUtils.sendSilentPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+            }
+        } else {
+            sentFirstOpen = false;
+        }*/
+    }
+/*
 
     @Override
-    public void onPacketReceived(PacketReceivedEvent event) {
+    public void onPacketSend(PacketSendEvent event) {
         if (mc.thePlayer == null) return;
 
         Packet<?> packet = event.getPacket();
 
-        if (!isInventoryMovePausedForChest()) {
-            if (packet instanceof C16PacketClientStatus) {
-                if (caughtClientStatus)
-                    event.setCancelled(true);
-
-                caughtClientStatus = true;
+        if (packet instanceof C16PacketClientStatus) {
+            if (caughtClientStatus) {
+                event.setCancelled(true);
             }
-            if (packet instanceof C0DPacketCloseWindow) {
-                if (caughtCloseWindow)
-                    event.setCancelled(true);
+            caughtClientStatus = true;
+        }
 
-                caughtCloseWindow = true;
+        if (packet instanceof C0DPacketCloseWindow) {
+            if (caughtCloseWindow) {
+                event.setCancelled(true);
             }
+            caughtCloseWindow = true;
         }
     }
 
@@ -92,5 +99,5 @@ public final class HypixelInvDisabler implements DisablerMode {
         sentFirstOpen = false;
         caughtClientStatus = false;
         caughtCloseWindow = false;
-    }
+    }*/
 }

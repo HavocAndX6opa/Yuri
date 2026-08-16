@@ -15,7 +15,12 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+
+import ddlc.yuri.Yuri;
+import ddlc.yuri.modules.impl.render.ClickGUIModule;
+import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.inventory.*;
 import net.minecraft.client.gui.stream.GuiTwitchUserMode;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -37,18 +42,25 @@ import net.minecraft.stats.StatList;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
+import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 import tv.twitch.chat.ChatUserInfo;
+
+import static ddlc.yuri.utils.misc.IMinecraft.mc;
 
 public abstract class GuiScreen extends Gui implements GuiYesNoCallback
 {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Set<String> PROTOCOLS = Sets.newHashSet(new String[] {"http", "https"});
     private static final Splitter NEWLINE_SPLITTER = Splitter.on('\n');
+    private static final ResourceLocation LOGO_TEXTURE = new ResourceLocation("yuri/gui/logo.png");
+    private static final long FADE_DURATION = 500L; // 500 ms fade duration
+
     protected Minecraft mc;
     protected RenderItem itemRender;
     public int width;
@@ -63,8 +75,19 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
     private int touchValue;
     private URI clickedLinkURI;
 
+    // Animation state tracking
+    private long openTime = 0L;
+
     public void drawScreen(int mouseX, int mouseY, float partialTicks)
     {
+        long now = System.currentTimeMillis();
+        long elapsedOpen = now - this.openTime;
+        float alpha = (float) elapsedOpen / (float) FADE_DURATION;
+        if (alpha > 1.0F)
+        {
+            alpha = 1.0F;
+        }
+
         for (int i = 0; i < this.buttonList.size(); ++i)
         {
             ((GuiButton)this.buttonList.get(i)).drawButton(this.mc, mouseX, mouseY);
@@ -74,18 +97,42 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
         {
             ((GuiLabel)this.labelList.get(j)).drawLabel(this.mc, mouseX, mouseY);
         }
+
+        // Bottom-right corner placement with a 10px margin
+        float padding = 10.0F;
+        float logoSize = 256.0F;
+        float logoX = (float) this.width - logoSize - padding;
+        float logoY = (float) this.height - logoSize;
+
+        if (ClickGUIModule.logoInGuis.getValue()) {
+            if (mc.currentScreen instanceof GuiInventory || mc.currentScreen instanceof GuiContainerCreative || mc.currentScreen instanceof GuiChest || mc.currentScreen instanceof GuiCrafting || mc.currentScreen instanceof GuiEnchantment || mc.currentScreen instanceof GuiFurnace || mc.currentScreen instanceof GuiRepair || mc.currentScreen == Yuri.INSTANCE.getImGuiClickGui() || mc.currentScreen == Yuri.INSTANCE.getNeverloseClickGui() || mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui()) {
+
+                GlStateManager.color(1.0F, 1.0F, 1.0F, alpha);
+                GlStateManager.enableBlend();
+                GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+                mc.getTextureManager().bindTexture(LOGO_TEXTURE);
+                Gui.drawModalRectWithCustomSizedTexture(logoX, logoY, 0, 0, logoSize, logoSize, logoSize, logoSize);
+
+                GlStateManager.disableBlend();
+            }
+        }
+    }
+
+    public void closeGui(GuiScreen next)
+    {
+        this.mc.displayGuiScreen(next);
+        if (next == null)
+        {
+            this.mc.setIngameFocus();
+        }
     }
 
     protected void keyTyped(char typedChar, int keyCode) throws IOException
     {
         if (keyCode == 1)
         {
-            this.mc.displayGuiScreen((GuiScreen)null);
-
-            if (this.mc.currentScreen == null)
-            {
-                this.mc.setIngameFocus();
-            }
+            this.closeGui((GuiScreen)null);
         }
     }
 
@@ -491,6 +538,7 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
 
     public void initGui()
     {
+        this.openTime = System.currentTimeMillis();
     }
 
     public void handleInput() throws IOException

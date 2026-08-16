@@ -1,8 +1,6 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.Yuri;
-import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
-import ddlc.yuri.api.gui.click.neverlose.NeverloseClickGui;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
@@ -20,7 +18,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
     public static final NumberProperty colorSpeed = new NumberProperty("Color Speed", 5, 1, 10, 1);
     public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NOVOLINE);
     public static final ModeProperty<ImGuiStyleType> style = new ModeProperty<>("Style", ImGuiStyleType.REGULAR, () -> mode.getValue() == Mode.IMGUI);
-    private final Property<Boolean> closePrevious = new Property<>("Close Previous", true);
+    private final Property<Boolean> closePrevious = new Property<>("Close Previous", true, () -> mode.getValue() == Mode.NOVOLINE);
+    public static final Property<Boolean> logoInGuis = new Property<>("Logo In GUIS", false);
 
     public enum Mode {
         NOVOLINE("Novoline"),
@@ -86,7 +85,7 @@ public class ClickGUIModule extends Module implements IMinecraft {
                 mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
                 break;
             case IMGUI:
-                mc.displayGuiScreen(Yuri.INSTANCE.getImGUIClickGui());
+                mc.displayGuiScreen(Yuri.INSTANCE.getImGuiClickGui());
                 break;
         }
     }
@@ -97,8 +96,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
             Yuri.INSTANCE.getNeverloseClickGui().beginClose();
         } else if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
             Yuri.INSTANCE.getNovolineClickGui().beginClose();
-        } else if (mc.currentScreen == Yuri.INSTANCE.getImGUIClickGui() && !Yuri.INSTANCE.getImGUIClickGui().isClosing()) {
-            Yuri.INSTANCE.getImGUIClickGui().beginClose();
+        } else if (mc.currentScreen == Yuri.INSTANCE.getImGuiClickGui() && !Yuri.INSTANCE.getImGuiClickGui().isClosing()) {
+            Yuri.INSTANCE.getImGuiClickGui().beginClose();
         }
     }
 }

@@ -12,10 +12,7 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.render.targethud.TargetHudMode;
-import ddlc.yuri.modules.impl.render.targethud.impl.AstolfoMode;
-import ddlc.yuri.modules.impl.render.targethud.impl.ExhibitionMode;
-import ddlc.yuri.modules.impl.render.targethud.impl.NovolineMode;
-import ddlc.yuri.modules.impl.render.targethud.impl.OldNovolineMode;
+import ddlc.yuri.modules.impl.render.targethud.impl.*;
 import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.Yuri;
 import net.minecraft.client.entity.AbstractClientPlayer;
@@ -40,6 +37,7 @@ import java.util.List;
 public final class TargetHudModule extends Module {
 
     public enum Mode {
+        YURI("Yuri"),
         ASTOLFO("Astolfo"),
         NOVOLINE("Novoline"),
         OLD_NOVOLINE("Old Novoline"),
@@ -57,7 +55,7 @@ public final class TargetHudModule extends Module {
         }
     }
 
-    private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.ASTOLFO);
+    private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.YURI);
     private final Property<Boolean> grid = new Property<Boolean>("Grid", true);
     public final Property<Boolean> showPrevious = new Property<Boolean>("Show Previous", true);
     private final Map<Mode, TargetHudMode> modeMap = new HashMap<>();
@@ -69,10 +67,11 @@ public final class TargetHudModule extends Module {
     private static final int INFO_SPACING_X = 145;
     private static final int INFO_SPACING_Y = 53;
 
-    private long lastRenderTime = 0;
+    private long lastRender2DTime = 0;
     private final Map<UUID, TargetState> targetStates = new LinkedHashMap<>();
 
     public TargetHudModule() {
+        modeMap.put(Mode.YURI, new YuriMode(this));
         modeMap.put(Mode.ASTOLFO, new AstolfoMode(this));
         modeMap.put(Mode.NOVOLINE, new NovolineMode(this));
         modeMap.put(Mode.OLD_NOVOLINE, new OldNovolineMode(this));
@@ -91,8 +90,10 @@ public final class TargetHudModule extends Module {
     @EventHook
     public void onRender2D(Render2DEvent event) {
         long now = System.currentTimeMillis();
-        float delta = lastRenderTime == 0 ? 0f : (now - lastRenderTime) / 500f;
-        lastRenderTime = now;
+        float delta = lastRender2DTime == 0 ? 0f : (now - lastRender2DTime) / 500f;
+        lastRender2DTime = now;
+
+        if (delta < 0.0005f) return;
 
         Set<UUID> activeTargetsThisFrame = new HashSet<>();
         List<EntityLivingBase> listToRender = new ArrayList<>();
@@ -129,12 +130,7 @@ public final class TargetHudModule extends Module {
 
     @EventHook
     public void onShader2D(Shader2DEvent event) {
-
         if (event.getShaderType() == Shader2DEvent.ShaderType.BLUR) return;
-
-        long now = System.currentTimeMillis();
-        float delta = lastRenderTime == 0 ? 0f : (now - lastRenderTime) / 1000f;
-        lastRenderTime = now;
 
         List<TargetState> allRenderStates = new ArrayList<>(targetStates.values());
         if (allRenderStates.isEmpty()) return;
@@ -143,7 +139,9 @@ public final class TargetHudModule extends Module {
         if (modeInstance == null) return;
 
         DragUtils.DraggableComponent draggable = DragUtils.components.get("TargetHud");
-        renderGrid(allRenderStates, draggable, modeInstance, now, delta);
+        if (draggable == null) return;
+
+        renderGrid(allRenderStates, draggable, modeInstance, System.currentTimeMillis(), 0f);
     }
 
     private void addAdditionalTargets(List<EntityLivingBase> list, Set<UUID> active, EntityLivingBase mainTarget) {

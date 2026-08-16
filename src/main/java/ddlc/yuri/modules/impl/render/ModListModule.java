@@ -45,8 +45,8 @@ public class ModListModule extends Module implements IMinecraft {
     private final Property<Boolean> lowercase = new Property<>("Lowercase", false);
     private final Property<Boolean> bold = new Property<>("Bold", false);
     private final ModeProperty<ColorMode> colorMode = new ModeProperty<>("Color Mode", ColorMode.FADE);
-    private final NumberProperty padding = new NumberProperty("Padding", 2, 0, 6, 0.5);
-    private final NumberProperty offset = new NumberProperty("Offset", 0, 0, 30, 1);
+    public static final NumberProperty padding = new NumberProperty("Padding", 2, 0, 6, 0.5);
+    public static NumberProperty offset = new NumberProperty("Offset", 0, 0, 30, 1);
     private final NumberProperty lineWidth = new NumberProperty("Line Width", 1.0, 0.5, 1.0, 0.1);
 
     private static final float TEXT_HEIGHT = 8f;
@@ -182,7 +182,7 @@ public class ModListModule extends Module implements IMinecraft {
             filteredModules.add(module);
         }
 
-        updatePositions(filteredModules, fr, screenX, screenRight, off, pad, lw, rowStep);
+        updatePositions(filteredModules, fr, screenX, screenRight, off, pad, rowStep);
 
         final int moduleCacheSize = filteredModules.size();
         int lastVisibleModuleIndex = moduleCacheSize - 1;
@@ -208,7 +208,7 @@ public class ModListModule extends Module implements IMinecraft {
                 firstVisibleModuleIndex = i;
             }
 
-            double translateX = line.getValue() ? translate.getX() : translate.getX() + 1;
+            double translateX = translate.getX();
             double translateY = translate.getY();
 
             if (visible || translateX < screenX) {
@@ -223,7 +223,7 @@ public class ModListModule extends Module implements IMinecraft {
                     }
                 }
 
-                float textX = line.getValue() ? (float) (translateX - 1.2f) : (float) ((float) offset.getValue().floatValue() == 0 ? translateX - 0.5f : (float) translateX);
+                float textX = line.getValue() ? (float) (translateX - 1.0f) : (float) ((float) offset.getValue().floatValue() == 0 ? translateX - 0.5f : (float) translateX);
 
                 drawText(fr, name, useCustomFont.getValue() ? textX : textX + 0.8f, (float) translateY, aColor);
 
@@ -298,15 +298,14 @@ public class ModListModule extends Module implements IMinecraft {
         }
     }
 
-    private void updatePositions(List<Module> filteredModules, CustomFontRenderer fr, float screenX, float screenRight, float startY, float pad, float lw, float rowStep) {
+    private void updatePositions(List<Module> filteredModules, CustomFontRenderer fr, float screenX, float screenRight, float startY, float pad, float rowStep) {
         float y = startY;
 
         for (Module module : filteredModules) {
             Translate translate = module.getTranslate();
             String name = displayLabelCache.get(module);
             float moduleWidth = getTextWidth(fr, name);
-            float offset = (line.getValue() && !outline.getValue()) ? pad : lw;
-            float visibleTargetX = screenX - moduleWidth - offset;
+            float visibleTargetX = screenX - moduleWidth - pad;
             float hiddenTargetX = screenRight + moduleWidth + pad + 4f;
 
             if (!seededModules.contains(module)) {

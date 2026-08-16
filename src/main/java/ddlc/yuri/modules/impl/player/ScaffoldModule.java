@@ -143,7 +143,7 @@ public final class ScaffoldModule extends Module {
     }
 
     public enum SearchAlgorithm {
-        NORMAL("Normal"), ASTAR("A*"), SECONDARY("Secondary");
+        NORMAL("Normal"), ULTRA_SAFE("Ultra Safe"), SECONDARY("Secondary");
         public final String name;
 
         SearchAlgorithm(String name) {
@@ -376,6 +376,10 @@ public final class ScaffoldModule extends Module {
     @Override
     public void onEnable() {
         if (mc.thePlayer != null) {
+            // often fails if the search algorithm isn't ultra safe.
+            if (hypixelTelly.getValue() && mode.getValue() == Mode.TELLY) {
+                searchAlgorithm.setValue(SearchAlgorithm.ULTRA_SAFE);
+            }
             counterAlpha = 0f;
             targetYaw = mc.thePlayer.rotationYaw - 180;
             targetPitch = 90;
@@ -585,7 +589,7 @@ public final class ScaffoldModule extends Module {
                         canPlace = false;
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = 0.99f;
+                            rotSpeed = isDiagonal() ? 0.95f : 0.99f;
                         }
                         canPlace = true;
                         if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
