@@ -227,11 +227,9 @@ public class AuraModule extends Module {
         if (event.getPacket() instanceof C0BPacketEntityAction) {
             C0BPacketEntityAction packet = (C0BPacketEntityAction) event.getPacket();
 
-            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && target != null && hitSlow && mc.thePlayer.isSprinting()) {
-                if (sprint.getValue() && hypixelSprint.getValue() && mc.thePlayer.hurtTime == 0) {
-                    event.setCancelled(true);
-                    PacketUtils.sendSilentPacket(packet);
-                }
+            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && hitSlow && mc.thePlayer.isSprinting() && sprint.getValue() && hypixelSprint.getValue()) {
+                event.setCancelled(true);
+                PacketUtils.sendSilentPacket(packet);
             }
         }
     }
@@ -327,7 +325,7 @@ public class AuraModule extends Module {
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
                     blockTicks = 0;
                 }
-                canAttack = !BadPacketsManager.bad(false, false, false, true, false);
+                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 1;
                 break;
             case VANILLA:
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));

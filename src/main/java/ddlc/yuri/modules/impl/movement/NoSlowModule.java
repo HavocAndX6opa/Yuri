@@ -5,7 +5,6 @@ import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.*;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
-import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
@@ -13,7 +12,6 @@ import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
 import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
 import ddlc.yuri.utils.player.InvUtils;
-import ddlc.yuri.utils.player.PlayerUtils;
 import net.minecraft.item.*;
 
 import java.util.EnumMap;
@@ -25,7 +23,7 @@ public final class NoSlowModule extends Module {
     public enum Mode {
         VANILLA("Vanilla"),
         NCP("NCP"),
-        HYPIXEL("Hypixel");
+        HYPIXEL("Hypixel (Experimental)");
 
         public final String name;
 

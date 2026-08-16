@@ -219,7 +219,9 @@ public final class ScaffoldModule extends Module {
             tellyLogic();
         }
 
-        if (mc.gameSettings.keyBindJump.isKeyDown() || mc.thePlayer.posY < startY || (mc.thePlayer.onGround && Math.abs(mc.thePlayer.posY - startY) > 0.5 && !MoveUtils.isMoving())) {
+        if (mc.gameSettings.keyBindJump.isKeyDown() || mc.thePlayer.posY < startY
+                || (mc.thePlayer.onGround && mc.thePlayer.posY > startY && mc.thePlayer.onGroundTicks <= 1)
+                || (mc.thePlayer.onGround && Math.abs(mc.thePlayer.posY - startY) > 0.5 && !MoveUtils.isMoving())) {
             startY = Math.floor(mc.thePlayer.posY);
         }
 
@@ -376,10 +378,6 @@ public final class ScaffoldModule extends Module {
     @Override
     public void onEnable() {
         if (mc.thePlayer != null) {
-            // often fails if the search algorithm isn't ultra safe.
-            if (hypixelTelly.getValue() && mode.getValue() == Mode.TELLY) {
-                searchAlgorithm.setValue(SearchAlgorithm.ULTRA_SAFE);
-            }
             counterAlpha = 0f;
             targetYaw = mc.thePlayer.rotationYaw - 180;
             targetPitch = 90;
@@ -579,26 +577,20 @@ public final class ScaffoldModule extends Module {
 
             case TELLY:
                 if (recursion == 0) {
-                    if (blocksPlaced <= 0 && target[0] == mc.thePlayer.rotationYaw) {
-                        target[0] = mc.thePlayer.rotationYaw - 180;
-                        target[1] = 82.5f;
-                    }
                     if (mc.gameSettings.keyBindJump.isKeyDown() && hypixelTelly.getValue()) {
-                        stop = mc.thePlayer.onGroundTicks == 1 || mc.thePlayer.onGroundTicks == 2 || mc.thePlayer.onGroundTicks == 3;
+                        stop = mc.thePlayer.onGroundTicks == 1;
                     }
                     mc.entityRenderer.getMouseOver(1);
-                    if (mc.thePlayer.onGround && MoveUtils.isMoving()) {
+                    if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
                         if (hypixelTelly.getValue()) {
                             rotSpeed = 10.0f;
                         }
                         target[0] = mc.thePlayer.rotationYaw;
                         target[1] = (float) MathUtils.getRandom(68, 90);
-                        canPlace = false;
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = isDiagonal() ? 0.95f : 0.99f;
+                            rotSpeed = isDiagonal() ? 0.98f : 0.95f;
                         }
-                        canPlace = true;
                         if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
                             ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
                                     searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
@@ -718,7 +710,6 @@ public final class ScaffoldModule extends Module {
             case POLAR:
                 double ground = mc.thePlayer.posY - MoveUtils.findGround(mc.thePlayer);
 
-                // i have no fucking idea why this works
                 if (!MoveUtils.isMovingMotion(mc.thePlayer) && mc.thePlayer.motionY < 0 && ground < 1.26) {
                     mc.thePlayer.motionY -= 0.091F;
                 }
