@@ -14,11 +14,13 @@ import ddlc.yuri.modules.ModuleInfo;
 @ModuleInfo(label = "Hit Select", description = "Selectively cancels your hits to win more fights", category = ModuleCategory.COMBAT)
 public final class HitSelectModule extends Module {
 
-    public static ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.SPRINT);
+    public static ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.BASIC);
     private static final NumberProperty chance = new NumberProperty("Chance", 100.0, 10.0, 100.0, 1.0);
     private static final NumberProperty delay = new NumberProperty("Delay", 40.0, 30.0, 50.0, 1.0);
+    private static final long GROUND_INTERVAL_MS = 500L;
 
     public enum Mode {
+        BASIC("Basic"),
         SPRINT("Sprint"),
         KB_REDUCE("KB Reduce"),
         CRITICALS("Criticals");
@@ -63,6 +65,15 @@ public final class HitSelectModule extends Module {
             currentShouldAttack = true;
         } else {
             switch (mode.getValue()) {
+                case BASIC: {
+                    if (mc.thePlayer.hurtTime <= 0) {
+                        currentShouldAttack = System.currentTimeMillis() - lastAttackTime >= GROUND_INTERVAL_MS;
+                    } else {
+                        currentShouldAttack = true;
+                    }
+                    break;
+                }
+
                 case SPRINT: {
                     double dx = mc.thePlayer.posX - mc.thePlayer.prevPosX;
                     double dz = mc.thePlayer.posZ - mc.thePlayer.prevPosZ;
@@ -82,7 +93,7 @@ public final class HitSelectModule extends Module {
                 }
             }
 
-            if (!currentShouldAttack) {
+            if (!currentShouldAttack && mode.getValue() != Mode.BASIC) {
                 currentShouldAttack = System.currentTimeMillis() - lastAttackTime >= delay.getValue() * 10;
             }
         }

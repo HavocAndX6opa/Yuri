@@ -27,6 +27,7 @@ public class MediaTracker implements IMinecraft {
 
     public static final String SOURCE_WINDOWS = "WINDOWS MEDIA";
     public static final String SOURCE_SPOTIFY = "SPOTIFY";
+    public static final String SOURCE_GENERIC = "MEDIA PLAYER";
 
     private static final String OS_NAME = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
     private static final boolean WINDOWS = OS_NAME.contains("win");
@@ -39,30 +40,52 @@ public class MediaTracker implements IMinecraft {
     private static final int COVER_MAX_SIZE = 160;
 
     private static final Pattern ARTIST_ITEM_PATTERN = Pattern.compile("string \"([^\"]*)\"");
+    private static final Pattern MPRIS_SERVICE_PATTERN = Pattern.compile("string \"(org\\.mpris\\.MediaPlayer2\\.[^\"]+)\"");
 
     private static final String INIT_SCRIPT =
             "$ErrorActionPreference = 'SilentlyContinue'; " +
                     "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; " +
-                    "Add-Type -AssemblyName System.Runtime.WindowsRuntime; " +
-                    "$null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]; " +
-                    "$yuriAsTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]; " +
-                    "function YuriAwait($op, $type) { $t = $yuriAsTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }; " +
-                    "$yuriManager = YuriAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); " +
+                    "$global:yuriHasWinRT = $false; " +
+                    "try { " +
+                    "  Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop; " +
+                    "  $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]; " +
+                    "  $global:yuriAsTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]; " +
+                    "  function YuriAwait($op, $type) { $t = $global:yuriAsTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }; " +
+                    "  $global:yuriManager = YuriAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); " +
+                    "  if ($global:yuriManager) { $global:yuriHasWinRT = $true } " +
+                    "} catch {}; " +
                     "Write-Output 'YURI_READY'";
 
     private static final String QUERY_SCRIPT =
-            "$yuriSession = $yuriManager.GetCurrentSession(); " +
-                    "if ($yuriSession) { " +
-                    "$yuriProps = YuriAwait ($yuriSession.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]); " +
-                    "$yuriTimeline = $yuriSession.GetTimelineProperties(); " +
-                    "$yuriPlayback = $yuriSession.GetPlaybackInfo(); " +
-                    "Write-Output ('TITLE=' + $yuriProps.Title); " +
-                    "Write-Output ('ARTIST=' + $yuriProps.Artist); " +
-                    "Write-Output ('ALBUM=' + $yuriProps.AlbumTitle); " +
-                    "Write-Output ('POSITION=' + [long]$yuriTimeline.Position.TotalMilliseconds); " +
-                    "Write-Output ('LENGTH=' + [long]($yuriTimeline.EndTime.TotalMilliseconds - $yuriTimeline.StartTime.TotalMilliseconds)); " +
-                    "Write-Output ('STATUS=' + $yuriPlayback.PlaybackStatus); " +
-                    "Write-Output ('APP=' + $yuriSession.SourceAppUserModelId) " +
+            "if ($global:yuriHasWinRT -and $global:yuriManager) { " +
+                    "  $yuriSession = $global:yuriManager.GetCurrentSession(); " +
+                    "  if ($yuriSession) { " +
+                    "    $yuriProps = YuriAwait ($yuriSession.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]); " +
+                    "    $yuriTimeline = $yuriSession.GetTimelineProperties(); " +
+                    "    $yuriPlayback = $yuriSession.GetPlaybackInfo(); " +
+                    "    Write-Output ('TITLE=' + $yuriProps.Title); " +
+                    "    Write-Output ('ARTIST=' + $yuriProps.Artist); " +
+                    "    Write-Output ('ALBUM=' + $yuriProps.AlbumTitle); " +
+                    "    Write-Output ('POSITION=' + [long]$yuriTimeline.Position.TotalMilliseconds); " +
+                    "    Write-Output ('LENGTH=' + [long]($yuriTimeline.EndTime.TotalMilliseconds - $yuriTimeline.StartTime.TotalMilliseconds)); " +
+                    "    Write-Output ('STATUS=' + $yuriPlayback.PlaybackStatus); " +
+                    "    Write-Output ('APP=' + $yuriSession.SourceAppUserModelId) " +
+                    "  } " +
+                    "} else { " +
+                    "  $p = Get-Process | Where-Object { $_.MainWindowTitle -ne '' -and ($_.ProcessName -match 'spotify|chrome|msedge|firefox|vlc|foobar2000|aimp|wmplayer|mpc-hc') } | Select-Object -First 1; " +
+                    "  if ($p) { " +
+                    "    $title = $p.MainWindowTitle; " +
+                    "    if ($title -and $title -ne 'Spotify') { " +
+                    "      if ($title -match '^(.*?) - (.*)$') { " +
+                    "        Write-Output ('ARTIST=' + $matches[1]); " +
+                    "        Write-Output ('TITLE=' + $matches[2]) " +
+                    "      } else { " +
+                    "        Write-Output ('TITLE=' + $title) " +
+                    "      }; " +
+                    "      Write-Output 'STATUS=Playing'; " +
+                    "      Write-Output ('APP=' + $p.ProcessName) " +
+                    "    } " +
+                    "  } " +
                     "}; Write-Output '%s'";
 
     private static final Pattern TITLE_WIN = Pattern.compile("TITLE=(.*)");
@@ -157,33 +180,57 @@ public class MediaTracker implements IMinecraft {
         if (!running) return;
         try {
             if (WINDOWS) refreshWindows();
-            else if (LINUX) refreshLinuxSpotify();
+            else if (LINUX) refreshLinuxGeneric();
         } catch (Exception exception) {
             track = null;
         }
     }
 
-    private void refreshLinuxSpotify() {
-        String reply = runCommand("dbus-send", "--print-reply", "--session",
-                "--dest=org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2",
-                "org.freedesktop.DBus.Properties.GetAll", "string:org.mpris.MediaPlayer2.Player");
-        if (reply == null) {
+    private void refreshLinuxGeneric() {
+        List<String> players = findLinuxMprisPlayers();
+        if (players.isEmpty()) {
             track = null;
             return;
         }
 
-        String title = match(TITLE_DBUS, reply);
+        String bestPlayer = null;
+        String bestReply = null;
+
+        for (String player : players) {
+            String reply = runCommand("dbus-send", "--print-reply", "--session",
+                    "--dest=" + player, "/org/mpris/MediaPlayer2",
+                    "org.freedesktop.DBus.Properties.GetAll", "string:org.mpris.MediaPlayer2.Player");
+
+            if (reply == null) continue;
+
+            String status = match(STATUS_DBUS, reply);
+            if ("Playing".equalsIgnoreCase(status)) {
+                bestPlayer = player;
+                bestReply = reply;
+                break;
+            } else if (bestReply == null) {
+                bestPlayer = player;
+                bestReply = reply;
+            }
+        }
+
+        if (bestReply == null) {
+            track = null;
+            return;
+        }
+
+        String title = match(TITLE_DBUS, bestReply);
         if (title == null || title.trim().isEmpty()) {
             track = null;
             return;
         }
 
-        String album = match(ALBUM_DBUS, reply);
-        String artistsBlock = match(ARTISTS_DBUS, reply);
-        String artUrl = match(ART_DBUS, reply);
-        String length = match(LENGTH_DBUS, reply);
-        String position = match(POSITION_DBUS, reply);
-        String status = match(STATUS_DBUS, reply);
+        String album = match(ALBUM_DBUS, bestReply);
+        String artistsBlock = match(ARTISTS_DBUS, bestReply);
+        String artUrl = match(ART_DBUS, bestReply);
+        String length = match(LENGTH_DBUS, bestReply);
+        String position = match(POSITION_DBUS, bestReply);
+        String status = match(STATUS_DBUS, bestReply);
 
         StringBuilder artists = new StringBuilder();
         if (artistsBlock != null) {
@@ -194,12 +241,29 @@ public class MediaTracker implements IMinecraft {
             }
         }
 
+        String source = bestPlayer.contains("spotify") ? SOURCE_SPOTIFY : SOURCE_GENERIC;
+
         apply(title, artists.toString(), album == null ? "" : album,
                 length == null ? 0L : Long.parseLong(length) / 1000L,
                 position == null ? 0L : Long.parseLong(position) / 1000L,
-                "Playing".equals(status),
+                "Playing".equalsIgnoreCase(status),
                 artUrl == null ? "" : artUrl.replace("open.spotify.com", "i.scdn.co"),
-                SOURCE_SPOTIFY);
+                source);
+    }
+
+    private List<String> findLinuxMprisPlayers() {
+        List<String> players = new ArrayList<>();
+        String output = runCommand("dbus-send", "--session", "--dest=org.freedesktop.DBus",
+                "--type=method_call", "--print-reply", "/org/freedesktop/DBus",
+                "org.freedesktop.DBus.ListNames");
+
+        if (output != null) {
+            Matcher matcher = MPRIS_SERVICE_PATTERN.matcher(output);
+            while (matcher.find()) {
+                players.add(matcher.group(1));
+            }
+        }
+        return players;
     }
 
     private void refreshWindows() {
@@ -246,12 +310,16 @@ public class MediaTracker implements IMinecraft {
         String status = match(STATUS_WIN, reply);
         String app = match(APP_WIN, reply);
 
-        String source = app != null && app.toLowerCase(Locale.ROOT).contains("spotify") ? SOURCE_SPOTIFY : SOURCE_WINDOWS;
+        String source = SOURCE_WINDOWS;
+        if (app != null) {
+            String appLower = app.toLowerCase(Locale.ROOT);
+            if (appLower.contains("spotify")) source = SOURCE_SPOTIFY;
+        }
 
         apply(title.trim(), artist == null ? "" : artist.trim(), album == null ? "" : album.trim(),
                 length == null ? 0L : Long.parseLong(length),
                 position == null ? 0L : Long.parseLong(position),
-                status != null && (status.trim().equals("Playing") || status.trim().equals("4")),
+                status != null && (status.trim().equalsIgnoreCase("Playing") || status.trim().equals("4")),
                 "", source);
     }
 
@@ -378,7 +446,10 @@ public class MediaTracker implements IMinecraft {
                 resolvedUrl = results.get(0).getAsJsonObject().get("artworkUrl100").getAsString().replace("100x100", "600x600");
             }
 
-            byte[] imageBytes = httpGetBytes(resolvedUrl);
+            byte[] imageBytes = resolvedUrl.startsWith("file://")
+                    ? readFileBytes(resolvedUrl.substring(7))
+                    : httpGetBytes(resolvedUrl);
+
             if (imageBytes == null) {
                 markCoverFailed(key);
                 return;
@@ -408,6 +479,18 @@ public class MediaTracker implements IMinecraft {
             });
         } catch (Exception exception) {
             markCoverFailed(key);
+        }
+    }
+
+    private byte[] readFileBytes(String path) {
+        try (InputStream is = new FileInputStream(path);
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            byte[] chunk = new byte[4096];
+            int read;
+            while ((read = is.read(chunk)) != -1) buffer.write(chunk, 0, read);
+            return buffer.toByteArray();
+        } catch (IOException e) {
+            return null;
         }
     }
 

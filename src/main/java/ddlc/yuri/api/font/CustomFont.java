@@ -84,6 +84,16 @@ public class CustomFont
         {
             char ch = (char) i;
             CharData charData = new CharData();
+
+            if (!font.canDisplay(ch))
+            {
+                charData.valid = false;
+                charData.width = 0;
+                charData.height = 0;
+                chars[i] = charData;
+                continue;
+            }
+
             Rectangle2D dimensions = fontMetrics.getStringBounds(String.valueOf(ch), g);
             int measuredWidth = dimensions.getBounds().width + 8;
             int measuredHeight = dimensions.getBounds().height;

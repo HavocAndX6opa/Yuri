@@ -3,12 +3,6 @@ package net.minecraft.client.gui;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
-import java.awt.*;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
-
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.font.CustomFontRenderer;
@@ -46,16 +40,14 @@ import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.src.Config;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.FoodStats;
-import net.minecraft.util.IChatComponent;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.StringUtils;
+import net.minecraft.util.*;
 import net.minecraft.world.border.WorldBorder;
 import net.optifine.CustomColors;
+
+import java.awt.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 
 public class GuiIngame extends Gui {
     private static final ResourceLocation vignetteTexPath = new ResourceLocation("textures/misc/vignette.png");
@@ -1040,7 +1032,6 @@ public class GuiIngame extends Gui {
 
         if (displayedScores.isEmpty()) return;
 
-        // Calculate Max Width
         int maxWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(scoreObjective.getDisplayName()) : customFr.getStringWidth(scoreObjective.getDisplayName());
         for (Score score : displayedScores) {
             ScorePlayerTeam playerTeam = scoreboard.getPlayersTeam(score.getPlayerName());
@@ -1052,10 +1043,8 @@ public class GuiIngame extends Gui {
         int fontHeight = useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight();
         int scoreCount = displayedScores.size();
 
-        // Header (1 row) + Score rows
         int totalBoardHeight = (scoreCount + 1) * fontHeight;
 
-        // Default Alignment (Right-aligned)
         int startX = resolution.getScaledWidth() - maxWidth - 4;
 
         float targetOffset = 0f;
@@ -1063,7 +1052,6 @@ public class GuiIngame extends Gui {
         if (scoreboardModule != null && scoreboardModule.isEnabled()) {
             ScoreboardModule.Mode style = ScoreboardModule.scoreboardStyle.getValue();
 
-            // X Positioning Logic
             if (style == ScoreboardModule.Mode.LEFT) {
                 startX = 4;
             } else if (style == ScoreboardModule.Mode.LEFT_OFFSET) {
@@ -1072,7 +1060,6 @@ public class GuiIngame extends Gui {
                 startX = resolution.getScaledWidth() - maxWidth - 8;
             }
 
-            // Smart Y Offset Calculation
             if (ScoreboardModule.smartY.getValue() && (style == ScoreboardModule.Mode.VANILLA_OFFSET || style == ScoreboardModule.Mode.VANILLA)) {
                 if (hudModule != null && hudModule.isEnabled()) {
                     int visibleModules = 0;
@@ -1102,23 +1089,19 @@ public class GuiIngame extends Gui {
             }
         }
 
-        // Smooth Interpolation
         arraylistOffsetAnim = arraylistOffsetAnim + (targetOffset - arraylistOffsetAnim) * 0.15f;
 
-        // Base Y Position (Top of the whole scoreboard container)
         int boardTopY = (int) ((resolution.getScaledHeight() / 2f) - (totalBoardHeight / 2f) + arraylistOffsetAnim);
 
         int backgroundColor = 0x50000000;
         int textColor = 0xFFFFFFFF;
 
-        // --- DRAW SINGLE BACKGROUND CONTAINER ---
         if (ScoreboardModule.yuriRect.getValue()) {
             RoundedUtils.drawRoundOutline(startX - 4, boardTopY - 2, maxWidth + 8, totalBoardHeight + 4, 5, -0.5f, BG_COLOR, ColorManager.getColor());
         } else {
             drawRect(startX - 4, boardTopY - 2, startX + maxWidth + 4, boardTopY + totalBoardHeight + 2, backgroundColor);
         }
 
-        // --- DRAW HEADER ---
         String header = scoreObjective.getDisplayName();
         int headerWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(header) : customFr.getStringWidth(header);
         float headerX = startX + (maxWidth - headerWidth) / 2f;
@@ -1129,9 +1112,8 @@ public class GuiIngame extends Gui {
             customFr.drawStringWithShadow(header, headerX, (float) boardTopY, textColor);
         }
 
-        // --- DRAW SCORES ---
         for (int i = 0; i < scoreCount; i++) {
-            Score score = displayedScores.get(scoreCount - 1 - i); // Reversed to match Minecraft scoreboard order
+            Score score = displayedScores.get(scoreCount - 1 - i);
             ScorePlayerTeam playerTeam = scoreboard.getPlayersTeam(score.getPlayerName());
             String playerName = ScorePlayerTeam.formatPlayerName(playerTeam, score.getPlayerName());
 

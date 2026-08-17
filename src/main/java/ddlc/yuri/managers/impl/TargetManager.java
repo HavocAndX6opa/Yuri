@@ -18,7 +18,9 @@ import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +39,6 @@ public class TargetManager {
     @Getter
     @Setter
     private static Mode mode;
-    @Getter
     @Setter
     private static List<Targets> targets;
     @Getter
@@ -104,6 +105,16 @@ public class TargetManager {
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
+        if (target != null) {
+            boolean isRemoved = !mc.theWorld.loadedEntityList.contains(target);
+            boolean isDead = target.isDead || target.getHealth() <= 0.0F;
+
+            if (isRemoved || isDead) {
+                Yuri.INSTANCE.getEventBus().post(new KillEvent(target));
+                target = null;
+            }
+        }
+
         targetList = getTargets();
 
         if (targetList.isEmpty()) {
@@ -111,14 +122,8 @@ public class TargetManager {
             return;
         }
 
-        // kill event shiz
-        if (target != null && !mc.theWorld.loadedEntityList.contains(target)) {
-            Yuri.INSTANCE.getEventBus().post(new KillEvent(target));
-            target = null;
-        }
-
         selectTarget();
-    };
+    }
 
     @EventHook
     public void onPlayerAttack(PlayerAttackEvent event) {
@@ -169,15 +174,24 @@ public class TargetManager {
     }
 
     private boolean isValidEntity(Entity entity) {
-        boolean teammate = entity instanceof EntityPlayer && inTeam(mc.thePlayer, entity);
         if (entity instanceof EntityArmorStand) {
             return false;
         }
-        if (targets.contains(Targets.PLAYERS) && entity instanceof EntityPlayer) return true;
+
+        if (entity.isInvisible() && !targets.contains(Targets.INVISIBLES)) {
+            return false;
+        }
+
+        if (entity instanceof EntityPlayer) {
+            boolean teammate = inTeam(mc.thePlayer, entity);
+            if (teammate) {
+                return targets.contains(Targets.TEAMMATES);
+            }
+            return targets.contains(Targets.PLAYERS);
+        }
+
         if (targets.contains(Targets.HOSTILES) && entity instanceof EntityMob) return true;
         if (targets.contains(Targets.ANIMALS) && entity instanceof EntityAnimal) return true;
-        if (targets.contains(Targets.INVISIBLES) && entity.isInvisible()) return true;
-        if (targets.contains(Targets.TEAMMATES) && teammate) return true;
 
         return false;
     }

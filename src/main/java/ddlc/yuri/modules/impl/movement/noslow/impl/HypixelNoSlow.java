@@ -3,6 +3,7 @@ package ddlc.yuri.modules.impl.movement.noslow.impl;
 import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.player.RightClickEvent;
+import ddlc.yuri.managers.impl.BadPacketsManager;
 import ddlc.yuri.modules.impl.movement.NoSlowModule;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.utils.player.InvUtils;
@@ -30,6 +31,7 @@ public final class HypixelNoSlow implements NoSlowMode {
     private static boolean runThisTick = false;
     private static boolean stopUse = false;
     private static boolean blocking = false;
+    private static long lastBlockHitTime = 0;
     private int slotChangeTick = -1;
 
     @Override
@@ -85,16 +87,9 @@ public final class HypixelNoSlow implements NoSlowMode {
         if (runThisTick) {
             if (rightPressed) {
                 if (!mc.thePlayer.isUsingItem() || !blocking) {
-                    if (mc.objectMouseOver != null
-                            && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                            && mc.objectMouseOver.getBlockPos() != null) {
-                        net.minecraft.block.Block block =
-                                mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock();
-                        PlayerControllerMP accessor = mc.playerController;
-                        if (isInteractableBlock(block) || accessor.getIsHittingBlock()) {
-                            runThisTick = false;
-                            return;
-                        }
+                    if (isLookingAtInteractable()) {
+                        runThisTick = false;
+                        return;
                     }
 
                     this.stopUse = true;
@@ -114,9 +109,19 @@ public final class HypixelNoSlow implements NoSlowMode {
         if (mc.thePlayer == null || mc.currentScreen != null || mc.theWorld == null) {
             return;
         }
-        if (parent.isSwordActive()) {
-            event.setCancelled(true);
+        if (!parent.isSwordActive()) {
+            return;
         }
+        if (System.currentTimeMillis() - lastBlockHitTime < 5) {
+            return;
+        }
+        if (BadPacketsManager.bad(true, true, true, false, true)) {
+            return;
+        }
+        if (isLookingAtInteractable()) {
+            return;
+        }
+        event.setCancelled(true);
     }
 
     @Override
@@ -139,9 +144,22 @@ public final class HypixelNoSlow implements NoSlowMode {
                 release();
             }
         }
+
+        if (event.getPacket() instanceof C07PacketPlayerDigging) {
+            C07PacketPlayerDigging diggingPacket = (C07PacketPlayerDigging) event.getPacket();
+            if (diggingPacket.getStatus() != C07PacketPlayerDigging.Action.RELEASE_USE_ITEM) {
+                lastBlockHitTime = System.currentTimeMillis();
+            }
+        }
     }
 
     private void block() {
+        if (System.currentTimeMillis() - lastBlockHitTime < 5) {
+            return;
+        }
+        if (BadPacketsManager.bad(true, true, true, false, true)) {
+            return;
+        }
         if (mc.thePlayer.getHeldItem() != null
                 && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword) {
             PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
@@ -153,6 +171,9 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     public static void release() {
         if (blocking) {
+            if (BadPacketsManager.bad(true, true, true, false, true)) {
+                return;
+            }
             PacketUtils.sendPacket(
                     new C07PacketPlayerDigging(
                             C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
@@ -165,6 +186,18 @@ public final class HypixelNoSlow implements NoSlowMode {
         stopUse = false;
         runThisTick = false;
         nextCycleTick = -1;
+    }
+
+    private boolean isLookingAtInteractable() {
+        if (mc.objectMouseOver == null
+                || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
+                || mc.objectMouseOver.getBlockPos() == null) {
+            return false;
+        }
+        net.minecraft.block.Block block =
+                mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock();
+        PlayerControllerMP accessor = mc.playerController;
+        return isInteractableBlock(block) || accessor.getIsHittingBlock();
     }
 
     private boolean isInteractableBlock(net.minecraft.block.Block block) {

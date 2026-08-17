@@ -232,19 +232,26 @@ public class CustomFontRenderer extends CustomFont {
 
                     i++;
                 } else if ((character < currentData.length) && (character >= 0)) {
-                    GL11.glBegin(GL11.GL_TRIANGLES);
-                    drawChar(currentData, character, (float) x, (float) y);
-                    GL11.glEnd();
+                    CustomFont.CharData data = currentData[character];
+                    if (data != null && data.valid) {
+                        GL11.glBegin(GL11.GL_TRIANGLES);
+                        drawChar(currentData, character, (float) x, (float) y);
+                        GL11.glEnd();
 
-                    if (strikethrough) {
-                        drawLine(x, y + currentData[character].height / 2, x + currentData[character].width - 8.0D, y + currentData[character].height / 2, 1.0F);
+                        if (strikethrough) {
+                            drawLine(x, y + data.height / 2, x + data.width - 8.0D, y + data.height / 2, 1.0F);
+                        }
+
+                        if (underline) {
+                            drawLine(x, y + data.height - 2.0D, x + data.width - 8.0D, y + data.height - 2.0D, 1.0F);
+                        }
+
+                        x += data.width - 8 + this.charOffset;
+                    } else {
+                        int fallbackWidth = mc.fontRendererObj.drawString(String.valueOf(character), (float) x, (float) y, color, false);
+                        GlStateManager.bindTexture(tex.getGlTextureId());
+                        x += fallbackWidth * 2.0D;
                     }
-
-                    if (underline) {
-                        drawLine(x, y + currentData[character].height - 2.0D, x + currentData[character].width - 8.0D, y + currentData[character].height - 2.0D, 1.0F);
-                    }
-
-                    x += currentData[character].width - 8 + this.charOffset;
                 }
             }
 
@@ -301,7 +308,12 @@ public class CustomFontRenderer extends CustomFont {
 
                 i++;
             } else if ((character < currentData.length) && (character >= 0)) {
-                width += currentData[character].width - 8 + this.charOffset;
+                CustomFont.CharData data = currentData[character];
+                if (data != null && data.valid) {
+                    width += data.width - 8 + this.charOffset;
+                } else {
+                    width += Minecraft.getMinecraft().fontRendererObj.getCharWidth(character) * 2;
+                }
             }
         }
 
@@ -352,7 +364,12 @@ public class CustomFontRenderer extends CustomFont {
 
                 i++;
             } else if ((character < currentData.length) && (character >= 0)) {
-                width += currentData[character].width - 8 + this.charOffset;
+                CustomFont.CharData data = currentData[character];
+                if (data != null && data.valid) {
+                    width += data.width - 8 + this.charOffset;
+                } else {
+                    width += Minecraft.getMinecraft().fontRendererObj.getCharWidth(character) * 2;
+                }
             }
         }
 
@@ -509,7 +526,7 @@ public class CustomFontRenderer extends CustomFont {
         {
             char c0 = text.charAt(k);
             float f1 = 0.0F;
-            if (c0 < this.charData.length && c0 >= 0) {
+            if (c0 < this.charData.length && c0 >= 0 && this.charData[c0] != null && this.charData[c0].valid) {
                 f1 = (this.charData[c0].width - 8 + this.charOffset) / 2.0F;
             }
 
