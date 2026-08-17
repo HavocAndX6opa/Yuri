@@ -1,0 +1,73 @@
+name: release
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Java setup
+        uses: actions/setup-java@v4
+        with:
+          distribution: "corretto"
+          java-version: 8
+
+      - name: Gradle build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean shadowJar --no-daemon --stacktrace
+
+      - name: Download Corretto 8 JREs
+        run: |
+          mkdir -p /tmp/jre-linux /tmp/jre-windows
+          curl -fSL "https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz" | tar -xz --strip-components=1 -C /tmp/jre-linux
+          curl -fSL "https://corretto.aws/downloads/latest/amazon-corretto-8-x64-windows-jdk.zip" -d /tmp/ && unzip -qo /tmp/amazon-corretto-8-x64-windows-jdk.zip -d /tmp/jre-windows && mv /tmp/jre-windows/corretto-* /tmp/jre-windows/jre
+
+      - name: Assemble Linux release
+        run: |
+          mkdir -p release-linux
+          cp build/libs/Yuri.jar release-linux/
+          cp launch/launch.sh release-linux/
+          cp launch/launch.bat release-linux/
+          cp -r launch/natives/linux release-linux/natives/
+          cp -r launch/assets release-linux/
+          cp -r launch/Yuri release-linux/
+          cp launch/options.txt launch/optionsof.txt launch/imgui.ini launch/servers.dat launch/usercache.json release-linux/
+          cp -r /tmp/jre-linux release-linux/jre
+          chmod +x release-linux/launch.sh
+
+      - name: Assemble Windows release
+        run: |
+          mkdir -p release-windows
+          cp build/libs/Yuri.jar release-windows/
+          cp launch/launch.bat release-windows/
+          cp launch/launch.sh release-windows/
+          cp -r launch/natives/windows release-windows/natives/
+          cp -r launch/assets release-windows/
+          cp -r launch/Yuri release-windows/
+          cp launch/options.txt launch/optionsof.txt launch/imgui.ini launch/servers.dat launch/usercache.json release-windows/
+          cp -r /tmp/jre-windows/jre release-windows/jre
+
+      - name: Package releases
+        run: |
+          cd release-linux && zip -r ../Yuri-linux.zip . && cd ..
+          cd release-windows && zip -r ../Yuri-windows.zip . && cd ..
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Yuri-linux.zip
+            Yuri-windows.zip
+          generate_release_notes: true

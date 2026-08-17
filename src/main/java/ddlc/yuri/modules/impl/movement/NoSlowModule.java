@@ -9,7 +9,7 @@ import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
-import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
+import ddlc.yuri.modules.impl.movement.noslow.impl.GrimNoSlow;
 import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
 import ddlc.yuri.utils.player.InvUtils;
 import net.minecraft.item.*;
@@ -23,7 +23,7 @@ public final class NoSlowModule extends Module {
     public enum Mode {
         VANILLA("Vanilla"),
         NCP("NCP"),
-        HYPIXEL("Hypixel (Experimental)");
+        GRIM("Grim");
 
         public final String name;
 
@@ -37,10 +37,10 @@ public final class NoSlowModule extends Module {
     }
 
     public final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.VANILLA);
-    public final Property<Boolean> food = new Property<Boolean>("Food Items", true, () -> mode.getValue() != Mode.HYPIXEL);
-    public final Property<Boolean> potion = new Property<Boolean>("Potion Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> food = new Property<Boolean>("Food Items", true, () -> mode.getValue() != Mode.GRIM);
+    public final Property<Boolean> potion = new Property<Boolean>("Potion Items", true, () -> mode.getValue() != Mode.GRIM);
     public final Property<Boolean> sword = new Property<Boolean>("Sword Items", true);
-    public final Property<Boolean> bow = new Property<Boolean>("Bow Items", true, () -> mode.getValue() != Mode.HYPIXEL);
+    public final Property<Boolean> bow = new Property<Boolean>("Bow Items", true, () -> mode.getValue() != Mode.GRIM);
 
     public boolean usingItem;
 
@@ -49,7 +49,7 @@ public final class NoSlowModule extends Module {
     {
         noSlowModes = new EnumMap<>(Mode.class);
         noSlowModes.put(Mode.NCP, new NCPNoSlow());
-        noSlowModes.put(Mode.HYPIXEL, new HypixelNoSlow(this));
+        noSlowModes.put(Mode.GRIM, new GrimNoSlow(this));
     }
 
     @EventHook
@@ -110,7 +110,7 @@ public final class NoSlowModule extends Module {
         if (!this.isEnabled() || mc.thePlayer == null || !mc.thePlayer.isUsingItem()) return;
 
         NoSlowMode currentMode = noSlowModes.get(mode.getValue());
-        if (currentMode instanceof HypixelNoSlow) {
+        if (currentMode instanceof GrimNoSlow) {
             (currentMode).onSlowdown(event);
             return;
         }
@@ -132,9 +132,9 @@ public final class NoSlowModule extends Module {
         if (mc.thePlayer == null) return;
 
         NoSlowMode currentMode = noSlowModes.get(mode.getValue());
-        if (currentMode instanceof HypixelNoSlow) {
-            HypixelNoSlow.release();
-            HypixelNoSlow.resetCycle();
+        if (currentMode instanceof GrimNoSlow) {
+            GrimNoSlow.release();
+            GrimNoSlow.resetCycle();
         }
     }
 }
