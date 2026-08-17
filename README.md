@@ -24,6 +24,16 @@ Get the latest release at [Releases Page](https://github.com/unleg1t/Yuri/releas
 
 ... or get a unstable nightly build at the [Actions Page](https://github.com/unleg1t/Yuri/actions)
 
+## Installation
+
+**Before using this guide make sure to have vanilla 1.8.9 already installed and ran before!! (or at least just it's assets in the direcory where Yuri is being ran in a folder called assets) it's needed for necessary language, assets, and sound files!**
+
+1. Extract the Yuri.zip's contents (jar and json) gotten from the latest GitHub release into a folder called `Yuri` and copy the folder
+2. Do Win+R and copy and paste this into the prompt: `%appdata%\.minecraft\versions`
+3. Then paste that folder you have already copied into the opened versions folder (make sure the jar and json files are in the root `Yuri` folder because if not, it won't work)
+4. Launch Minecraft Launcher and go to installations, make a new installation with the version being selected of "release Yuri".
+5. Launch Yuri Client!
+
 ---
 
 ## How to Build
