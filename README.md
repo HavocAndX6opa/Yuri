@@ -1,7 +1,6 @@
 # Yuri Client
 
 [![Download](https://img.shields.io/github/v/release/unleg1t/Yuri?style=for-the-badge)](https://github.com/unleg1t/Yuri/releases)
-[![License](https://img.shields.io/github/license/unleg1t/Yuri?style=for-the-badge)](LICENSE)
 
 **Yuri is a clean, 1.8.9 MCP hacked client that can bypass any anti-cheat and has smooth, polished visuals inspired by Nursultan and Pulsive.**
 
