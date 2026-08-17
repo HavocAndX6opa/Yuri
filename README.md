@@ -1,6 +1,6 @@
 # Yuri Client
 
-[![Download](https://img.shields.io/github/v/release/unleg1t/Yuri?style=for-the-badge)](https://github.com/shxzu/Simp/releases)
+[![Download](https://img.shields.io/github/v/release/unleg1t/Yuri?style=for-the-badge)](https://github.com/unleg1t/Yuri/releases)
 [![License](https://img.shields.io/github/license/unleg1t/Yuri?style=for-the-badge)](LICENSE)
 
 **Yuri is a clean, 1.8.9 MCP hacked client that can bypass any anti-cheat and has smooth, polished visuals inspired by Nursultan and Pulsive.**
@@ -39,7 +39,7 @@ Get the latest release at [Releases Page](https://github.com/unleg1t/Yuri/releas
 
 ```bash
 git clone https://github.com/unleg1t/Yuri.git
-cd Simp
+cd Yuri
 ```
 
 1. Open the project in your IDE.
@@ -86,3 +86,5 @@ Licensed under the [MIT License](LICENSE).
 
 ![Last Commit](https://img.shields.io/github/last-commit/unleg1t/Yuri)
 ![Contributors](https://img.shields.io/github/contributors/unleg1t/Yuri)
+
+![Alt](https://repobeats.axiom.co/api/embed/a1d58b1ae6dcdb959c4908c915bd6600a4228c34.svg "Repobeats analytics image")
