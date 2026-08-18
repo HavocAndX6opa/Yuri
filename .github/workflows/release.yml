@@ -44,7 +44,6 @@ jobs:
           cp launch/launch.bat release-linux/
           cp -r launch/natives/linux release-linux/natives/
           cp -r launch/assets release-linux/
-          cp launch/options.txt launch/optionsof.txt launch/imgui.ini launch/servers.dat launch/usercache.json release-linux/
           cp -r /tmp/jre-linux release-linux/jre
           chmod +x release-linux/launch.sh
 
@@ -56,7 +55,6 @@ jobs:
           cp launch/launch.sh release-windows/
           cp -r launch/natives/windows release-windows/natives/
           cp -r launch/assets release-windows/
-          cp launch/options.txt launch/optionsof.txt launch/imgui.ini launch/servers.dat launch/usercache.json release-windows/
           cp -r /tmp/jre-windows/jre release-windows/jre
 
       - name: Package releases
