@@ -16,4 +16,8 @@ fi
 mkdir -p "$GAMEDIR"
 echo "[Yuri] Using bundled JRE"
 echo "[Yuri] Game dir: $GAMEDIR"
-"$JAVA" -Dorg.lwjgl.librarypath="$NATIVES" -jar "Yuri.jar" --version Yuri --accessToken 0 --assetsDir assets --assetIndex 1.8 --gameDir "$GAMEDIR" --userProperties {}
+JAVA_LIB="$(pwd)/jre/lib/amd64"
+if [ ! -d "$JAVA_LIB" ]; then
+    JAVA_LIB="$(pwd)/jre/jre/lib/amd64"
+fi
+"$JAVA" -Dorg.lwjgl.librarypath="$NATIVES" -Djava.library.path="$NATIVES:$JAVA_LIB" -jar "Yuri.jar" --version Yuri --accessToken 0 --assetsDir assets --assetIndex 1.8 --gameDir "$GAMEDIR" --userProperties {}
