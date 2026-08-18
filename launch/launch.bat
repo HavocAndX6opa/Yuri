@@ -14,5 +14,6 @@ echo [Yuri] Using bundled JRE
 echo [Yuri] Game dir: %GAMEDIR%
 set "JAVA_LIB=%~dp0jre\bin"
 if not exist "%JAVA_LIB%" set "JAVA_LIB=%~dp0jre\jre\bin"
-"%JAVA%" -Dorg.lwjgl.librarypath="%NATIVES%" -Djava.library.path="%NATIVES%;%JAVA_LIB%" -jar "Yuri.jar" --version Yuri --accessToken 0 --assetsDir assets --assetIndex 1.8 --gameDir "%GAMEDIR%" --userProperties {}
+set "PATH=%NATIVES%;%JAVA_LIB%;%PATH%"
+"%JAVA%" -Dorg.lwjgl.librarypath="%NATIVES%" -jar "Yuri.jar" --version Yuri --accessToken 0 --assetsDir assets --assetIndex 1.8 --gameDir "%GAMEDIR%" --userProperties {}
 pause
