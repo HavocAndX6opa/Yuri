@@ -361,6 +361,13 @@ public class NeverloseClickGui extends GuiScreen {
             if (ImGui.button(label + "##" + property.getLabel() + rowY, controlWidth, 0f)) {
                 listeningKeybind = listening ? null : keybindProperty;
             }
+            // support middle-click to start listening
+            try {
+                if (ImGui.isItemHovered() && ImGui.isMouseClicked(2)) {
+                    listeningKeybind = listening ? null : keybindProperty;
+                }
+            } catch (Throwable ignored) {
+            }
         }
 
         return rowY + ROW_HEIGHT;

@@ -30,6 +30,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+
+import ddlc.yuri.api.config.GithubConfigFetcher;
+import ddlc.yuri.api.config.ConfigManager;
 
 public class ImGuiClickGui extends GuiScreen {
 
@@ -39,6 +44,10 @@ public class ImGuiClickGui extends GuiScreen {
     private Property<Integer> listeningKeybind;
     @Getter
     private boolean closing;
+
+    private final List<String> remoteConfigs = new ArrayList<>();
+    private boolean remoteConfigsOpened = false;
+    private long lastRemoteFetch = 0L;
 
     @Override
     public void initGui() {
@@ -78,6 +87,36 @@ public class ImGuiClickGui extends GuiScreen {
     private void buildWindow() {
         ImGui.setNextWindowSize(760, 520, imgui.flag.ImGuiCond.Once);
         ImGui.begin("Yuri", ImGuiWindowFlags.NoCollapse);
+
+        // Online configs dropdown
+        ImGui.separator();
+        if (ImGui.collapsingHeader("Online configs")) {
+            ImGui.sameLine();
+            if (ImGui.button("Refresh")) {
+                remoteConfigs.clear();
+                remoteConfigs.addAll(GithubConfigFetcher.listRemoteConfigs());
+                lastRemoteFetch = System.currentTimeMillis();
+            }
+
+            if (!remoteConfigs.isEmpty()) {
+                for (String path : remoteConfigs) {
+                    String name = new java.io.File(path).getName();
+                    if (ImGui.button(name)) {
+                        // download with progress in background
+                        float cx = mc.displayWidth / 2f;
+                        float cy = 30f;
+                        ddlc.yuri.utils.render.progress.ProgressBarEntry entry = ddlc.yuri.managers.impl.ProgressBarManager.add(0f, cx, cy);
+                        new Thread(() -> {
+                            boolean ok = GithubConfigFetcher.downloadRemoteConfigWithProgress(path, entry);
+                            if (ok) {
+                                ConfigManager.getInstance().loadConfig(name);
+                            }
+                            ddlc.yuri.managers.impl.ProgressBarManager.remove(entry);
+                        }, "yuri-config-download").start();
+                    }
+                }
+            }
+        }
 
         if (ImGui.beginTabBar("##categories")) {
             for (ModuleCategory category : ModuleCategory.values()) {
@@ -194,6 +233,14 @@ public class ImGuiClickGui extends GuiScreen {
             String label = property.getLabel() + ": " + (listening ? ".." : Keyboard.getKeyName(keybindProperty.getValue()));
             if (ImGui.button(label)) {
                 listeningKeybind = listening ? null : keybindProperty;
+            }
+            // allow middle click on the item to start listening as well
+            try {
+                if (ImGui.isItemHovered() && ImGui.isMouseClicked(2)) {
+                    listeningKeybind = listening ? null : keybindProperty;
+                }
+            } catch (Throwable ignored) {
+                // fall back silently if binding check not available
             }
         }
     }

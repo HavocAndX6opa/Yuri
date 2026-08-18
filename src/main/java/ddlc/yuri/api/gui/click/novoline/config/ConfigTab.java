@@ -6,6 +6,7 @@ import ddlc.yuri.api.gui.click.novoline.CategoryTab;
 import ddlc.yuri.api.gui.click.novoline.GuiTheme;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
+import net.minecraft.client.Minecraft;
 
 import java.awt.*;
 import java.util.List;
@@ -89,6 +90,36 @@ public class ConfigTab extends CategoryTab {
             ConfigManager.getInstance().deleteConfig(configName);
             refreshConfigs();
         }));
+
+        // Append online configs (from github.com/unleg1t/yuri-configs) as buttons
+        try {
+            java.util.List<String> remote = ddlc.yuri.api.config.GithubConfigFetcher.listRemoteConfigs();
+            if (remote != null && !remote.isEmpty()) {
+                configs.add(new ConfigButton("Online configs", this, ignored -> {
+                    // no-op header button
+                }));
+                for (String path : remote) {
+                    final String p = path;
+                    final String name = new java.io.File(p).getName();
+                    configs.add(new ConfigButton("↳ " + name, this, configName -> {
+                        float cx = Minecraft.getMinecraft().displayWidth / 2f;
+                        float cy = 30f;
+                        ddlc.yuri.utils.render.progress.ProgressBarEntry entry = ddlc.yuri.managers.impl.ProgressBarManager.add(0f, cx, cy);
+                        new Thread(() -> {
+                            boolean ok = ddlc.yuri.api.config.GithubConfigFetcher.downloadRemoteConfigWithProgress(p, entry);
+                            if (ok) {
+                                ConfigManager.getInstance().loadConfig(name);
+                            }
+                            ddlc.yuri.managers.impl.ProgressBarManager.remove(entry);
+                            // refresh on UI thread; safest is to call refreshConfigs from the same thread later
+                            // but refreshConfigs only updates internal lists - invoke on next frame by scheduling via Minecraft
+                            Minecraft.getMinecraft().addScheduledTask(this::refreshConfigs);
+                        }, "yuri-config-download").start();
+                    }));
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     @Override

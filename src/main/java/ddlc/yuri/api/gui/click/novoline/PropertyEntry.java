@@ -239,7 +239,7 @@ public class PropertyEntry {
             }
         } else if (property.getValue() instanceof String) {
             textHovered = !textHovered;
-        } else if (property.getValue() instanceof Integer && mouseButton == 0) {
+        } else if (property.getValue() instanceof Integer && (mouseButton == 0 || mouseButton == 2)) {
             listening = !listening;
         }
     }
