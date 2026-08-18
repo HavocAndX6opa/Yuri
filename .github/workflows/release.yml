@@ -42,7 +42,8 @@ jobs:
           cp build/libs/Yuri.jar release-linux/
           cp launch/launch.sh release-linux/
           cp launch/launch.bat release-linux/
-          cp -r launch/natives/linux release-linux/natives/
+          mkdir -p release-linux/natives/linux
+          cp -r launch/natives/linux/* release-linux/natives/linux/
           cp -r launch/assets release-linux/
           cp -r /tmp/jre-linux release-linux/jre
           chmod +x release-linux/launch.sh
@@ -53,7 +54,8 @@ jobs:
           cp build/libs/Yuri.jar release-windows/
           cp launch/launch.bat release-windows/
           cp launch/launch.sh release-windows/
-          cp -r launch/natives/windows release-windows/natives/
+          mkdir -p release-windows/natives/windows
+          cp -r launch/natives/windows/* release-windows/natives/windows/
           cp -r launch/assets release-windows/
           cp -r /tmp/jre-windows/jre release-windows/jre
 
