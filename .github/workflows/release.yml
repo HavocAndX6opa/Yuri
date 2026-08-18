@@ -31,11 +31,10 @@ jobs:
       - name: Download Corretto 8 JREs
         run: |
           mkdir -p /tmp/jre-linux /tmp/jre-windows
-          CORRETTO_VER="8.492.09.2"
-          curl -fSL "https://corretto.aws/downloads/resources/${CORRETTO_VER}/amazon-corretto-${CORRETTO_VER}-linux-x64-jdk.tar.gz" | tar -xz --strip-components=1 -C /tmp/jre-linux
-          curl -fSL "https://corretto.aws/downloads/resources/${CORRETTO_VER}/amazon-corretto-${CORRETTO_VER}-windows-x64-jdk.zip" -d /tmp/
-          unzip -qo /tmp/amazon-corretto-${CORRETTO_VER}-windows-x64-jdk.zip -d /tmp/jre-windows
-          mv /tmp/jre-windows/amazon-corretto-${CORRETTO_VER}-windows-x64-jdk /tmp/jre-windows/jre
+          curl -fSL "https://corretto.aws/downloads/resources/8.502.07.1/amazon-corretto-8.502.07.1-linux-x64.tar.gz" | tar -xz --strip-components=1 -C /tmp/jre-linux
+          curl -fSL "https://corretto.aws/downloads/resources/8.502.07.1/amazon-corretto-8.502.07.1-windows-x64-jdk.zip" -d /tmp/
+          unzip -qo /tmp/amazon-corretto-8.502.07.1-windows-x64-jdk.zip -d /tmp/jre-windows
+          mv /tmp/jre-windows/amazon-corretto-8.502.07.1-windows-x64-jdk /tmp/jre-windows/jre
 
       - name: Assemble Linux release
         run: |
