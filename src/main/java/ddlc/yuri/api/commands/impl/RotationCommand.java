@@ -5,6 +5,7 @@ import ddlc.yuri.managers.impl.RotationLearnerManager;
 import ddlc.yuri.utils.misc.IMinecraft;
 import net.minecraft.util.ChatComponentText;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class RotationCommand extends Command implements IMinecraft {
@@ -23,28 +24,32 @@ public class RotationCommand extends Command implements IMinecraft {
         String sub = args[0].toLowerCase();
 
         switch (sub) {
-            case "record":
+            case "record": {
                 if (args.length < 2) {
                     sendMessage("Usage: .rotation record <name>");
                     return;
                 }
-                RotationLearnerManager.startRecording(args[1]);
-                sendMessage("Recording rotation data to preset '" + args[1] + "'.");
+                String name = joinName(args);
+                RotationLearnerManager.startRecording(name);
+                sendMessage("Recording rotation data to preset '" + name + "'.");
                 break;
+            }
 
             case "stop":
                 RotationLearnerManager.stopRecording();
                 sendMessage("Stopped recording.");
                 break;
 
-            case "load":
+            case "load": {
                 if (args.length < 2) {
                     sendMessage("Usage: .rotation load <name>");
                     return;
                 }
-                boolean loaded = RotationLearnerManager.loadPreset(args[1]);
-                sendMessage(loaded ? "Loaded preset '" + args[1] + "'." : "Preset '" + args[1] + "' not found or empty.");
+                String name = joinName(args);
+                boolean loaded = RotationLearnerManager.loadPreset(name);
+                sendMessage(loaded ? "Loaded preset '" + name + "'." : "Preset '" + name + "' not found or empty.");
                 break;
+            }
 
             case "unload":
                 RotationLearnerManager.unloadPreset();
@@ -52,31 +57,63 @@ public class RotationCommand extends Command implements IMinecraft {
                 break;
 
             case "list":
-                List<String> presets = RotationLearnerManager.listPresets();
-                sendMessage(presets.isEmpty() ? "No presets saved." : "Presets: " + String.join(", ", presets));
+                sendPresetList();
                 break;
 
-            case "delete":
+            case "delete": {
                 if (args.length < 2) {
                     sendMessage("Usage: .rotation delete <name>");
                     return;
                 }
-                boolean deleted = RotationLearnerManager.deletePreset(args[1]);
-                sendMessage(deleted ? "Deleted preset '" + args[1] + "'." : "Preset '" + args[1] + "' not found.");
+                String name = joinName(args);
+                if (RotationLearnerManager.isBuiltIn(name)) {
+                    sendMessage("Preset '" + name + "' is built-in and cannot be deleted.");
+                    return;
+                }
+                boolean deleted = RotationLearnerManager.deletePreset(name);
+                sendMessage(deleted ? "Deleted preset '" + name + "'." : "Preset '" + name + "' not found.");
                 break;
+            }
 
-            case "status":
+            case "status": {
                 String status = RotationLearnerManager.isRecording()
                         ? "Recording to '" + RotationLearnerManager.getActivePresetName() + "'."
                         : "Not recording.";
                 status += RotationLearnerManager.hasModelLoaded() ? " Model loaded." : " No model loaded.";
                 sendMessage(status);
                 break;
+            }
 
             default:
                 sendMessage("Unknown subcommand. Usage: .rotation <record|stop|load|unload|list|delete|status> [name]");
                 break;
         }
+    }
+
+    private void sendPresetList() {
+        List<String> presets = RotationLearnerManager.listPresets();
+        if (presets.isEmpty()) {
+            sendMessage("No rotation presets saved. Use '.rotation record <name>' to create one.");
+            return;
+        }
+
+        presets.sort(String.CASE_INSENSITIVE_ORDER);
+
+        sendMessage("--- Rotation Presets (" + presets.size() + ") ---");
+        for (int i = 0; i < presets.size(); i++) {
+            String name = presets.get(i);
+            int samples = RotationLearnerManager.getSampleCount(name);
+            boolean builtIn = RotationLearnerManager.isBuiltIn(name);
+            boolean active = RotationLearnerManager.hasModelLoaded()
+                    && name.equals(RotationLearnerManager.getActivePresetName());
+            sendMessage((i + 1) + ". " + name + " [" + samples + " samples]"
+                    + (builtIn ? " (built-in)" : "") + (active ? " <loaded>" : ""));
+        }
+        sendMessage("-------------------------");
+    }
+
+    private static String joinName(String[] args) {
+        return String.join(" ", Arrays.copyOfRange(args, 1, args.length));
     }
 
     private void sendMessage(String message) {

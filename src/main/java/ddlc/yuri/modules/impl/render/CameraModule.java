@@ -11,14 +11,15 @@ import ddlc.yuri.modules.ModuleInfo;
 public class CameraModule extends Module {
 
     public enum AnimationMode {
-        SLIDE("Slide"),
         OLD("Old"),
         EXHIBITION("Exhibition"),
         NOVOLINE("Novoline"),
         SPIN("Spin"),
-        NOOV("Noov"),
         SMOOTH("Smooth"),
-        LEAKED("Leaked");
+        LEAKED("Leaked"),
+        INERTIA("Inertia"),
+        MOON("Moon"),
+        INVERTED("Inverted");
 
         public final String name;
 
@@ -45,4 +46,22 @@ public class CameraModule extends Module {
     public static Property<Boolean> noHurtCamera = new Property<>("No Hurt Camera", true);
     public static Property<Boolean> noFireOverlay = new Property<>("No Fire Overlay", true);
     public static Property<Boolean> noBlindness = new Property<>("No Blindness", true);
+    public final Property<Boolean> fullBright = new Property<>("Full Bright", false);
+
+    private float originalGamma;
+
+    @Override
+    public void onEnable() {
+        if (fullBright.getValue()) {
+            originalGamma = mc.gameSettings.gammaSetting;
+            mc.gameSettings.gammaSetting = 100;
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        if (fullBright.getValue()) {
+            mc.gameSettings.gammaSetting = originalGamma > 10 ? 1 : originalGamma;
+        }
+    }
 }

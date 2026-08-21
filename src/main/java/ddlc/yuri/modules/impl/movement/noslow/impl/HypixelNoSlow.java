@@ -14,6 +14,8 @@ public final class HypixelNoSlow implements NoSlowMode {
 
     private final NoSlowModule parent;
 
+    // no clue if this works. can someone test this for me? I don't have alts. -unlegit
+
     public HypixelNoSlow(NoSlowModule parentModule) {
         this.parent = parentModule;
     }
