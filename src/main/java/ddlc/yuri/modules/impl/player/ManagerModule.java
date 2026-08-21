@@ -38,7 +38,7 @@ import java.util.List;
 @ModuleInfo(label = "Manager", description = "Automatically manages your inventory.", category = ModuleCategory.PLAYER)
 public final class ManagerModule extends Module {
 
-    public static MultiModeProperty<Options> options = new MultiModeProperty<>("Options", Options.NOT_MOVING, Options.DROP_SHEARS)
+    public static MultiModeProperty<Options> options = new MultiModeProperty<>("Options", Options.NOT_MOVING, Options.DROP_SHEARS, Options.INV_ONLY, Options.SWAP_BLOCKS)
             .depend(Options.MOVE_ARROWS, () -> !isOptionSelected(Options.DROP_ARCHERY))
             .depend(Options.SEND_INV_PACKETS, () -> !isOptionSelected(Options.INV_ONLY));
 

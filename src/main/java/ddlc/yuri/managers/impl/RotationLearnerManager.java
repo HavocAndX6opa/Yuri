@@ -10,13 +10,18 @@ import org.lwjgl.util.vector.Vector2f;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class RotationLearnerManager implements IMinecraft {
 
     public static final RotationLearnerManager INSTANCE = new RotationLearnerManager();
 
-    private static final File PRESET_DIR = new File(mc.mcDataDir, "yuri/rotationpresets");
+    private static final File PRESET_DIR = new File(mc.mcDataDir, "Yuri/rotationpresets");
+    private static final String BUNDLED_PATH = "/assets/minecraft/yuri/rotationpresets/";
+    private static final String BUNDLED_MANIFEST = BUNDLED_PATH + "manifest.txt";
+
     private static final double CAPTURE_RANGE = 6.0;
     private static final int RESERVOIR_CAPACITY = 300;
     private static final int FLUSH_INTERVAL = 20;
@@ -38,6 +43,7 @@ public class RotationLearnerManager implements IMinecraft {
     private static BufferedWriter activeWriter;
     private static int flushCounter;
     private static volatile RotationModel activeModel;
+    private static volatile String activeModelName;
 
     private static volatile float lastAppliedYawDelta = 0f;
     private static volatile float lastAppliedPitchDelta = 0f;
@@ -132,8 +138,36 @@ public class RotationLearnerManager implements IMinecraft {
     }
 
     public static boolean loadPreset(String name) {
+        RotationModel model;
+
         File file = getPresetFile(name);
-        if (!file.exists()) return false;
+        if (file.exists()) {
+            model = parsePresetStream(fileStreamOrNull(file));
+        } else {
+            model = parsePresetStream(bundledStreamOrNull(name));
+        }
+
+        if (model == null) return false;
+
+        activeModel = model;
+        activeModelName = name;
+        return true;
+    }
+
+    private static InputStream fileStreamOrNull(File file) {
+        try {
+            return new FileInputStream(file);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static InputStream bundledStreamOrNull(String name) {
+        return RotationLearnerManager.class.getResourceAsStream(BUNDLED_PATH + name + ".csv");
+    }
+
+    private static RotationModel parsePresetStream(InputStream input) {
+        if (input == null) return null;
 
         double yawSum = 0, pitchSum = 0;
         double yawSumSq = 0, pitchSumSq = 0;
@@ -141,7 +175,7 @@ public class RotationLearnerManager implements IMinecraft {
         List<Float> yawReservoir = new ArrayList<>(RESERVOIR_CAPACITY);
         List<Float> pitchReservoir = new ArrayList<>(RESERVOIR_CAPACITY);
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 int comma = line.indexOf(',');
@@ -174,10 +208,15 @@ public class RotationLearnerManager implements IMinecraft {
                 }
             }
         } catch (IOException e) {
-            return false;
+            return null;
+        } finally {
+            try {
+                input.close();
+            } catch (IOException ignored) {
+            }
         }
 
-        if (count == 0) return false;
+        if (count == 0) return null;
 
         float yawMean = (float) (yawSum / count);
         float pitchMean = (float) (pitchSum / count);
@@ -192,28 +231,53 @@ public class RotationLearnerManager implements IMinecraft {
         model.sampleCount = count;
         model.yawReservoir = yawReservoir;
         model.pitchReservoir = pitchReservoir;
-
-        activeModel = model;
-        return true;
+        return model;
     }
 
     public static void unloadPreset() {
         activeModel = null;
+        activeModelName = null;
     }
 
     public static List<String> listPresets() {
-        List<String> names = new ArrayList<>();
-        File[] files = PRESET_DIR.listFiles();
-        if (files == null) return names;
+        LinkedHashSet<String> names = new LinkedHashSet<>();
 
-        for (File file : files) {
-            String name = file.getName();
-            if (name.endsWith(".csv")) {
-                names.add(name.substring(0, name.length() - 4));
+        PRESET_DIR.mkdirs();
+        File[] files = PRESET_DIR.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String name = file.getName();
+                if (name.endsWith(".csv")) {
+                    names.add(name.substring(0, name.length() - 4));
+                }
             }
         }
 
+        names.addAll(listBundledPresets());
+
+        return new ArrayList<>(names);
+    }
+
+    private static List<String> listBundledPresets() {
+        List<String> names = new ArrayList<>();
+        try (InputStream input = RotationLearnerManager.class.getResourceAsStream(BUNDLED_MANIFEST)) {
+            if (input == null) return names;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (!line.isEmpty() && !line.startsWith("#")) {
+                        names.add(line);
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+        }
         return names;
+    }
+
+    public static boolean isBundledPreset(String name) {
+        return !getPresetFile(name).exists() && listBundledPresets().contains(name);
     }
 
     public static boolean deletePreset(String name) {
@@ -231,6 +295,10 @@ public class RotationLearnerManager implements IMinecraft {
 
     public static boolean hasModelLoaded() {
         return activeModel != null;
+    }
+
+    public static String getLoadedModelName() {
+        return activeModelName;
     }
 
     public static void resetSmoothing() {
@@ -273,6 +341,43 @@ public class RotationLearnerManager implements IMinecraft {
 
     private static File getPresetFile(String name) {
         return new File(PRESET_DIR, name + ".csv");
+    }
+
+    public static String exportPresetRaw(String name) {
+        File file = getPresetFile(name);
+        if (!file.exists()) return null;
+        try {
+            byte[] bytes = readAllBytes(file);
+            return Base64.getEncoder().encodeToString(bytes);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    public static boolean importPresetRaw(String name, String base64Data) {
+        if (name == null || base64Data == null) return false;
+        try {
+            byte[] bytes = Base64.getDecoder().decode(base64Data);
+            PRESET_DIR.mkdirs();
+            try (FileOutputStream out = new FileOutputStream(getPresetFile(name))) {
+                out.write(bytes);
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static byte[] readAllBytes(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[4096];
+            int read;
+            while ((read = in.read(buf)) != -1) {
+                out.write(buf, 0, read);
+            }
+            return out.toByteArray();
+        }
     }
 
     private static class RotationModel {

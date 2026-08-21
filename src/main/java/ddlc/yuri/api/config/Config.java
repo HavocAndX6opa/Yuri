@@ -3,6 +3,7 @@ package ddlc.yuri.api.config;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import ddlc.yuri.Yuri;
+import ddlc.yuri.managers.impl.RotationLearnerManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.utils.render.DragUtils;
 
@@ -50,6 +51,18 @@ public final class Config implements Serializable {
 
         jsonObject.add("Modules", modulesObject);
         jsonObject.add("Dragging", draggingObject);
+
+        if (RotationLearnerManager.hasModelLoaded() && RotationLearnerManager.getLoadedModelName() != null) {
+            String presetName = RotationLearnerManager.getLoadedModelName();
+            String presetData = RotationLearnerManager.exportPresetRaw(presetName);
+            if (presetData != null) {
+                JsonObject rotationPreset = new JsonObject();
+                rotationPreset.addProperty("name", presetName);
+                rotationPreset.addProperty("data", presetData);
+                jsonObject.add("RotationPreset", rotationPreset);
+            }
+        }
+
         return jsonObject;
     }
 
@@ -72,6 +85,16 @@ public final class Config implements Serializable {
                     DragUtils.components.put(key, new DragUtils.DraggableComponent(0, 0));
                 }
                 DragUtils.components.get(key).load(componentData);
+            }
+        }
+        if (object.has("RotationPreset")) {
+            JsonObject rotationPreset = object.getAsJsonObject("RotationPreset");
+            if (rotationPreset.has("name") && rotationPreset.has("data")) {
+                String presetName = rotationPreset.get("name").getAsString();
+                String presetData = rotationPreset.get("data").getAsString();
+                if (RotationLearnerManager.importPresetRaw(presetName, presetData)) {
+                    RotationLearnerManager.loadPreset(presetName);
+                }
             }
         }
     }
