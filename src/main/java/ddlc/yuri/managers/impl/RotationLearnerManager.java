@@ -6,26 +6,17 @@ import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.utils.misc.IMinecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MathHelper;
-import net.minecraft.util.ResourceLocation;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.io.*;
-import java.net.JarURLConnection;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.concurrent.*;
 
 public class RotationLearnerManager implements IMinecraft {
 
     public static final RotationLearnerManager INSTANCE = new RotationLearnerManager();
 
-    private static final File PRESET_DIR = new File(mc.mcDataDir, "Yuri/rotationpresets");
-    private static final ResourceLocation EMBEDDED_PRESET_DIR = new ResourceLocation("yuri/rotationpresets");
+    private static final File PRESET_DIR = new File(mc.mcDataDir, "yuri/rotationpresets");
     private static final double CAPTURE_RANGE = 6.0;
     private static final int RESERVOIR_CAPACITY = 300;
     private static final int FLUSH_INTERVAL = 20;
@@ -141,8 +132,8 @@ public class RotationLearnerManager implements IMinecraft {
     }
 
     public static boolean loadPreset(String name) {
-        InputStream input = openPresetStream(name);
-        if (input == null) return false;
+        File file = getPresetFile(name);
+        if (!file.exists()) return false;
 
         double yawSum = 0, pitchSum = 0;
         double yawSumSq = 0, pitchSumSq = 0;
@@ -150,7 +141,7 @@ public class RotationLearnerManager implements IMinecraft {
         List<Float> yawReservoir = new ArrayList<>(RESERVOIR_CAPACITY);
         List<Float> pitchReservoir = new ArrayList<>(RESERVOIR_CAPACITY);
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 int comma = line.indexOf(',');
@@ -211,112 +202,23 @@ public class RotationLearnerManager implements IMinecraft {
     }
 
     public static List<String> listPresets() {
-        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        names.addAll(listEmbeddedPresets());
-
-        File[] files = PRESET_DIR.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                String name = file.getName();
-                if (name.endsWith(".csv")) {
-                    names.add(name.substring(0, name.length() - 4));
-                }
-            }
-        }
-
-        return new ArrayList<>(names);
-    }
-
-    private static List<String> listEmbeddedPresets() {
         List<String> names = new ArrayList<>();
-        try {
-            String path = "assets/" + EMBEDDED_PRESET_DIR.getResourceDomain() + "/" + EMBEDDED_PRESET_DIR.getResourcePath();
-            URL url = RotationLearnerManager.class.getResource("/" + path);
-            if (url == null) return names;
+        File[] files = PRESET_DIR.listFiles();
+        if (files == null) return names;
 
-            URLConnection connection = url.openConnection();
-            if (connection instanceof JarURLConnection) {
-                JarFile jar = ((JarURLConnection) connection).getJarFile();
-                String prefix = path + "/";
-                Enumeration<JarEntry> entries = jar.entries();
-                while (entries.hasMoreElements()) {
-                    JarEntry entry = entries.nextElement();
-                    String entryName = entry.getName();
-                    if (!entry.isDirectory() && entryName.startsWith(prefix) && entryName.endsWith(".csv")) {
-                        names.add(entryName.substring(prefix.length(), entryName.length() - 4));
-                    }
-                }
-            } else {
-                File dir = new File(url.toURI());
-                File[] files = dir.listFiles();
-                if (files != null) {
-                    for (File file : files) {
-                        String name = file.getName();
-                        if (name.endsWith(".csv")) {
-                            names.add(name.substring(0, name.length() - 4));
-                        }
-                    }
-                }
+        for (File file : files) {
+            String name = file.getName();
+            if (name.endsWith(".csv")) {
+                names.add(name.substring(0, name.length() - 4));
             }
-        } catch (IOException | URISyntaxException ignored) {
         }
+
         return names;
-    }
-
-    public static boolean isBuiltIn(String name) {
-        try {
-            mc.getResourceManager().getResource(presetLocation(name));
-            return true;
-        } catch (FileNotFoundException e) {
-            return false;
-        }
-    }
-
-    private static InputStream openPresetStream(String name) {
-        try {
-            return mc.getResourceManager().getResource(presetLocation(name)).getInputStream();
-        } catch (FileNotFoundException ignored) {
-        }
-
-        File file = getPresetFile(name);
-        if (!file.exists()) return null;
-        try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            return null;
-        }
-    }
-
-    private static ResourceLocation presetLocation(String name) {
-        return new ResourceLocation(EMBEDDED_PRESET_DIR.getResourceDomain(),
-                EMBEDDED_PRESET_DIR.getResourcePath() + "/" + name + ".csv");
     }
 
     public static boolean deletePreset(String name) {
         File file = getPresetFile(name);
         return file.exists() && file.delete();
-    }
-
-    public static int getSampleCount(String name) {
-        InputStream input = openPresetStream(name);
-        if (input == null) return 0;
-
-        int count = 0;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                int comma = line.indexOf(',');
-                if (comma <= 0) continue;
-                try {
-                    Float.parseFloat(line.substring(0, comma));
-                    Float.parseFloat(line.substring(comma + 1));
-                    count++;
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        } catch (IOException ignored) {
-        }
-        return count;
     }
 
     public static boolean isRecording() {
