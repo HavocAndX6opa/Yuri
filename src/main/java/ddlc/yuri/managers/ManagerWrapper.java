@@ -11,6 +11,7 @@ public class ManagerWrapper {
     private static ColorManager colorManager;
     private static CommandManager commandManager;
     private static TargetManager targetManager;
+    private static KillEventManager killEventManager;
     private static BlinkManager blinkManager;
     private static LagManager lagManager;
     private static BreakerWhitelistManager breakerWhitelistManager;
@@ -22,6 +23,7 @@ public class ManagerWrapper {
         rotationLearnerManager = RotationLearnerManager.INSTANCE;
         colorManager = new ColorManager();
         commandManager = new CommandManager();
+        killEventManager = new KillEventManager();
         targetManager = new TargetManager();
         TargetManager.configure(Arrays.asList(TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.INVISIBLES, TargetManager.Targets.TEAMMATES));
         blinkManager = new BlinkManager();
@@ -36,6 +38,7 @@ public class ManagerWrapper {
         eventBus.subscribe(rotationLearnerManager);
         eventBus.subscribe(colorManager);
         eventBus.subscribe(commandManager);
+        eventBus.subscribe(killEventManager);
         eventBus.subscribe(targetManager);
         eventBus.subscribe(blinkManager);
         eventBus.subscribe(lagManager);

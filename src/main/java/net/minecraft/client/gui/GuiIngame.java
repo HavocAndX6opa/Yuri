@@ -245,15 +245,25 @@ public class GuiIngame extends Gui {
                 GlStateManager.translate((float) (i / 2), (float) (j / 2), 0.0F);
                 GlStateManager.enableBlend();
                 GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-                GlStateManager.pushMatrix();
-                GlStateManager.scale(4.0F, 4.0F, 4.0F);
+
                 int j2 = i2 << 24 & -16777216;
-                FontUtils.getFont("sf", 20).drawStringWithShadow(this.displayedTitle, (float) (-FontUtils.getFont("sf", 20).getStringWidth(this.displayedTitle) / 2), -10.0F, 16777215 | j2);
-                GlStateManager.popMatrix();
-                GlStateManager.pushMatrix();
-                GlStateManager.scale(2.0F, 2.0F, 2.0F);
-                FontUtils.getFont("sf", 20).drawStringWithShadow(this.displayedSubTitle, (float) (-FontUtils.getFont("sf", 20).getStringWidth(this.displayedSubTitle) / 2), 5.0F, 16777215 | j2);
-                GlStateManager.popMatrix();
+
+                // Title rendered directly at size 80 (equivalent to 20 * 4 scale)
+                FontUtils.getFont("sf", 80).drawStringWithShadow(
+                        this.displayedTitle,
+                        (float) (-FontUtils.getFont("sf", 80).getStringWidth(this.displayedTitle) / 2),
+                        -40.0F,
+                        16777215 | j2
+                );
+
+                // Subtitle rendered directly at size 40 (equivalent to 20 * 2 scale)
+                FontUtils.getFont("sf", 40).drawStringWithShadow(
+                        this.displayedSubTitle,
+                        (float) (-FontUtils.getFont("sf", 40).getStringWidth(this.displayedSubTitle) / 2),
+                        10.0F,
+                        16777215 | j2
+                );
+
                 GlStateManager.disableBlend();
                 GlStateManager.popMatrix();
             }

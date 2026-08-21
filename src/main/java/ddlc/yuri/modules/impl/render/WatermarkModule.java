@@ -12,7 +12,6 @@ import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.client.ClientInfoUtils;
-import ddlc.yuri.utils.client.NetworkUtils;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
@@ -20,11 +19,8 @@ import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -47,7 +43,8 @@ public class WatermarkModule extends Module implements IMinecraft {
         VIRTUE("Virtue"),
         SIMPLE("Simple"),
         CLASSIC("Classic"),
-        LOGO("Logo");
+        LOGO("Logo"),
+        LESBIAN("Y u r i");
 
         public final String name;
 
@@ -133,6 +130,15 @@ public class WatermarkModule extends Module implements IMinecraft {
                         new ResourceLocation("yuri/gui/logo.png"),
                         -32,
                         -6,
+                        128,
+                        128
+                );
+                break;
+            case LESBIAN:
+                RenderUtils.drawImage(
+                        new ResourceLocation("yuri/gui/lesbians.jpg"),
+                        4,
+                        4,
                         128,
                         128
                 );

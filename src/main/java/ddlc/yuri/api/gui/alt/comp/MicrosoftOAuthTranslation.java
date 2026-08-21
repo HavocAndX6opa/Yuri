@@ -53,11 +53,39 @@ public class MicrosoftOAuthTranslation {
     private static Consumer<String> callback;
 
     static void browse(String url) {
+        // Prefer Desktop.browse when supported
         try {
-            Desktop.getDesktop().browse(new URI(url));
-        } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
+            if (Desktop.isDesktopSupported()) {
+                Desktop desktop = Desktop.getDesktop();
+                if (desktop.isSupported(Desktop.Action.BROWSE)) {
+                    desktop.browse(new URI(url));
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+            // fall through to platform-specific attempts
         }
+
+        // Fallbacks for Linux environments: try common openers
+        String[] candidates = new String[]{"xdg-open", "sensible-browser", "gnome-open", "kde-open", "sensible-browser"};
+        for (String cmd : candidates) {
+            try {
+                Process p = new ProcessBuilder(cmd, url).start();
+                // assume success if process started
+                return;
+            } catch (IOException ignored) {
+            }
+        }
+
+        // Last-resort: try Runtime.exec variations
+        try {
+            Runtime.getRuntime().exec(new String[]{"/usr/bin/xdg-open", url});
+            return;
+        } catch (IOException ignored) {
+        }
+
+        // Give up and print a helpful message
+        System.err.println("Could not open URL: " + url + " — please open it manually in your browser.");
     }
 
     public static void getRefreshToken(Consumer<String> callback) {

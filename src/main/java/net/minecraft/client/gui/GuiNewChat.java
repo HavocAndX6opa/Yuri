@@ -1,9 +1,6 @@
 package net.minecraft.client.gui;
 
 import com.google.common.collect.Lists;
-import java.util.Iterator;
-import java.util.List;
-
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -13,6 +10,9 @@ import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MathHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.Iterator;
+import java.util.List;
 
 public class GuiNewChat extends Gui
 {
@@ -235,10 +235,12 @@ public class GuiNewChat extends Gui
             if (j >= 0 && k >= 0)
             {
                 int l = Math.min(this.getLineCount(), this.drawnChatLines.size());
+                // Use your custom font's height instead of mc.fontRendererObj.FONT_HEIGHT
+                int fontHeight = FontUtils.getFont("sf", 18).getHeight() + 20;
 
-                if (j <= MathHelper.floor_float((float)this.getChatWidth() / this.getChatScale()) && k < FontUtils.getFont("sf", 18).FONT_HEIGHT * l + l)
+                if (j <= MathHelper.floor_float((float)this.getChatWidth() / this.getChatScale()) && k < fontHeight * l)
                 {
-                    int i1 = k / FontUtils.getFont("sf", 18).FONT_HEIGHT + this.scrollPos;
+                    int i1 = k / fontHeight + this.scrollPos;
 
                     if (i1 >= 0 && i1 < this.drawnChatLines.size())
                     {

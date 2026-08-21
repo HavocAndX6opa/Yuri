@@ -1,6 +1,8 @@
 package ddlc.yuri.api.gui.click.imgui;
 
 import ddlc.yuri.Yuri;
+import ddlc.yuri.api.config.ConfigManager;
+import ddlc.yuri.api.config.GithubConfigFetcher;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.DescriptorProperty;
 import ddlc.yuri.api.properties.impl.ModeProperty;
@@ -12,7 +14,6 @@ import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.render.animations.Direction;
 import ddlc.yuri.utils.render.animations.impl.DecelerateAnimation;
 import ddlc.yuri.utils.render.imgui.ImGuiManager;
-import ddlc.yuri.utils.render.imgui.style.ImGuiStyles;
 import imgui.ImGui;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
@@ -26,15 +27,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
-
-import ddlc.yuri.api.config.GithubConfigFetcher;
-import ddlc.yuri.api.config.ConfigManager;
+import java.util.*;
 
 public class ImGuiClickGui extends GuiScreen {
 
@@ -46,7 +39,7 @@ public class ImGuiClickGui extends GuiScreen {
     private boolean closing;
 
     private final List<String> remoteConfigs = new ArrayList<>();
-    private boolean remoteConfigsOpened = false;
+    private final ImBoolean githubWindowOpen = new ImBoolean(false);
     private long lastRemoteFetch = 0L;
 
     @Override
@@ -73,11 +66,13 @@ public class ImGuiClickGui extends GuiScreen {
             return;
         }
 
-        // Pass actual window dimensions for display size handling
         ImGuiManager.get().newFrame(mc.displayWidth, mc.displayHeight);
 
         ImGui.pushStyleVar(ImGuiStyleVar.Alpha, progress);
         buildWindow();
+        if (githubWindowOpen.get()) {
+            buildGithubWindow();
+        }
         ImGui.popStyleVar();
 
         ImGuiManager.get().render();
@@ -88,21 +83,45 @@ public class ImGuiClickGui extends GuiScreen {
         ImGui.setNextWindowSize(760, 520, imgui.flag.ImGuiCond.Once);
         ImGui.begin("Yuri", ImGuiWindowFlags.NoCollapse);
 
-        // Online configs dropdown
         ImGui.separator();
-        if (ImGui.collapsingHeader("Online configs")) {
-            ImGui.sameLine();
+        if (ImGui.button("Online configs")) {
+            githubWindowOpen.set(true);
+            remoteConfigs.clear();
+            remoteConfigs.addAll(GithubConfigFetcher.listRemoteConfigs());
+            lastRemoteFetch = System.currentTimeMillis();
+        }
+        ImGui.separator();
+
+        if (ImGui.beginTabBar("##categories")) {
+            for (ModuleCategory category : ModuleCategory.values()) {
+                if (ImGui.beginTabItem(category.getName())) {
+                    buildCategory(category);
+                    ImGui.endTabItem();
+                }
+            }
+            ImGui.endTabBar();
+        }
+
+        ImGui.end();
+    }
+
+    private void buildGithubWindow() {
+        ImGui.setNextWindowSize(360, 420, imgui.flag.ImGuiCond.FirstUseEver);
+        if (ImGui.begin("Github Configs", githubWindowOpen, ImGuiWindowFlags.NoCollapse)) {
             if (ImGui.button("Refresh")) {
                 remoteConfigs.clear();
                 remoteConfigs.addAll(GithubConfigFetcher.listRemoteConfigs());
                 lastRemoteFetch = System.currentTimeMillis();
             }
 
-            if (!remoteConfigs.isEmpty()) {
+            ImGui.separator();
+
+            if (remoteConfigs.isEmpty()) {
+                ImGui.textDisabled("No configs found");
+            } else {
                 for (String path : remoteConfigs) {
                     String name = new java.io.File(path).getName();
                     if (ImGui.button(name)) {
-                        // download with progress in background
                         float cx = mc.displayWidth / 2f;
                         float cy = 30f;
                         ddlc.yuri.utils.render.progress.ProgressBarEntry entry = ddlc.yuri.managers.impl.ProgressBarManager.add(0f, cx, cy);
@@ -117,17 +136,6 @@ public class ImGuiClickGui extends GuiScreen {
                 }
             }
         }
-
-        if (ImGui.beginTabBar("##categories")) {
-            for (ModuleCategory category : ModuleCategory.values()) {
-                if (ImGui.beginTabItem(category.getName())) {
-                    buildCategory(category);
-                    ImGui.endTabItem();
-                }
-            }
-            ImGui.endTabBar();
-        }
-
         ImGui.end();
     }
 
@@ -177,7 +185,7 @@ public class ImGuiClickGui extends GuiScreen {
 
             String format = "%.2f";
 
-            double step = step = numberProperty.getIncrement();
+            double step = numberProperty.getIncrement();
 
             if (ImGui.sliderFloat(property.getLabel(), holder, (float) numberProperty.getMin(), (float) numberProperty.getMax(), format)) {
                 if (step > 0.0D) {
@@ -234,13 +242,11 @@ public class ImGuiClickGui extends GuiScreen {
             if (ImGui.button(label)) {
                 listeningKeybind = listening ? null : keybindProperty;
             }
-            // allow middle click on the item to start listening as well
             try {
                 if (ImGui.isItemHovered() && ImGui.isMouseClicked(2)) {
                     listeningKeybind = listening ? null : keybindProperty;
                 }
             } catch (Throwable ignored) {
-                // fall back silently if binding check not available
             }
         }
     }

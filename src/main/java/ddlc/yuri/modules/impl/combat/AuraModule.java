@@ -319,7 +319,7 @@ public class AuraModule extends Module {
                 canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 2;
                 break;
             case HYPIXEL:
-                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 1);
+                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 3 && !BadPacketsManager.bad(true, false, false, false, false));
                 autoBlocking = true;
                 blockTicks++;
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
