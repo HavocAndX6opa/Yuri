@@ -47,7 +47,7 @@ public class EntityPlayerSP extends AbstractClientPlayer
     private String clientBrand;
     public MovementInput movementInput;
     protected Minecraft mc;
-    protected int sprintToggleTimer;
+    public int sprintToggleTimer;
     public int sprintingTicksLeft;
     public float renderArmYaw;
     public float renderArmPitch;
