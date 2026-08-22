@@ -6,6 +6,7 @@ import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
@@ -41,7 +42,9 @@ public final class TargetHudModule extends Module {
         ASTOLFO("Astolfo"),
         NOVOLINE("Novoline"),
         OLD_NOVOLINE("Old Novoline"),
-        EXHIBITION("Exhibition");
+        EXHIBITION("Exhibition"),
+        EUPHORIA("Euphoria"),
+        EXHI_OLD("ExhiOld");
 
         public final String name;
 
@@ -67,8 +70,10 @@ public final class TargetHudModule extends Module {
     private static final int INFO_SPACING_X = 145;
     private static final int INFO_SPACING_Y = 53;
 
+
     private long lastRender2DTime = 0;
     private final Map<UUID, TargetState> targetStates = new LinkedHashMap<>();
+    private final Random particleRandom = new Random();
 
     public TargetHudModule() {
         modeMap.put(Mode.YURI, new YuriMode(this));
@@ -76,6 +81,8 @@ public final class TargetHudModule extends Module {
         modeMap.put(Mode.NOVOLINE, new NovolineMode(this));
         modeMap.put(Mode.OLD_NOVOLINE, new OldNovolineMode(this));
         modeMap.put(Mode.EXHIBITION, new ExhibitionMode(this));
+        modeMap.put(Mode.EUPHORIA, new EuphoriaMode(this));
+        modeMap.put(Mode.EXHI_OLD, new ExhiOldMode(this));
     }
 
     private TargetHudMode getCurrentModeInstance() {
@@ -197,9 +204,87 @@ public final class TargetHudModule extends Module {
                 state.alpha -= delta * 4f;
                 if (state.alpha <= 0f) {
                     it.remove();
+                    continue;
                 }
             }
+            updateParticles(entry.getValue(), delta);
         }
+    }
+
+    private void updateParticles(TargetState state, float delta) {
+        if (state.particles.isEmpty()) return;
+
+        float seconds = delta * 0.5f;
+
+        Iterator<HealthParticle> it = state.particles.iterator();
+        while (it.hasNext()) {
+            HealthParticle particle = it.next();
+
+            particle.life -= seconds;
+            if (particle.life <= 0f) {
+                it.remove();
+                continue;
+            }
+
+            particle.x += particle.vx * seconds;
+            particle.y += particle.vy * seconds;
+            particle.vy += 42f * seconds;
+            particle.vx *= 1f - Math.min(1f, 1.6f * seconds);
+        }
+    }
+
+    public void spawnHealthParticles(TargetState state, float damage, float x, float y, int spreadWidth, int count) {
+        if (damage <= 0f || count <= 0) return;
+
+        int amount = Math.max(1, Math.round(count * Math.min(damage / 2f, 3f)));
+        int rgb = ColorManager.getColors().getFirst().getRGB() & 0x00FFFFFF;
+
+        for (int i = 0; i < amount; i++) {
+            float px = x + particleRandom.nextFloat() * spreadWidth;
+            float py = y + particleRandom.nextFloat() * 2f;
+            float vx = (particleRandom.nextFloat() - 0.5f) * 30f;
+            float vy = -(6f + particleRandom.nextFloat() * 24f);
+            float life = 0.45f + particleRandom.nextFloat() * 0.45f;
+
+            state.particles.add(new HealthParticle(px, py, vx, vy, life, rgb));
+        }
+
+        while (state.particles.size() > 120) {
+            state.particles.remove(0);
+        }
+    }
+
+    public void renderParticles(TargetState state, double originX, double originY, float alpha) {
+        if (state.particles.isEmpty() || alpha <= 0f) return;
+
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.disableTexture2D();
+
+        for (HealthParticle particle : state.particles) {
+            float fade = Math.max(0f, particle.life / particle.maxLife);
+            float particleAlpha = fade * alpha;
+            if (particleAlpha <= 0.01f) continue;
+
+            double left = particle.x - originX;
+            double top = particle.y - originY;
+
+            GlStateManager.color(
+                    (particle.color >> 16 & 255) / 255F,
+                    (particle.color >> 8 & 255) / 255F,
+                    (particle.color & 255) / 255F,
+                    particleAlpha);
+
+            GL11.glBegin(GL11.GL_QUADS);
+            GL11.glVertex2d(left, top);
+            GL11.glVertex2d(left, top + 1.2);
+            GL11.glVertex2d(left + 1.2, top + 1.2);
+            GL11.glVertex2d(left + 1.2, top);
+            GL11.glEnd();
+        }
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.resetColor();
     }
 
     private void renderGrid(List<TargetState> states, DragUtils.DraggableComponent draggable, TargetHudMode modeInstance, long now, float delta) {
@@ -344,6 +429,7 @@ public final class TargetHudModule extends Module {
         public long hurtAnimStart = 0;
         public float alpha = 0f;
         public boolean active = true;
+        private final List<HealthParticle> particles = new ArrayList<>();
 
         TargetState(EntityLivingBase entity) {
             this.entity = entity;
