@@ -104,7 +104,7 @@ public final class ScaffoldModule extends Module {
     }
 
     public enum TowerMode {
-        VANILLA("Vanilla"), POLAR("Polar"), NCP("NCP"), NONE("None");
+        VANILLA("Vanilla"), POLAR("Polar"), HYPIXEL("Hypixel"), NCP("NCP"), NONE("None");
         public final String name;
 
         TowerMode(String name) {
@@ -706,6 +706,19 @@ public final class ScaffoldModule extends Module {
                 break;
             case VANILLA:
                 mc.thePlayer.motionY = 0.42;
+                break;
+            case HYPIXEL:
+                if (mc.thePlayer.onGround && !MoveUtils.enoughMovementForSprinting()) {
+                    mc.thePlayer.jump();
+                }
+
+                if (mc.thePlayer.offGroundTicks == 4 && MoveUtils.speed() == 0.0) {
+                    mc.thePlayer.motionY -= 0.03;
+                }
+
+                if (mc.thePlayer.offGroundTicks == 5 && MoveUtils.speed() == 0.0) {
+                    mc.thePlayer.motionY -= 0.5;
+                }
                 break;
             case POLAR:
                 double ground = mc.thePlayer.posY - MoveUtils.findGround(mc.thePlayer);

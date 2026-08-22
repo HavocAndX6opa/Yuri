@@ -3,7 +3,6 @@ package ddlc.yuri.utils.player;
 import ddlc.yuri.api.events.impl.player.MoveEvent;
 import ddlc.yuri.utils.client.MathUtils;
 import net.minecraft.block.BlockAir;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.potion.Potion;
@@ -101,6 +100,14 @@ public class MoveUtils {
         }
 
         return Math.toRadians(rotationYaw);
+    }
+
+    public static boolean enoughMovementForSprinting() {
+        return Math.abs(mc.thePlayer.moveForward) >= 0.8F || Math.abs(mc.thePlayer.moveStrafing) >= 0.8F;
+    }
+
+    public static double speed() {
+        return Math.hypot(mc.thePlayer.motionX, mc.thePlayer.motionZ);
     }
 
     public static double direction(float inputForward, float inputStrafe) {

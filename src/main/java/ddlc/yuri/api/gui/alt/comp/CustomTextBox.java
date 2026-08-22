@@ -27,6 +27,7 @@ public class CustomTextBox extends Gui {
     private int width, height;
     private String text = "";
     private String placeholder = "";
+    private boolean masked = false;
     private boolean focused;
     private int cursorPosition = 0;
     private int selectionEnd = 0;
@@ -40,6 +41,8 @@ public class CustomTextBox extends Gui {
     }
 
     public void drawTextBox() {
+        String text = masked ? mask(this.text) : this.text;
+
         RoundedUtils.drawRoundOutline(xPosition, yPosition, width, height, 6, -0.5f, FIELD_BACKGROUND, ColorManager.getColor());
 
         boolean empty = text.isEmpty();
@@ -163,7 +166,7 @@ public class CustomTextBox extends Gui {
                 mouseY <= yPosition + height;
 
         if (focused) {
-            String displayText = text;
+            String displayText = masked ? mask(text) : text;
             int clickX = mouseX - xPosition - 6;
             int totalWidth = FontUtils.getFont("sf", 18).getStringWidth(displayText);
 
@@ -345,6 +348,20 @@ public class CustomTextBox extends Gui {
 
     public void setPlaceholder(String placeholder) {
         this.placeholder = placeholder;
+    }
+
+    public void setMasked(boolean masked) {
+        this.masked = masked;
+    }
+
+    public boolean isMasked() {
+        return masked;
+    }
+
+    private String mask(String value) {
+        char[] chars = new char[value.length()];
+        java.util.Arrays.fill(chars, '*');
+        return new String(chars);
     }
 
     public boolean isFocused() {

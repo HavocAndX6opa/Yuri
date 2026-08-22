@@ -21,7 +21,6 @@ public final class NoSlowModule extends Module {
 
     public enum Mode {
         VANILLA("Vanilla"),
-        HYPIXEL("Hypixel"),
         NCP("NCP");
 
         public final String name;
@@ -46,7 +45,6 @@ public final class NoSlowModule extends Module {
     {
         noSlowModes = new EnumMap<>(Mode.class);
         noSlowModes.put(Mode.NCP, new NCPNoSlow());
-        noSlowModes.put(Mode.HYPIXEL, new HypixelNoSlow(this));
     }
 
     @EventHook
