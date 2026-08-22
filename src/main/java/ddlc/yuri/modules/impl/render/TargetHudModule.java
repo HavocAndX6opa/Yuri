@@ -43,7 +43,6 @@ public final class TargetHudModule extends Module {
         NOVOLINE("Novoline"),
         OLD_NOVOLINE("Old Novoline"),
         EXHIBITION("Exhibition"),
-        EUPHORIA("Euphoria"),
         EXHI_OLD("ExhiOld");
 
         public final String name;
@@ -81,7 +80,6 @@ public final class TargetHudModule extends Module {
         modeMap.put(Mode.NOVOLINE, new NovolineMode(this));
         modeMap.put(Mode.OLD_NOVOLINE, new OldNovolineMode(this));
         modeMap.put(Mode.EXHIBITION, new ExhibitionMode(this));
-        modeMap.put(Mode.EUPHORIA, new EuphoriaMode(this));
         modeMap.put(Mode.EXHI_OLD, new ExhiOldMode(this));
     }
 
