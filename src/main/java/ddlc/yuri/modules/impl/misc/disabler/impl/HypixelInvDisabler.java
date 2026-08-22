@@ -1,14 +1,12 @@
 package ddlc.yuri.modules.impl.misc.disabler.impl;
 
 import ddlc.yuri.Yuri;
-import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.modules.impl.misc.DisablerModule;
 import ddlc.yuri.modules.impl.misc.disabler.DisablerMode;
 import ddlc.yuri.modules.impl.player.ManagerModule;
-import ddlc.yuri.utils.client.LoggingUtils;
 import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiInventory;
@@ -25,40 +23,42 @@ public final class HypixelInvDisabler implements DisablerMode {
         this.parentModule = parentModule;
     }
 
-    public static boolean sentFirstOpen = false;
-    public static boolean caughtClientStatus = false;
-    public static boolean caughtCloseWindow = false;
+    private boolean sentFirstOpen;
+    private boolean caughtClientStatus;
+    private boolean caughtCloseWindow;
 
     @Override
     public void onPreUpdate(PreUpdateEvent event) {
-        LoggingUtils.sendChatMessage("Disabler broken for now! Please use the Manager module with Not Moving toggled on and Inv Only toggled off!");
-      /*  if (mc.thePlayer == null) return;
-        if (isInventoryMovePausedForChest()) {
-            resetInventoryMoveState();
-            return;
-        }
+        if (mc.thePlayer == null) return;
 
         caughtClientStatus = false;
         caughtCloseWindow = false;
 
-        if (mc.currentScreen instanceof GuiInventory || (Yuri.INSTANCE.getModuleManager().getModule(ManagerModule.class).isEnabled() && ManagerModule.isInvOpen)) {
-            if (!sentFirstOpen) {
-                PacketUtils.sendSilentPacket(new C0DPacketCloseWindow());
-                sentFirstOpen = true;
-            }
-
-            int safePacketTick = mc.thePlayer.isPotionActive(Potion.moveSpeed) ? 3 : 4;
-
-            if (mc.thePlayer.ticksExisted % safePacketTick == 0) {
-                PacketUtils.sendSilentPacket(new C0DPacketCloseWindow());
-            } else if (mc.thePlayer.ticksExisted % safePacketTick == 1) {
-                PacketUtils.sendSilentPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
-            }
-        } else {
+        if (isInventoryMovePausedForChest()) {
             sentFirstOpen = false;
-        }*/
+            return;
+        }
+
+        if (!isInventoryOpen()) {
+            sentFirstOpen = false;
+            return;
+        }
+
+        if (!sentFirstOpen) {
+            PacketUtils.sendSilentPacket(new C0DPacketCloseWindow(mc.thePlayer.inventoryContainer.windowId));
+            sentFirstOpen = true;
+            return;
+        }
+
+        int safePacketTick = mc.thePlayer.isPotionActive(Potion.moveSpeed) ? 3 : 4;
+        int tick = mc.thePlayer.ticksExisted % safePacketTick;
+
+        if (tick == 0) {
+            PacketUtils.sendSilentPacket(new C0DPacketCloseWindow(mc.thePlayer.inventoryContainer.windowId));
+        } else if (tick == 1) {
+            PacketUtils.sendSilentPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+        }
     }
-/*
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
@@ -66,7 +66,8 @@ public final class HypixelInvDisabler implements DisablerMode {
 
         Packet<?> packet = event.getPacket();
 
-        if (packet instanceof C16PacketClientStatus) {
+        if (packet instanceof C16PacketClientStatus
+                && ((C16PacketClientStatus) packet).getStatus() == C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT) {
             if (caughtClientStatus) {
                 event.setCancelled(true);
             }
@@ -88,16 +89,16 @@ public final class HypixelInvDisabler implements DisablerMode {
         caughtCloseWindow = false;
     }
 
+    private boolean isInventoryOpen() {
+        if (mc.currentScreen instanceof GuiInventory) return true;
 
-    public static boolean isInventoryMovePausedForChest() {
-        if (mc.thePlayer == null || mc.theWorld == null) return false;
-
-       return mc.currentScreen instanceof GuiChest;
+        ManagerModule manager = Yuri.INSTANCE.getModuleManager().getModule(ManagerModule.class);
+        return manager != null && manager.isEnabled() && ManagerModule.isInvOpen;
     }
 
-    private static void resetInventoryMoveState() {
-        sentFirstOpen = false;
-        caughtClientStatus = false;
-        caughtCloseWindow = false;
-    }*/
+    private boolean isInventoryMovePausedForChest() {
+        if (mc.thePlayer == null || mc.theWorld == null) return false;
+
+        return mc.currentScreen instanceof GuiChest;
+    }
 }
