@@ -27,6 +27,8 @@ import ddlc.yuri.utils.player.packet.PacketUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0BPacketEntityAction;
@@ -55,6 +57,11 @@ public class AuraModule extends Module {
     public static ModeProperty<AutoBlock> ab = new ModeProperty<>("Auto Block", AutoBlock.FAKE);
     public static Property<Boolean> onlyBlockIfHurt = new Property<>("Only Block If Hurt", false, () -> ab.getValue() != AutoBlock.LEGIT);
     private final NumberProperty blockOnHurtTicks = new NumberProperty("Block On Hurt Ticks", 4, 0, 10, 1, () -> ab.getValue() != AutoBlock.LEGIT && onlyBlockIfHurt.getValue());
+    private static final NumberProperty hypixelChance = new NumberProperty("Hypixel Block Chance", 85.0, 0.0, 100.0, 1.0, () -> ab.getValue() == AutoBlock.HYPIXEL);
+    private static final NumberProperty hypixelMinHold = new NumberProperty("Hypixel Min Hold", 2, 1, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
+    private static final NumberProperty hypixelMaxHold = new NumberProperty("Hypixel Max Hold", 5, 1, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
+    private static final NumberProperty hypixelMinGap = new NumberProperty("Hypixel Min Gap", 1, 0, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
+    private static final NumberProperty hypixelMaxGap = new NumberProperty("Hypixel Max Gap", 3, 0, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
     public static ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL);
     private final NumberProperty minRotSpeed = new NumberProperty("Min Rotation Speed", 3, 0, 10, 0.5f);
     private final NumberProperty maxRotSpeed = new NumberProperty("Max Rotation Speed", 7, 0, 10, 0.5f);
@@ -105,9 +112,10 @@ public class AuraModule extends Module {
     public enum AutoBlock {
         FAKE("Fake"),
         VANILLA("Vanilla"),
-        HYPIXEL("Hypixel"),
         NCP("NCP"),
         LEGIT("Legit"),
+        HYPIXEL("Hypixel"),
+        HYPIXEL_DUAL_SWORD("Hypixel 2 Sword"),
         NONE("None");
 
         public final String name;
@@ -122,11 +130,6 @@ public class AuraModule extends Module {
         }
     }
 
-    private enum HypixelPhase {
-        BLOCK,
-        RELEASE
-    }
-
     public static EntityLivingBase target;
     private boolean hitSlow = false;
     public static boolean autoBlocking = false;
@@ -137,14 +140,12 @@ public class AuraModule extends Module {
     public int hitTicks;
     private EntityLivingBase lastTarget;
     private Vec3 smoothedBodyPoint;
-    private HypixelPhase hypixelPhase = HypixelPhase.BLOCK;
 
-    private static int nextCycleTick = -1;
-    private static boolean runThisTick = false;
-    private static boolean stopUse = false;
-    private static boolean blocking = false;
-    private int slotChangeTick = -1;
-
+    private int dualSwordSlot = -1;
+    private boolean hypixelWillBlock = false;
+    private int hypixelHoldTicks = 0;
+    private int hypixelGapTicks = 0;
+    private int hypixelTicks = 0;
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
@@ -173,8 +174,7 @@ public class AuraModule extends Module {
             }
         }
 
-        if ((ab.getValue() == AutoBlock.HYPIXEL ||
-                ab.getValue() == AutoBlock.LEGIT) &&
+        if (ab.getValue() == AutoBlock.LEGIT &&
                 mc.gameSettings.keyBindAttack.isPressed()) {
             mc.gameSettings.keyBindAttack.setPressed(false);
         }
@@ -281,15 +281,16 @@ public class AuraModule extends Module {
         return new Vector2f(rot[0], rot[1]);
     }
 
-    private int getSwapSlot() {
+    private int findDualSwordSlot() {
         int current = mc.thePlayer.inventory.currentItem;
         for (int i = 0; i < 9; i++) {
             if (i == current) continue;
-            if (mc.thePlayer.inventory.getStackInSlot(i) == null) {
+            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            if (stack != null && stack.getItem() instanceof ItemSword) {
                 return i;
             }
         }
-        return current == 0 ? 1 : 0;
+        return -1;
     }
 
     private void autoblock() {
@@ -318,15 +319,6 @@ public class AuraModule extends Module {
                 }
                 canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 2;
                 break;
-            case HYPIXEL:
-                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 3 && !BadPacketsManager.bad(true, false, false, false, false));
-                autoBlocking = true;
-                blockTicks++;
-                if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
-                    blockTicks = 0;
-                }
-                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 1;
-                break;
             case VANILLA:
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
                 autoBlocking = true;
@@ -336,6 +328,45 @@ public class AuraModule extends Module {
                 if (autoBlocking) {
                     PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
                     autoBlocking = false;
+                }
+                break;
+            case HYPIXEL_DUAL_SWORD:
+                if (!autoBlocking) {
+                    dualSwordSlot = findDualSwordSlot();
+                    if (dualSwordSlot != -1 && !SlotManager.isActive()) {
+                        SlotManager.swap(dualSwordSlot, true);
+                    }
+                }
+                if (dualSwordSlot != -1) {
+                    PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                    autoBlocking = true;
+                    canAttack = false;
+                } else {
+                    autoBlocking = false;
+                    canAttack = true;
+                }
+                break;
+            case HYPIXEL:
+                if (!autoBlocking) {
+                    hypixelWillBlock = MathUtils.getRandom(0.0, 100.0) <= hypixelChance.getValue();
+                    hypixelHoldTicks = (int) MathUtils.getRandom(hypixelMinHold.getValue(), hypixelMaxHold.getValue());
+                    hypixelGapTicks = (int) MathUtils.getRandom(hypixelMinGap.getValue(), hypixelMaxGap.getValue());
+                    hypixelTicks = 0;
+                }
+
+                if (!hypixelWillBlock) {
+                    autoBlocking = false;
+                    canAttack = true;
+                    break;
+                }
+
+                boolean shouldHold = hypixelTicks < hypixelHoldTicks && !BadPacketsManager.bad(true, false, false, false, false);
+                mc.gameSettings.keyBindUseItem.setPressed(shouldHold);
+                autoBlocking = true;
+                hypixelTicks++;
+                canAttack = hypixelTicks >= hypixelHoldTicks + hypixelGapTicks && !BadPacketsManager.bad(false, false, false, true, false);
+                if (canAttack) {
+                    hypixelTicks = 0;
                 }
                 break;
         }
@@ -355,19 +386,28 @@ public class AuraModule extends Module {
             return;
         }
 
-        if (ab.getValue() == AutoBlock.HYPIXEL) {
-            if (SlotManager.isActive()) {
-                SlotManager.swapBack();
-            }
+        if (ab.getValue() == AutoBlock.LEGIT && mc.gameSettings.keyBindUseItem.isKeyDown()) {
             mc.gameSettings.keyBindUseItem.setPressed(false);
-            hypixelPhase = HypixelPhase.BLOCK;
             autoBlocking = false;
             canAttack = true;
             return;
         }
 
-        if (ab.getValue() == AutoBlock.LEGIT && mc.gameSettings.keyBindUseItem.isKeyDown()) {
+        if (ab.getValue() == AutoBlock.HYPIXEL_DUAL_SWORD) {
+            if (SlotManager.isActive()) {
+                SlotManager.swapBack();
+            }
+            dualSwordSlot = -1;
+            autoBlocking = false;
+            canAttack = true;
+            return;
+        }
+
+        if (ab.getValue() == AutoBlock.HYPIXEL) {
             mc.gameSettings.keyBindUseItem.setPressed(false);
+            hypixelWillBlock = false;
+            hypixelTicks = 0;
+            hypixelGapTicks = 0;
             autoBlocking = false;
             canAttack = true;
             return;
@@ -383,8 +423,6 @@ public class AuraModule extends Module {
 
     private void attack() {
         if (mc.thePlayer == null || mc.playerController == null || target == null || !canAttack)
-            return;
-        if (ab.getValue() == AutoBlock.HYPIXEL && BadPacketsManager.bad(true, false, false, true, false))
             return;
         if (!hitTimerDone()) return;
 
@@ -424,7 +462,11 @@ public class AuraModule extends Module {
         canAttack = true;
         autoBlocking = false;
         blockTicks = -1;
-        hypixelPhase = HypixelPhase.BLOCK;
+        dualSwordSlot = -1;
+        hypixelWillBlock = false;
+        hypixelHoldTicks = 0;
+        hypixelGapTicks = 0;
+        hypixelTicks = 0;
         TargetManager.configure(Arrays.asList(targets.getValues()));
         attackTimer.reset();
         if (rotations.getValue() == Rotations.ML) {
@@ -464,11 +506,15 @@ public class AuraModule extends Module {
         if (SlotManager.isActive()) {
             SlotManager.swapBack();
         }
-        hypixelPhase = HypixelPhase.BLOCK;
         target = null;
         lastTarget = null;
         smoothedBodyPoint = null;
         hitSlow = false;
+        dualSwordSlot = -1;
+        hypixelWillBlock = false;
+        hypixelHoldTicks = 0;
+        hypixelGapTicks = 0;
+        hypixelTicks = 0;
         RotationLearnerManager.resetSmoothing();
         delay = 0;
         blockTicks = -1;

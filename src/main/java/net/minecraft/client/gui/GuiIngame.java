@@ -1019,7 +1019,8 @@ public class GuiIngame extends Gui {
     public void renderCustomScoreboard(ScoreObjective scoreObjective, ScaledResolution resolution) {
         net.minecraft.scoreboard.Scoreboard scoreboard = scoreObjective.getScoreboard();
         Collection<Score> scores = scoreboard.getSortedScores(scoreObjective);
-        CustomFontRenderer customFr = FontUtils.getFont("sf", 21);
+        int customFontSize = 21;
+        CustomFontRenderer customFr = FontUtils.getFont("sf", customFontSize);
 
         ScoreboardModule scoreboardModule = Yuri.INSTANCE.getModuleManager().getModule(ScoreboardModule.class);
         ModListModule hudModule = Yuri.INSTANCE.getModuleManager().getModule(ModListModule.class);
@@ -1050,7 +1051,9 @@ public class GuiIngame extends Gui {
             maxWidth = Math.max(maxWidth, width);
         }
 
-        int fontHeight = useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight();
+        maxWidth += useMcFont ? 0 : 12;
+
+        int fontHeight = (useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight());
         int scoreCount = displayedScores.size();
 
         int totalBoardHeight = (scoreCount + 1) * fontHeight;

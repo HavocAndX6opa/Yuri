@@ -40,6 +40,14 @@ public class CustomFontRenderer extends CustomFont {
         return this.nameFontTTF;
     }
 
+    private String fixBedSymbols(String text) {
+        if (text == null) return "";
+        return text.replace("✔", "[Y]")
+                .replace("✘", "[N]")
+                .replace("✓", "[Y]")
+                .replace("✖", "[N]");
+    }
+
     public float drawString(String text, float x, float y, int color) {
         if (useMCustomFont) {
             return Minecraft.getMinecraft().fontRendererObj.drawString(text, x, y, color, false);
@@ -125,7 +133,7 @@ public class CustomFontRenderer extends CustomFont {
     }
 
     public float drawString(String text, double x, double y, int color, boolean shadow) {
-        Minecraft mc = Minecraft.getMinecraft();
+        text = fixBedSymbols(text);
         x -= 1;
 
         if (text == null) {
@@ -256,6 +264,8 @@ public class CustomFontRenderer extends CustomFont {
     }
 
     public int getStringWidth(String text) {
+        text = fixBedSymbols(text);
+
         if (text == null) {
             return 0;
         }
