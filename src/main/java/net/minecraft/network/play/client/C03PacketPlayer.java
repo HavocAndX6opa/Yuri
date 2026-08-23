@@ -85,6 +85,26 @@ public class C03PacketPlayer implements Packet<INetHandlerPlayServer>
         this.moving = isMoving;
     }
 
+    public void setOnGround(boolean isOnGround)
+    {
+        this.onGround = isOnGround;
+    }
+
+    public void setPositionX(double posX)
+    {
+        this.x = posX;
+    }
+
+    public void setPositionY(double posY)
+    {
+        this.y = posY;
+    }
+
+    public void setPositionZ(double posZ)
+    {
+        this.z = posZ;
+    }
+
     public static class C04PacketPlayerPosition extends C03PacketPlayer
     {
         public C04PacketPlayerPosition()
