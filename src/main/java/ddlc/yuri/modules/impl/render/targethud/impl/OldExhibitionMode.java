@@ -12,11 +12,11 @@ import net.minecraft.util.MathHelper;
 
 import java.awt.*;
 
-public final class ExhiOldMode extends TargetHudMode {
+public final class OldExhibitionMode extends TargetHudMode {
 
     private final TargetHudModule parentModule;
 
-    public ExhiOldMode(TargetHudModule parentModule) {
+    public OldExhibitionMode(TargetHudModule parentModule) {
         super("ExhiOld");
         this.parentModule = parentModule;
     }

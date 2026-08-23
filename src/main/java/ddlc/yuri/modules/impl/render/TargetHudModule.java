@@ -1,5 +1,6 @@
 package ddlc.yuri.modules.impl.render;
 
+import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
@@ -15,7 +16,6 @@ import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.render.targethud.TargetHudMode;
 import ddlc.yuri.modules.impl.render.targethud.impl.*;
 import ddlc.yuri.utils.render.DragUtils;
-import ddlc.yuri.Yuri;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
@@ -30,7 +30,6 @@ import net.minecraft.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 
 import java.util.*;
-import java.util.List;
 
 @ModuleInfo(label = "Target HUD",
         description = "Displays information about your current target(s) on the screen.",
@@ -43,7 +42,7 @@ public final class TargetHudModule extends Module {
         NOVOLINE("Novoline"),
         OLD_NOVOLINE("Old Novoline"),
         EXHIBITION("Exhibition"),
-        EXHI_OLD("ExhiOld");
+        OLD_EXHIBITION("Old Exhibition");
 
         public final String name;
 
@@ -80,7 +79,7 @@ public final class TargetHudModule extends Module {
         modeMap.put(Mode.NOVOLINE, new NovolineMode(this));
         modeMap.put(Mode.OLD_NOVOLINE, new OldNovolineMode(this));
         modeMap.put(Mode.EXHIBITION, new ExhibitionMode(this));
-        modeMap.put(Mode.EXHI_OLD, new ExhiOldMode(this));
+        modeMap.put(Mode.OLD_EXHIBITION, new OldExhibitionMode(this));
     }
 
     private TargetHudMode getCurrentModeInstance() {
