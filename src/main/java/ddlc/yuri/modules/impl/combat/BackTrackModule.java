@@ -1,3 +1,4 @@
+
 package ddlc.yuri.modules.impl.combat;
 
 import ddlc.yuri.Yuri;
@@ -5,19 +6,14 @@ import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
-import ddlc.yuri.api.events.impl.render.Render3DEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.NumberProperty;
-import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.client.TimerUtils;
-import ddlc.yuri.utils.render.RenderUtils;
-import ddlc.yuri.utils.render.animations.impl.ContinualAnimation;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.Packet;
@@ -27,15 +23,9 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S14PacketEntity;
 import net.minecraft.network.play.server.S18PacketEntityTeleport;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
-import org.lwjgl.opengl.GL11;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @ModuleInfo(label = "Back Track", category = ModuleCategory.COMBAT, description = "Allows you to backtrack players' positions")
 public class BackTrackModule extends Module {
@@ -82,7 +72,6 @@ public class BackTrackModule extends Module {
     }
 
     @EventHook
-    @SuppressWarnings("unchecked")
     public void onPacketReceived(PacketReceivedEvent event) {
         if (mc.thePlayer == null || mc.theWorld == null || target == null) return;
 
@@ -140,42 +129,42 @@ public class BackTrackModule extends Module {
         }
     }
 
-//    @EventHook
-//    public void onRender3D(Render3DEvent event) {
-//        if (mc.thePlayer == null || target == null || !spoofing || spoofedPosition == null) return;
-//
-//        double drawX = spoofedPosition.xCoord - mc.getRenderManager().viewerPosX;
-//        double drawY = spoofedPosition.yCoord - mc.getRenderManager().viewerPosY;
-//        double drawZ = spoofedPosition.zCoord - mc.getRenderManager().viewerPosZ;
-//
-//        double half = target.width / 2.0;
-//        double height = target.height;
-//
-//        AxisAlignedBB box = new AxisAlignedBB(
-//                drawX - half, drawY, drawZ - half,
-//                drawX + half, drawY + height, drawZ + half);
-//
-//        Color color = ColorManager.getColors().getFirst();
-//
-//        GlStateManager.pushMatrix();
-//        GlStateManager.enableBlend();
-//        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-//        GlStateManager.disableTexture2D();
-//        GlStateManager.disableDepth();
-//        GlStateManager.depthMask(false);
-//        GlStateManager.disableCull();
-//
-//        GlStateManager.color(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 0.16f);
-//        RenderUtils.drawBoundingBox(box);
-//
-//        GlStateManager.enableCull();
-//        GlStateManager.depthMask(true);
-//        GlStateManager.enableDepth();
-//        GlStateManager.enableTexture2D();
-//        GlStateManager.disableBlend();
-//        GlStateManager.popMatrix();
-//        GlStateManager.resetColor();
-//    }
+/*    @EventHook
+    public void onRender3D(Render3DEvent event) {
+        if (mc.thePlayer == null || target == null || !spoofing || spoofedPosition == null) return;
+
+        double drawX = spoofedPosition.xCoord - mc.getRenderManager().viewerPosX;
+        double drawY = spoofedPosition.yCoord - mc.getRenderManager().viewerPosY;
+        double drawZ = spoofedPosition.zCoord - mc.getRenderManager().viewerPosZ;
+
+        double half = target.width / 2.0;
+        double height = target.height;
+
+        AxisAlignedBB box = new AxisAlignedBB(
+                drawX - half, drawY, drawZ - half,
+                drawX + half, drawY + height, drawZ + half);
+
+        Color color = ColorManager.getColors().getFirst();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableCull();
+
+        GlStateManager.color(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 0.16f);
+        RenderUtils.drawBoundingBox(box);
+
+        GlStateManager.enableCull();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+        GlStateManager.popMatrix();
+        GlStateManager.resetColor();
+    }*/
 
     private void backertrack(Vec3 position) {
         spoofedPosition = position;
