@@ -135,12 +135,13 @@ public class WatermarkModule extends Module implements IMinecraft {
                 );
                 break;
             case LESBIAN:
-                RenderUtils.drawImage(
+                RoundedUtils.drawRoundedImage(
                         new ResourceLocation("yuri/gui/lesbians.jpg"),
                         4,
                         4,
                         128,
-                        128
+                        128,
+                        6
                 );
                 break;
             case YURI:

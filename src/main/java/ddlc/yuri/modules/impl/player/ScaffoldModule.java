@@ -219,7 +219,8 @@ public final class ScaffoldModule extends Module {
             tellyLogic();
         }
 
-        if (mc.gameSettings.keyBindJump.isKeyDown() || mc.thePlayer.posY < startY
+        if (mc.gameSettings.keyBindJump.isKeyDown()
+                || (mc.thePlayer.onGround && mc.thePlayer.posY < startY)
                 || (mc.thePlayer.onGround && mc.thePlayer.posY > startY && mc.thePlayer.onGroundTicks <= 1)
                 || (mc.thePlayer.onGround && Math.abs(mc.thePlayer.posY - startY) > 0.5 && !MoveUtils.isMoving())) {
             startY = Math.floor(mc.thePlayer.posY);

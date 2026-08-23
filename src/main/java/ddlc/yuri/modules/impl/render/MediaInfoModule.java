@@ -45,16 +45,16 @@ public class MediaInfoModule extends Module implements IMinecraft {
 
     private static final String KEY = "MediaInfo";
 
-    private static final float PADDING_X = 14f;
-    private static final float MIN_WIDTH = 190f;
-    private static final float PADDING_Y = 10f;
+    private static final float PADDING_X = 12f;
+    private static final float MIN_WIDTH = 170f;
+    private static final float PADDING_Y = 8f;
     private static final float RADIUS = 6f;
-    private static final float HEADER_PADDING_Y = 6f;
-    private static final float GAP_TITLE_ARTIST = 3f;
-    private static final float GAP_ARTIST_BAR = 8f;
-    private static final float GAP_BAR_TIME = 4f;
-    private static final float COVER_SIZE = 40f;
-    private static final float GAP_COVER_TEXT = 10f;
+    private static final float HEADER_PADDING_Y = 5f;
+    private static final float GAP_TITLE_ARTIST = 2f;
+    private static final float GAP_ARTIST_BAR = 6f;
+    private static final float GAP_BAR_TIME = 3f;
+    private static final float COVER_SIZE = 34f;
+    private static final float GAP_COVER_TEXT = 8f;
     private static final float BAR_HEIGHT = 4f;
 
     private static final float YURI_MIN_WIDTH = 130f;
@@ -122,7 +122,7 @@ public class MediaInfoModule extends Module implements IMinecraft {
     }
 
     private void render(boolean shaderPass) {
-        if (!tracker.isSupported() || tracker.getTrack() == null) {
+        if (!tracker.isSupported()) {
             component.setWidth(0);
             component.setHeight(0);
             return;
@@ -147,12 +147,12 @@ public class MediaInfoModule extends Module implements IMinecraft {
         if (titleFont == null || trackFont == null || body == null) return;
 
         String titleText = "Media Info";
-        String trackText = track.getTitle();
-        String artistText = track.getArtist().isEmpty() ? track.getSource() : track.getArtist();
+        String trackText = track != null ? track.getTitle() : "No song playing";
+        String artistText = track != null ? (track.getArtist().isEmpty() ? track.getSource() : track.getArtist()) : "";
 
-        long position = tracker.getPositionMillis();
-        long lengthMillis = track.getLengthMillis();
-        String timeText = formatTime(position) + (lengthMillis > 0 ? " / " + formatTime(lengthMillis) : "");
+        long position = track != null ? tracker.getPositionMillis() : 0L;
+        long lengthMillis = track != null ? track.getLengthMillis() : 0L;
+        String timeText = track != null ? formatTime(position) + (lengthMillis > 0 ? " / " + formatTime(lengthMillis) : "") : "";
 
         float titleWidth = titleFont.getStringWidth(titleText);
         float trackWidth = trackFont.getStringWidth(trackText);
@@ -190,7 +190,7 @@ public class MediaInfoModule extends Module implements IMinecraft {
         titleFont.drawStringWithShadow(titleText, cx - titleWidth / 2f, cursorY, Color.WHITE.getRGB());
         cursorY += titleHeight + YURI_GAP_TITLE_COVER;
 
-        ResourceLocation cover = tracker.getCoverLocation();
+        ResourceLocation cover = track != null ? tracker.getCoverLocation() : null;
         float coverX = cx - YURI_COVER_SIZE / 2f;
         if (cover != null) {
             drawCoverTexture(cover, coverX, cursorY, YURI_COVER_SIZE);
@@ -207,7 +207,7 @@ public class MediaInfoModule extends Module implements IMinecraft {
         cursorY += lineHeight + YURI_GAP_ARTIST_BAR;
 
         float barX = cx - YURI_BAR_WIDTH / 2f;
-        float progress = lengthMillis > 0 ? Math.min(1f, (float) position / (float) lengthMillis) : 0f;
+        float progress = (track != null && lengthMillis > 0) ? Math.min(1f, (float) position / (float) lengthMillis) : 0f;
 
         RoundedUtils.drawCustomRoundedRect(barX, cursorY, YURI_BAR_WIDTH, BAR_HEIGHT, BAR_HEIGHT / 2f,
                 true, true, true, true, BAR_BG_COLOR);
@@ -224,21 +224,21 @@ public class MediaInfoModule extends Module implements IMinecraft {
     private void renderPulsive(boolean shaderPass) {
         MediaTrack track = tracker.getTrack();
 
-        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
-        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
-        CustomFontRenderer title = FontUtils.getFont("sf-bold", 16);
-        CustomFontRenderer artist = FontUtils.getFont("sf", 15);
-        CustomFontRenderer time = FontUtils.getFont("sf", 12);
+        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 16);
+        CustomFontRenderer regular = FontUtils.getFont("sf", 16);
+        CustomFontRenderer title = FontUtils.getFont("sf-bold", 14);
+        CustomFontRenderer artist = FontUtils.getFont("sf", 13);
+        CustomFontRenderer time = FontUtils.getFont("sf", 11);
         if (bold == null || regular == null || title == null || artist == null || time == null) return;
 
         String nowWord = "now";
         String playingWord = " playing";
-        String titleText = track.getTitle();
-        String artistText = track.getArtist().isEmpty() ? track.getSource() : track.getArtist();
+        String titleText = track != null ? track.getTitle() : "No song playing";
+        String artistText = track != null ? (track.getArtist().isEmpty() ? track.getSource() : track.getArtist()) : "";
 
-        long position = tracker.getPositionMillis();
-        long lengthMillis = track.getLengthMillis();
-        String timeText = formatTime(position) + (lengthMillis > 0 ? " / " + formatTime(lengthMillis) : "");
+        long position = track != null ? tracker.getPositionMillis() : 0L;
+        long lengthMillis = track != null ? track.getLengthMillis() : 0L;
+        String timeText = track != null ? formatTime(position) + (lengthMillis > 0 ? " / " + formatTime(lengthMillis) : "") : "";
 
         float nowWidth = bold.getStringWidth(nowWord);
         float playingWidth = regular.getStringWidth(playingWord);
@@ -289,7 +289,7 @@ public class MediaInfoModule extends Module implements IMinecraft {
         float coverX = x + PADDING_X;
         float coverY = y + headerHeight + PADDING_Y + (bodyContentHeight - COVER_SIZE) / 2f;
 
-        ResourceLocation cover = tracker.getCoverLocation();
+        ResourceLocation cover = track != null ? tracker.getCoverLocation() : null;
         if (cover != null) {
             drawCoverTexture(cover, coverX, coverY, COVER_SIZE);
         } else {
@@ -306,8 +306,8 @@ public class MediaInfoModule extends Module implements IMinecraft {
         artist.drawStringWithShadow(artistText, textX, textY, new Color(190, 190, 190).getRGB());
         textY += artist.getHeight() + GAP_ARTIST_BAR;
 
-        float barWidth = textBlockWidth;
-        float progress = lengthMillis > 0 ? Math.min(1f, (float) position / (float) lengthMillis) : 0f;
+        float barWidth = (x + width - PADDING_X) - textX;
+        float progress = (track != null && lengthMillis > 0) ? Math.min(1f, (float) position / (float) lengthMillis) : 0f;
 
         RoundedUtils.drawCustomRoundedRect(textX, textY, barWidth, BAR_HEIGHT, BAR_HEIGHT / 2f,
                 true, true, true, true, BAR_BG_COLOR);

@@ -55,8 +55,8 @@ public class AuraModule extends Module {
     private static final NumberProperty min = new NumberProperty("Min CPS", 9.0, 0.0, 20.0, 0.5);
     private static final NumberProperty max = new NumberProperty("Max CPS", 13.0, 0.0, 20.0, 0.5);
     public static ModeProperty<AutoBlock> ab = new ModeProperty<>("Auto Block", AutoBlock.FAKE);
-    public static Property<Boolean> onlyBlockIfHurt = new Property<>("Only Block If Hurt", false, () -> ab.getValue() != AutoBlock.LEGIT);
-    private final NumberProperty blockOnHurtTicks = new NumberProperty("Block On Hurt Ticks", 4, 0, 10, 1, () -> ab.getValue() != AutoBlock.LEGIT && onlyBlockIfHurt.getValue());
+    public static Property<Boolean> onlyBlockIfHurt = new Property<>("Only Block If Hurt", false);
+    private final NumberProperty blockOnHurtTicks = new NumberProperty("Block On Hurt Ticks", 4, 0, 10, 1, onlyBlockIfHurt::getValue);
     private static final NumberProperty hypixelChance = new NumberProperty("Hypixel Block Chance", 85.0, 0.0, 100.0, 1.0, () -> ab.getValue() == AutoBlock.HYPIXEL);
     private static final NumberProperty hypixelMinHold = new NumberProperty("Hypixel Min Hold", 2, 1, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
     private static final NumberProperty hypixelMaxHold = new NumberProperty("Hypixel Max Hold", 5, 1, 10, 1, () -> ab.getValue() == AutoBlock.HYPIXEL);
@@ -301,7 +301,7 @@ public class AuraModule extends Module {
             return;
         }
 
-        if (onlyBlockIfHurt.getValue() && mc.thePlayer.hurtTime < blockOnHurtTicks.getValue().intValue() && ab.getValue() != AutoBlock.LEGIT) {
+        if (onlyBlockIfHurt.getValue() && mc.thePlayer.hurtTime < blockOnHurtTicks.getValue().intValue()) {
             if (autoBlocking) unblock();
             return;
         }
@@ -311,13 +311,14 @@ public class AuraModule extends Module {
                 autoBlocking = true;
                 break;
             case LEGIT:
-                mc.gameSettings.keyBindUseItem.setPressed(hitTicks <= 5 && mc.thePlayer.hurtTime >= 5);
+                boolean readyToAttack = attackTimer.hasTimeElapsed(delay, false);
+                mc.gameSettings.keyBindUseItem.setPressed(!readyToAttack);
                 autoBlocking = true;
                 blockTicks++;
                 if (mc.gameSettings.keyBindUseItem.isPressed() || mc.thePlayer.isUsingItem()) {
                     blockTicks = 0;
                 }
-                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 2;
+                canAttack = !BadPacketsManager.bad(false, false, false, true, false) && blockTicks >= 1;
                 break;
             case VANILLA:
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
