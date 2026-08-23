@@ -29,7 +29,8 @@ public class SpeedModule extends Module {
         LEGIT("Legit"),
         POLAR("Polar"),
         INTAVE("Intave"),
-        NCP("NCP");
+        NCP("NCP"),
+        LIBRECRAFT("Librecraft");
 
         public final String name;
 
@@ -52,6 +53,7 @@ public class SpeedModule extends Module {
         speedModes.put(Mode.POLAR, new PolarSpeed());
         speedModes.put(Mode.INTAVE, new IntaveSpeed());
         speedModes.put(Mode.NCP, new NCPSpeed());
+        speedModes.put(Mode.LIBRECRAFT, new LibrecraftSpeed());
 
     }
 

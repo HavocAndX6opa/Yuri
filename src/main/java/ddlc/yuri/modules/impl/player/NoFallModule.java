@@ -2,6 +2,7 @@ package ddlc.yuri.modules.impl.player;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.ClientTickEvent;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.modules.Module;
@@ -9,6 +10,7 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.player.nofall.NoFallMode;
 import ddlc.yuri.modules.impl.player.nofall.impl.MLGNoFall;
+import ddlc.yuri.modules.impl.player.nofall.impl.LibrecraftNoFall;
 import ddlc.yuri.modules.impl.player.nofall.impl.VanillaNoFall;
 
 import java.util.EnumMap;
@@ -24,7 +26,8 @@ public final class NoFallModule extends Module {
 
     private enum Mode {
         VANILLA("Vanilla"),
-        MLG("MLG"),;
+        MLG("MLG"),
+        LIBRECRAFT("Librecraft");
 
         public final String name;
 
@@ -44,6 +47,7 @@ public final class NoFallModule extends Module {
 
         nofallModes.put(Mode.VANILLA, new VanillaNoFall());
         nofallModes.put(Mode.MLG, new MLGNoFall());
+        nofallModes.put(Mode.LIBRECRAFT, new LibrecraftNoFall());
     }
 
     @EventHook
@@ -61,6 +65,14 @@ public final class NoFallModule extends Module {
         NoFallMode currentMode = nofallModes.get(mode.getValue());
         if (currentMode != null) {
             currentMode.onPreUpdate(event);
+        }
+    }
+
+    @EventHook
+    public void onPacketSend(PacketSendEvent event) {
+        NoFallMode currentMode = nofallModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPacketSend(event);
         }
     }
 

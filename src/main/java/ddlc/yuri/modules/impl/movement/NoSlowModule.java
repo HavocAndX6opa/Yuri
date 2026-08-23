@@ -1,6 +1,7 @@
 package ddlc.yuri.modules.impl.movement;
 
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.*;
 import ddlc.yuri.api.properties.Property;
@@ -10,6 +11,7 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
+import ddlc.yuri.modules.impl.movement.noslow.impl.ExperimentalNoSlow;
 import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
 import net.minecraft.item.*;
 
@@ -21,7 +23,9 @@ public final class NoSlowModule extends Module {
 
     public enum Mode {
         VANILLA("Vanilla"),
-        NCP("NCP");
+        NCP("NCP"),
+        HYPIXEL("Hypixel"),
+        EXPERIMENTAL("Experimental");
 
         public final String name;
 
@@ -45,6 +49,8 @@ public final class NoSlowModule extends Module {
     {
         noSlowModes = new EnumMap<>(Mode.class);
         noSlowModes.put(Mode.NCP, new NCPNoSlow());
+        noSlowModes.put(Mode.HYPIXEL, new HypixelNoSlow(this));
+        noSlowModes.put(Mode.EXPERIMENTAL, new ExperimentalNoSlow());
     }
 
     @EventHook
@@ -66,6 +72,16 @@ public final class NoSlowModule extends Module {
         NoSlowMode currentMode = noSlowModes.get(mode.getValue());
         if (currentMode != null) {
             currentMode.onPacketSend(event);
+        }
+    }
+
+    @EventHook
+    public void onPacketReceived(PacketReceivedEvent event) {
+        if (mc.thePlayer == null) return;
+
+        NoSlowMode currentMode = noSlowModes.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPacketReceived(event);
         }
     }
 
