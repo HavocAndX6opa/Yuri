@@ -582,9 +582,7 @@ public final class ScaffoldModule extends Module {
                     }
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
-                        if (hypixelTelly.getValue()) {
-                            rotSpeed = 10.0f;
-                        }
+                        rotSpeed = 10.0f;
                         target[0] = mc.thePlayer.rotationYaw;
                         target[1] = (float) MathUtils.getRandom(68, 90);
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {

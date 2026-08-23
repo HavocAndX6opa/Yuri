@@ -20,14 +20,9 @@ import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @ModuleInfo(label = "Mod List", category = ModuleCategory.RENDER, description = "Shows the enabled mods on your HUD")
 public class ModListModule extends Module implements IMinecraft {
@@ -224,6 +219,9 @@ public class ModListModule extends Module implements IMinecraft {
                 }
 
                 float textX = line.getValue() ? (float) (translateX - 1.0f) : (float) ((float) offset.getValue().floatValue() == 0 ? translateX - 0.5f : (float) translateX);
+                if (pad > 0) {
+                    textX -= pad / getTextWidth(fr, name);
+                }
 
                 drawText(fr, name, useCustomFont.getValue() ? textX : textX + 0.8f, (float) translateY, aColor);
 
