@@ -37,12 +37,25 @@ import org.lwjgl.util.vector.Vector2f;
 @ModuleInfo(label = "Scaffold", description = "Automatically builds bridges for you", category = ModuleCategory.PLAYER)
 public final class ScaffoldModule extends Module {
 
+    /*
+        I have NO fucking clue why Hypixel decided to make you
+        place ghost blocks after flagging even ONCE!!!
+        If ANYONE can find a fix for this, please tell me.
+
+        Till that point, after flagging any Scaffold mode
+        WILL NOT WORK. I have no idea why this is a thing, but it is.
+
+        This usually fixes itself after 10 mins (on server or not) after your VL levels reset.
+    */
+
     private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NORMAL);
     public final Property<Boolean> hypixelTelly = new Property<>("Hypixel Telly", false, () -> mode.getValue() == Mode.TELLY);
     private final NumberProperty tellyStraightTicks = new NumberProperty("Telly Straight Ticks", 6, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final NumberProperty tellyDiagonalTicks = new NumberProperty("Telly Diagonal Ticks", 4, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final NumberProperty tellyJumpDownTicks = new NumberProperty("Telly Jump Down Ticks", 1, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
-    private final ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL, () -> mode.getValue() != Mode.TELLY);
+    private final ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL);
+    private final NumberProperty randomizedSpeedMin = new NumberProperty("Randomized Speed Min", 3, 0, 10, 0.5f, () -> rotations.getValue() == Rotations.RANDOMIZED);
+    private final NumberProperty randomizedSpeedMax = new NumberProperty("Randomized Speed Max", 7, 0, 10, 0.5f, () -> rotations.getValue() == Rotations.RANDOMIZED);
     public final ModeProperty<SearchAlgorithm> searchAlgorithm = new ModeProperty<>("Search Algorithm", SearchAlgorithm.NORMAL);
     private final NumberProperty minRotationSpeed = new NumberProperty("Min Rotation Speed", 3, 0, 10, 0.5f);
     private final NumberProperty maxRotationSpeed = new NumberProperty("Max Rotation Speed", 7, 0, 10, 0.5f);
@@ -78,7 +91,7 @@ public final class ScaffoldModule extends Module {
     }
 
     public enum Rotations {
-        NORMAL("Normal"), STATIC_YAW("Static Yaw");
+        NORMAL("Normal"), RANDOMIZED("Randomized");
         public final String name;
 
         Rotations(String name) {
@@ -190,7 +203,6 @@ public final class ScaffoldModule extends Module {
     private long lastRenderTime = -1L;
     private int initialBlockCount;
     private ProgressBarEntry barEntry;
-
     private boolean tellyNoPlace;
 
     @EventHook
@@ -263,7 +275,7 @@ public final class ScaffoldModule extends Module {
             }
 
             if (swapMode.getValue() == SwapMode.CLIENT || swapMode.getValue() == SwapMode.SERVER) {
-                SlotManager.swap(blockSlot, swapMode.getValue() == SwapMode.SERVER);
+                SlotManager.swap(blockSlot, swapMode.getValue() == SwapMode.SERVER && rayCast.getValue() != RayCast.STRICT);
             }
 
             if (ScaffoldUtils.doesNotContainBlock(offset, 1) && (!sameY ||
@@ -275,8 +287,7 @@ public final class ScaffoldModule extends Module {
                 ticksOnAir = 0;
             }
 
-            canPlace = ticksOnAir > 0
-                    && delayTimer.hasTimeElapsed(placeDelay.getValue().longValue() * 20);
+            canPlace = ticksOnAir > 0;
 
             if (mode.getValue() == Mode.TELLY && tellyNoPlace) {
                 canPlace = false;
@@ -335,7 +346,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks == 1) {
+            if (mc.thePlayer.offGroundTicks <= 2) {
                 tellyNoPlace = false;
             }
         }
@@ -497,9 +508,6 @@ public final class ScaffoldModule extends Module {
                     if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
                         ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
                                 searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
-                        if (rotations.getValue() == Rotations.STATIC_YAW) {
-                            target[0] = mc.thePlayer.rotationYaw - 180;
-                        }
                     }
                 }
                 break;
@@ -578,21 +586,25 @@ public final class ScaffoldModule extends Module {
 
             case TELLY:
                 if (recursion == 0) {
-                    if (mc.gameSettings.keyBindJump.isKeyDown() && hypixelTelly.getValue()) {
-                        stop = mc.thePlayer.onGroundTicks == 1;
-                    }
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
-                        rotSpeed = 10.0f;
+                        if (hypixelTelly.getValue()) {
+                            rotSpeed = 6.0f;
+                        } else {
+                            rotSpeed = 10.0f;
+                        }
                         target[0] = mc.thePlayer.rotationYaw;
-                        target[1] = (float) MathUtils.getRandom(68, 90);
+                        target[1] = mc.thePlayer.rotationPitch;
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = isDiagonal() ? 0.98f : 0.95f;
-                        }
-                        if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
-                                    searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
+                            rotSpeed = isDiagonal() ? 2.0f : 1.8f;
+                            target[0] = ScaffoldUtils.predictionHypixelRotations(blockFace, enumFacing, searchAlgorithm.getValue())[0];
+                            target[1] = ScaffoldUtils.predictionHypixelRotations(blockFace, enumFacing, searchAlgorithm.getValue())[1];
+                        } else {
+                            if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
+                                ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
+                                        searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
+                            }
                         }
                     }
                 }
@@ -600,9 +612,14 @@ public final class ScaffoldModule extends Module {
         }
 
         if (sprintMode.getValue() == SprintMode.UNIVERSAL && blocksPlaced >= 3) {
-            rotSpeed = 2.2f;
             target[0] = mc.thePlayer.rotationYaw;
             blocksPlaced = 0;
+        }
+
+        if (rotations.getValue() == Rotations.RANDOMIZED && MoveUtils.isMoving()) {
+            float amount = (float) MathUtils.getRandom(randomizedSpeedMin.getValue().floatValue(), randomizedSpeedMax.getValue().floatValue());
+            target[0] += (float) ((Math.random() - 0.5) * 2 * amount);
+            target[1] += (float) ((Math.random() - 0.5) * 0.5 * amount);
         }
 
         targetYaw = target[0];
@@ -614,10 +631,16 @@ public final class ScaffoldModule extends Module {
     }
 
     private void place(ItemStack blockStack) {
-        Vec3 hitVec = ScaffoldUtils.computeHitVec(blockFace, enumFacing);
-        if (mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
-                blockStack, blockFace, enumFacing.getEnumFacing(), hitVec)) {
-            PacketUtils.sendPacket(new C0APacketAnimation());
+        if (!canPlace || !delayTimer.hasTimeElapsed(placeDelay.getValue().longValue() * 20)) return;
+
+        if (rayCast.getValue() == RayCast.STRICT) {
+            mc.rightClickMouse();
+        } else {
+            Vec3 hitVec = ScaffoldUtils.computeHitVec(blockFace, enumFacing);
+            if (mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
+                    blockStack, blockFace, enumFacing.getEnumFacing(), hitVec)) {
+                PacketUtils.sendPacket(new C0APacketAnimation());
+            }
         }
         blocksPlaced++;
         delayTimer.reset();

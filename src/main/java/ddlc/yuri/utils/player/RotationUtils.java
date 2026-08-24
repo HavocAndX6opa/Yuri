@@ -11,63 +11,6 @@ import net.minecraft.util.*;
 import org.lwjgl.util.vector.Vector2f;
 
 public class RotationUtils implements IMinecraft {
-    public static Vector2f puhfyRotations(final Entity entity) {
-
-        Vec3 eyePos = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
-        AxisAlignedBB box = entity.getEntityBoundingBox();
-
-        double centerX = (box.minX + box.maxX) / 2.0;
-        double centerY = (box.minY + box.maxY) / 2.0;
-        double centerZ = (box.minZ + box.maxZ) / 2.0;
-
-        double heightOffset = (box.maxY - box.minY) * 0.15;
-
-        Vec3[] points = new Vec3[]{
-                new Vec3(centerX, centerY - heightOffset, centerZ),
-                new Vec3(centerX, centerY, centerZ),
-                new Vec3(centerX, centerY + heightOffset, centerZ)
-        };
-
-        Vec3 bestPoint = null;
-        double closestDist = Double.MAX_VALUE;
-
-        for (Vec3 point : points) {
-            double dist = eyePos.distanceTo(point);
-            if (dist < closestDist) {
-                closestDist = dist;
-                bestPoint = point;
-            }
-        }
-
-        if (bestPoint == null) return null;
-
-        final float[] rotations = getRotationsTo(eyePos, bestPoint);
-        final float targetYaw = rotations[0];
-        final float targetPitch = rotations[1];
-
-        return new Vector2f(targetYaw, targetPitch);
-    }
-
-    // I think this is like the most optimal hvh winning rotations possible?
-    public static Vector2f perfectRotations(final Entity entity) {
-        Vec3 eyePos = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
-        AxisAlignedBB box = entity.getEntityBoundingBox();
-
-        double closestX = Math.max(box.minX, Math.min(eyePos.xCoord, box.maxX));
-        double closestY = Math.max(box.minY, Math.min(eyePos.yCoord, box.maxY));
-        double closestZ = Math.max(box.minZ, Math.min(eyePos.zCoord, box.maxZ));
-
-        Vec3 bestPoint = new Vec3(closestX, closestY, closestZ);
-
-        if (box.isVecInside(eyePos)) {
-            bestPoint = new Vec3(box.minX + (box.maxX - box.minX) / 2, box.minY + (box.maxY - box.minY) / 2, box.minZ + (box.maxZ - box.minZ) / 2);
-        }
-
-        final float[] rotations = getRotationsTo(eyePos, bestPoint);
-
-        return new Vector2f(rotations[0], rotations[1]);
-    }
-
     public static float[] getRotationsTo(Vec3 from, Vec3 to) {
         double dx = to.xCoord - from.xCoord;
         double dy = to.yCoord - from.yCoord;
@@ -87,7 +30,7 @@ public class RotationUtils implements IMinecraft {
         double dist = MathHelper.sqrt_double(xDiff * xDiff + zDiff * zDiff);
         float yaw = (float) (Math.atan2(zDiff, xDiff) * 180.0D / Math.PI) - 90.0F;
         float pitch = (float) -(Math.atan2(yDiff, dist) * 180.0D / Math.PI);
-        return new float[] { yaw, pitch };
+        return new float[]{yaw, pitch};
     }
 
     public static float[] getNormalRotationsFromPosition(double x, double y, double z, float currentYaw,
@@ -112,7 +55,7 @@ public class RotationUtils implements IMinecraft {
             currentPitch = -90;
         }
 
-        return new float[] { currentYaw, currentPitch };
+        return new float[]{currentYaw, currentPitch};
     }
 
     public static float updateRotation(float current, float intended, float factor) {

@@ -11,7 +11,6 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.movement.noslow.NoSlowMode;
 import ddlc.yuri.modules.impl.movement.noslow.impl.HypixelNoSlow;
-import ddlc.yuri.modules.impl.movement.noslow.impl.ExperimentalNoSlow;
 import ddlc.yuri.modules.impl.movement.noslow.impl.NCPNoSlow;
 import net.minecraft.item.*;
 
@@ -24,8 +23,8 @@ public final class NoSlowModule extends Module {
     public enum Mode {
         VANILLA("Vanilla"),
         NCP("NCP"),
-        HYPIXEL("Hypixel"),
-        EXPERIMENTAL("Experimental");
+        // EXPERIMENTAL("Experimental"),
+        HYPIXEL("Hypixel");
 
         public final String name;
 
@@ -50,7 +49,7 @@ public final class NoSlowModule extends Module {
         noSlowModes = new EnumMap<>(Mode.class);
         noSlowModes.put(Mode.NCP, new NCPNoSlow());
         noSlowModes.put(Mode.HYPIXEL, new HypixelNoSlow(this));
-        noSlowModes.put(Mode.EXPERIMENTAL, new ExperimentalNoSlow());
+        // noSlowModes.put(Mode.EXPERIMENTAL, new ExperimentalNoSlow());
     }
 
     @EventHook

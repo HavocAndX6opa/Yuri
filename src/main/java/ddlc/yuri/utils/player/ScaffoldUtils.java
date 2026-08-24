@@ -249,6 +249,47 @@ public final class ScaffoldUtils {
         }
     }
 
+    public static float[] predictionHypixelRotations(BlockPos blockFace, EnumFacingOffset enumFacing, ScaffoldModule.SearchAlgorithm algorithm) {
+        float[] target = new float[2];
+        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{0, 0}, algorithm, true);
+        float originalYaw = target[0];
+        float originalPitch = target[1];
+
+        float directionalOffset = 0.0f;
+        if (mc.thePlayer != null) {
+            int horizontalFacingIndex = mc.thePlayer.getHorizontalFacing().getHorizontalIndex();
+            directionalOffset = horizontalFacingIndex * 90.0f;
+        }
+
+        float bestYaw = originalYaw;
+        float bestPitch = originalPitch;
+        boolean foundValid = false;
+
+        for (int i = 0; i < 20; i++) {
+            float randomYawOffset = (float) ((Math.random() - 0.5) * 10.0f); // ±5 degrees
+            float randomPitchOffset = (float) ((Math.random() - 0.5) * 6.0f); // ±3 degrees
+
+            float testYaw = originalYaw + 2.5f + randomYawOffset + (directionalOffset % 45.0f != 0 ? 0 : 0);
+            float testPitch = MathHelper.clamp_float(originalPitch + randomPitchOffset, -90.0f, 90.0f);
+
+            Vector2f testRotation = new Vector2f(testYaw, testPitch);
+
+            if (RayCastUtils.overBlock(testRotation, enumFacing.getEnumFacing(), blockFace, true)) {
+                bestYaw = testYaw;
+                bestPitch = testPitch;
+                foundValid = true;
+                break;
+            }
+        }
+
+        if (!foundValid) {
+            bestYaw = originalYaw - 20.0f;
+            bestPitch = originalPitch;
+        }
+
+        return new float[]{bestYaw, bestPitch};
+    }
+
     public static Vec3 computeHitVec(BlockPos blockFace, EnumFacingOffset enumFacing) {
         Vec3 hitVec = new Vec3(
                 blockFace.getX() + Math.random(),
