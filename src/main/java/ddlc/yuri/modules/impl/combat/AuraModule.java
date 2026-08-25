@@ -16,6 +16,7 @@ import ddlc.yuri.managers.impl.*;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.modules.impl.movement.SprintModule;
 import ddlc.yuri.modules.impl.player.ScaffoldModule;
 import ddlc.yuri.utils.client.LoggingUtils;
 import ddlc.yuri.utils.client.MathUtils;
@@ -27,11 +28,8 @@ import ddlc.yuri.utils.player.packet.PacketUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
-import net.minecraft.network.play.client.C0BPacketEntityAction;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -71,6 +69,7 @@ public class AuraModule extends Module {
     public static final ModeProperty<MoveFix> fix = new ModeProperty<>("Move Fix", MoveFix.SILENT);
     public static final Property<Boolean> sprint = new Property<>("Keep Sprint", false);
     public static final Property<Boolean> hypixelSprint = new Property<>("Hypixel Keep Sprint", false, sprint::getValue);
+    public static final NumberProperty hypixelSprintSlowdown = new NumberProperty("Keep Sprint Slowdown", 40, 0, 100, 1, () -> hypixelSprint.getValue() && sprint.getValue());
     public static final Property<Boolean> targetEsp = new Property<>("Target ESP", true);
     public static final Property<Boolean> astolfoPentagram = new Property<>("Astolfo Pentagram", true);
     public static final Property<Boolean> autoDisable = new Property<>("Auto Disable", true);
@@ -115,7 +114,6 @@ public class AuraModule extends Module {
         NCP("NCP"),
         LEGIT("Legit"),
         HYPIXEL("Hypixel"),
-        HYPIXEL_DUAL_SWORD("Hypixel 2 Sword"),
         NONE("None");
 
         public final String name;
@@ -141,7 +139,12 @@ public class AuraModule extends Module {
     private EntityLivingBase lastTarget;
     private Vec3 smoothedBodyPoint;
 
-    private int dualSwordSlot = -1;
+    private static long b = 51037348104702L;
+    private int predictionState = 0; // 0 = idle, 1 = sprint disabling, 2 = sprint enabling
+    private int predictionTickCounter = 0;
+    private boolean predictionHitRegistered = false;
+    private static final double PREDICTION_SLOWDOWN = 0.4;
+
     private boolean hypixelWillBlock = false;
     private int hypixelHoldTicks = 0;
     private int hypixelGapTicks = 0;
@@ -156,6 +159,8 @@ public class AuraModule extends Module {
             return;
         }
 
+        predictionHitRegistered = false;
+
         TargetManager.setTargets(targets.getValue());
         getTarget();
 
@@ -163,7 +168,12 @@ public class AuraModule extends Module {
             target = null;
             unblock();
             canAttack = true;
+            resetPredictionState();
             return;
+        }
+
+        if (hypixelSprint.getValue()) {
+            handlePredictionSprint();
         }
 
         calculateRotations();
@@ -191,6 +201,18 @@ public class AuraModule extends Module {
 
         if (target == null) return;
 
+        if (hypixelSprint.getValue() && mc.thePlayer.isSprinting()) {
+            double slowdownFactor = hypixelSprintSlowdown.getValue() / 100.0;
+            if (predictionState == 1 || predictionState == 2) {
+                mc.thePlayer.motionX = mc.thePlayer.motionX * (1.0 - PREDICTION_SLOWDOWN * slowdownFactor);
+                mc.thePlayer.motionZ = mc.thePlayer.motionZ * (1.0 - PREDICTION_SLOWDOWN * slowdownFactor);
+
+                if (hypixelSprintSlowdown.getValue() == 60) {
+                    mc.thePlayer.setSprinting(false);
+                }
+            }
+        }
+
         if (ab.getValue() == AutoBlock.NCP) {
             if (!autoBlocking && InvUtils.isHoldingSword() && mc.thePlayer.getDistanceToEntity(target) <= blockRange.getValue()) {
                 PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
@@ -202,11 +224,26 @@ public class AuraModule extends Module {
     @EventHook
     public void onHitSlowDown(HitSlowDownEvent e) {
         hitSlow = true;
+
         if (sprint.getValue() && !hypixelSprint.getValue()) {
             e.setSprint(true);
             e.setSlowDown(1.0);
         }
+
+        if (hypixelSprint.getValue()) {
+            if (!predictionHitRegistered) {
+                if (mc.thePlayer.isSprinting()) {
+                    predictionState = 1; // Disable sprint
+                    predictionTickCounter = 0;
+                } else {
+                    predictionState = 2; // Enable sprint
+                    predictionTickCounter = 0;
+                }
+                predictionHitRegistered = true;
+            }
+        }
     }
+
 
     @EventHook
     public void onWorldJoin(WorldJoinEvent e) {
@@ -224,14 +261,7 @@ public class AuraModule extends Module {
 
     @EventHook
     public void onPacketSend(PacketSendEvent event) {
-        if (event.getPacket() instanceof C0BPacketEntityAction) {
-            C0BPacketEntityAction packet = (C0BPacketEntityAction) event.getPacket();
 
-            if (packet.getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING && hitSlow && mc.thePlayer.isSprinting() && sprint.getValue() && hypixelSprint.getValue()) {
-                event.setCancelled(true);
-                PacketUtils.sendSilentPacket(packet);
-            }
-        }
     }
 
     private void calculateRotations() {
@@ -266,7 +296,7 @@ public class AuraModule extends Module {
         if (smoothedBodyPoint == null) {
             smoothedBodyPoint = desired;
         } else {
-            double ease = MathUtils.getRandom(0.0, 0.0);
+            double ease;
             ease = bodyEase.getValue();
             smoothedBodyPoint = new Vec3(
                     smoothedBodyPoint.xCoord + (desired.xCoord - smoothedBodyPoint.xCoord) * ease,
@@ -279,18 +309,6 @@ public class AuraModule extends Module {
         float[] rot = RotationUtils.getRotationsTo(eyePos, smoothedBodyPoint);
 
         return new Vector2f(rot[0], rot[1]);
-    }
-
-    private int findDualSwordSlot() {
-        int current = mc.thePlayer.inventory.currentItem;
-        for (int i = 0; i < 9; i++) {
-            if (i == current) continue;
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() instanceof ItemSword) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private void autoblock() {
@@ -329,22 +347,6 @@ public class AuraModule extends Module {
                 if (autoBlocking) {
                     PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
                     autoBlocking = false;
-                }
-                break;
-            case HYPIXEL_DUAL_SWORD:
-                if (!autoBlocking) {
-                    dualSwordSlot = findDualSwordSlot();
-                    if (dualSwordSlot != -1 && !SlotManager.isActive()) {
-                        SlotManager.swap(dualSwordSlot, true);
-                    }
-                }
-                if (dualSwordSlot != -1) {
-                    PacketUtils.sendPacket(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
-                    autoBlocking = true;
-                    canAttack = false;
-                } else {
-                    autoBlocking = false;
-                    canAttack = true;
                 }
                 break;
             case HYPIXEL:
@@ -389,16 +391,6 @@ public class AuraModule extends Module {
 
         if (ab.getValue() == AutoBlock.LEGIT && mc.gameSettings.keyBindUseItem.isKeyDown()) {
             mc.gameSettings.keyBindUseItem.setPressed(false);
-            autoBlocking = false;
-            canAttack = true;
-            return;
-        }
-
-        if (ab.getValue() == AutoBlock.HYPIXEL_DUAL_SWORD) {
-            if (SlotManager.isActive()) {
-                SlotManager.swapBack();
-            }
-            dualSwordSlot = -1;
             autoBlocking = false;
             canAttack = true;
             return;
@@ -457,17 +449,71 @@ public class AuraModule extends Module {
         return returnVal;
     }
 
+    private void handlePredictionSprint() {
+        if (mc.thePlayer == null) return;
+
+        if (predictionState == 1) {
+            mc.thePlayer.setSprinting(false);
+            predictionTickCounter++;
+            if (predictionTickCounter > 5) {
+                predictionState = 2;
+                predictionTickCounter = 0;
+            }
+        } else if (predictionState == 2) {
+            // Enable sprint phase
+            if (mc.thePlayer.isUsingItem()) {
+                if (Yuri.INSTANCE.getModuleManager().getModule(SprintModule.class).isEnabled()) {
+                    mc.thePlayer.setSprinting(true);
+                }
+            } else {
+                mc.thePlayer.setSprinting(true);
+            }
+            predictionState = 0;
+            predictionTickCounter = 0;
+        }
+    }
+
+    private void resetPredictionState() {
+        predictionState = 0;
+        predictionTickCounter = 0;
+        predictionHitRegistered = false;
+    }
+
+    private void resetCombatState() {
+        if (autoBlocking) {
+            unblock();
+        } else {
+            canAttack = true;
+        }
+        if (SlotManager.isActive()) {
+            SlotManager.swapBack();
+        }
+        target = null;
+        lastTarget = null;
+        smoothedBodyPoint = null;
+        hitSlow = false;
+        hypixelWillBlock = false;
+        hypixelHoldTicks = 0;
+        hypixelGapTicks = 0;
+        hypixelTicks = 0;
+        RotationLearnerManager.resetSmoothing();
+        delay = 0;
+        blockTicks = -1;
+        attackTimer.reset();
+        resetPredictionState();
+    }
+
     @Override
     public void onEnable() {
         delay = (long) (1000.0 / getCPS());
         canAttack = true;
         autoBlocking = false;
         blockTicks = -1;
-        dualSwordSlot = -1;
         hypixelWillBlock = false;
         hypixelHoldTicks = 0;
         hypixelGapTicks = 0;
         hypixelTicks = 0;
+        resetPredictionState();
         TargetManager.configure(Arrays.asList(targets.getValues()));
         attackTimer.reset();
         if (rotations.getValue() == Rotations.ML) {
@@ -496,30 +542,6 @@ public class AuraModule extends Module {
     public void onDisable() {
         resetCombatState();
         super.onDisable();
-    }
-
-    private void resetCombatState() {
-        if (autoBlocking) {
-            unblock();
-        } else {
-            canAttack = true;
-        }
-        if (SlotManager.isActive()) {
-            SlotManager.swapBack();
-        }
-        target = null;
-        lastTarget = null;
-        smoothedBodyPoint = null;
-        hitSlow = false;
-        dualSwordSlot = -1;
-        hypixelWillBlock = false;
-        hypixelHoldTicks = 0;
-        hypixelGapTicks = 0;
-        hypixelTicks = 0;
-        RotationLearnerManager.resetSmoothing();
-        delay = 0;
-        blockTicks = -1;
-        attackTimer.reset();
     }
 
     private void getTarget() {
