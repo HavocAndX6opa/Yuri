@@ -36,6 +36,13 @@ public final class ModuleManager {
 
     public void postInit() {
         getModules().forEach(Module::resetPropertyValues);
+
+        for (final Module module : getModules()) {
+            ModuleInfo info = module.getClass().getAnnotation(ModuleInfo.class);
+            if (info != null && info.enabledByDefault() && !module.isEnabled()) {
+                module.setEnabled(true);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

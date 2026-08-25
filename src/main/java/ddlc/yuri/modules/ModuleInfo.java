@@ -16,4 +16,6 @@ public @interface ModuleInfo {
     ModuleCategory category();
 
     String description() default "";
+
+    boolean enabledByDefault() default false;
 }
