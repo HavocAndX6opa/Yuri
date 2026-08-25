@@ -13,6 +13,7 @@ import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.MultiModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.managers.impl.*;
+import ddlc.yuri.managers.impl.PolarRotationManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
@@ -65,6 +66,11 @@ public class AuraModule extends Module {
     private final NumberProperty maxRotSpeed = new NumberProperty("Max Rotation Speed", 7, 0, 10, 0.5f);
     private final NumberProperty bodyEase = new NumberProperty("Body Ease", 0.2, 0.01, 1.0, 0.01, () -> rotations.getValue() == Rotations.ML);
     private final NumberProperty mlEase = new NumberProperty("ML Ease", 0.2, 0.01, 1.0, 0.01, () -> rotations.getValue() == Rotations.ML);
+    public static final Property<Boolean> advancedPolar = new Property<>("Advanced Polar", false, () -> rotations.getValue() == Rotations.POLAR);
+    private static final NumberProperty polarNoiseScale = new NumberProperty("Noise Scale", 2.0, 0.5, 8.0, 0.1, () -> rotations.getValue() == Rotations.POLAR && advancedPolar.getValue());
+    private static final NumberProperty polarWarpStrength = new NumberProperty("Warp Strength", 1.5, 0.1, 5.0, 0.1, () -> rotations.getValue() == Rotations.POLAR && advancedPolar.getValue());
+    private static final NumberProperty polarNoiseOctaves = new NumberProperty("Noise Octaves", 3, 1, 6, 1, () -> rotations.getValue() == Rotations.POLAR && advancedPolar.getValue());
+    private static final NumberProperty polarFlickChance = new NumberProperty("Flick Chance", 50.0, 0.0, 100.0, 1.0, () -> rotations.getValue() == Rotations.POLAR);
     public static final Property<Boolean> rayCast = new Property<>("Ray Cast", true);
     public static final ModeProperty<MoveFix> fix = new ModeProperty<>("Move Fix", MoveFix.SILENT);
     public static final Property<Boolean> sprint = new Property<>("Keep Sprint", false);
@@ -94,6 +100,7 @@ public class AuraModule extends Module {
     public enum Rotations {
         NORMAL("Normal"),
         ML("ML"),
+        POLAR("Polar"),
         NONE("None");
 
         public final String name;
@@ -225,6 +232,10 @@ public class AuraModule extends Module {
     public void onHitSlowDown(HitSlowDownEvent e) {
         hitSlow = true;
 
+        if (rotations.getValue() == Rotations.POLAR) {
+            PolarRotationManager.triggerFlick(polarFlickChance.getValue().floatValue());
+        }
+
         if (sprint.getValue() && !hypixelSprint.getValue()) {
             e.setSprint(true);
             e.setSlowDown(1.0);
@@ -270,13 +281,26 @@ public class AuraModule extends Module {
         if (target != lastTarget) {
             smoothedBodyPoint = null;
             RotationLearnerManager.resetSmoothing();
+            PolarRotationManager.reset();
             lastTarget = target;
         }
 
         float rotSpeed = (float) MathUtils.getRandom(minRotSpeed.getValue(), maxRotSpeed.getValue());
         Vector2f rotation;
 
-        if (rotations.getValue() == Rotations.ML && RotationLearnerManager.hasModelLoaded()) {
+        if (rotations.getValue() == Rotations.POLAR) {
+            rotation = PolarRotationManager.getPolarRotation(
+                    target,
+                    polarNoiseScale.getValue(),
+                    polarWarpStrength.getValue(),
+                    polarNoiseOctaves.getValue().intValue(),
+                    polarFlickChance.getValue().floatValue(),
+                    seekRange.getValue()
+            );
+            if (rotation == null) {
+                rotation = RotationUtils.calculate(target, false, seekRange.getValue());
+            }
+        } else if (rotations.getValue() == Rotations.ML && RotationLearnerManager.hasModelLoaded()) {
             rotation = RotationLearnerManager.humanize(getWholeBodyRotation(target), 1.0f, mlEase.getValue().floatValue());
         } else {
             rotation = RotationUtils.calculate(target, false, seekRange.getValue());
@@ -497,6 +521,7 @@ public class AuraModule extends Module {
         hypixelGapTicks = 0;
         hypixelTicks = 0;
         RotationLearnerManager.resetSmoothing();
+        PolarRotationManager.reset();
         delay = 0;
         blockTicks = -1;
         attackTimer.reset();
