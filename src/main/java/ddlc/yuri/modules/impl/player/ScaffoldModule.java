@@ -48,7 +48,7 @@ public final class ScaffoldModule extends Module {
         This usually fixes itself after 10 mins (on server or not) after your VL levels reset.
     */
 
-    private final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NORMAL);
+    public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NORMAL);
     public final Property<Boolean> hypixelTelly = new Property<>("Hypixel Telly", false, () -> mode.getValue() == Mode.TELLY);
     private final NumberProperty tellyStraightTicks = new NumberProperty("Telly Straight Ticks", 6, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final NumberProperty tellyDiagonalTicks = new NumberProperty("Telly Diagonal Ticks", 4, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
@@ -275,7 +275,11 @@ public final class ScaffoldModule extends Module {
             }
 
             if (swapMode.getValue() == SwapMode.CLIENT || swapMode.getValue() == SwapMode.SERVER) {
-                SlotManager.swap(blockSlot, swapMode.getValue() == SwapMode.SERVER && rayCast.getValue() != RayCast.STRICT);
+                if (rayCast.getValue() == RayCast.STRICT) {
+                    SlotManager.swap(blockSlot, false);
+                } else {
+                    SlotManager.swap(blockSlot, swapMode.getValue() == SwapMode.SERVER);
+                }
             }
 
             if (ScaffoldUtils.doesNotContainBlock(offset, 1) && (!sameY ||
@@ -346,7 +350,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks <= 2) {
+            if (mc.thePlayer.offGroundTicks == 1) {
                 tellyNoPlace = false;
             }
         }
@@ -585,29 +589,26 @@ public final class ScaffoldModule extends Module {
                 break;
 
             case TELLY:
-                if (recursion == 0) {
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = 6.0f;
+                            rotSpeed = 10.0f;
+                            target[0] = mc.thePlayer.rotationYaw;
+                            target[1] = mc.thePlayer.rotationPitch;
                         } else {
                             rotSpeed = 10.0f;
+                            target[0] = mc.thePlayer.rotationYaw;
+                            target[1] = MathUtils.getRandomInt(-90, 90);
                         }
-                        target[0] = mc.thePlayer.rotationYaw;
-                        target[1] = mc.thePlayer.rotationPitch;
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
+                        if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
+                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
+                                    searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
+                        }
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = isDiagonal() ? 2.0f : 1.8f;
-                            target[0] = ScaffoldUtils.predictionHypixelRotations(blockFace, enumFacing, searchAlgorithm.getValue())[0];
-                            target[1] = ScaffoldUtils.predictionHypixelRotations(blockFace, enumFacing, searchAlgorithm.getValue())[1];
-                        } else {
-                            if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                                ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
-                                        searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
-                            }
+                            rotSpeed = 6.0f;
                         }
                     }
-                }
                 break;
         }
 
@@ -628,6 +629,54 @@ public final class ScaffoldModule extends Module {
         if (rotSpeed != 0 && blockFace != null && enumFacing != null) {
             RotationManager.setRotations(new Vector2f(targetYaw, targetPitch), rotSpeed, movementFix);
         }
+    }
+
+    private float computeMaxSafeYawOffset(float baseYaw, float pitch, float maxOffset) {
+        if (targetBlock == null || enumFacing == null || enumFacing.getEnumFacing() == null) return 0f;
+
+        BlockPos placePos = new BlockPos(targetBlock.xCoord, targetBlock.yCoord, targetBlock.zCoord);
+        EnumFacing side = enumFacing.getEnumFacing();
+        boolean strict = rayCast.getValue() == RayCast.STRICT;
+
+        if (rotationHitsBlock(baseYaw + maxOffset, pitch, placePos, side, strict)) {
+            return maxOffset;
+        }
+
+        float low = 0f;
+        float high = maxOffset;
+        float best = 0f;
+
+        for (int i = 0; i < 12; i++) {
+            float mid = (low + high) / 2f;
+            if (rotationHitsBlock(baseYaw + mid, pitch, placePos, side, strict)) {
+                best = mid;
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+
+        return best;
+    }
+
+    private boolean rotationHitsBlock(float yaw, float pitch, BlockPos placePos, EnumFacing side, boolean strict) {
+        Vec3 eye = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
+
+        double yawRad = Math.toRadians(yaw);
+        double pitchRad = Math.toRadians(pitch);
+        double dirX = -Math.sin(yawRad) * Math.cos(pitchRad);
+        double dirY = -Math.sin(pitchRad);
+        double dirZ = Math.cos(yawRad) * Math.cos(pitchRad);
+
+        double reach = strict ? 4.0 : mc.playerController.getBlockReachDistance();
+        Vec3 end = eye.addVector(dirX * reach, dirY * reach, dirZ * reach);
+
+        MovingObjectPosition result = mc.theWorld.rayTraceBlocks(eye, end, false, !strict, false);
+
+        return result != null
+                && result.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && result.getBlockPos().equals(placePos)
+                && result.sideHit == side;
     }
 
     private void place(ItemStack blockStack) {

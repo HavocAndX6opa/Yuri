@@ -25,20 +25,12 @@ public class RotationManager {
     private static Function<Vector2f, Boolean> raycast;
     private static float randomAngle;
     private static final Vector2f offset = new Vector2f(0, 0);
-    private static float lastYawDelta = 0;
-
-    private static boolean releasing;
-    private static float transitionProgress = 1f;
-    // 1 = snap, 0.5 = half of that, 0.25 = quarter of that, etc. -lumie
-    private static float transitionSpeed = 1.0f;
-    private static Vector2f transitionStart;
-    private static Vector2f releaseTarget;
 
     // added more call methods so it's easier to call. that's what I wanted with completely making my own rotation manager tbh, but I just pasted simp.
 
     // also quick note you can call any of these, and it sets rotations so it's up to you which is easier to call.
 
-    // yours truly, lumie :3
+    // yours truly, unlegit :3
 
     public static void setRotations(final float yaw, final float pitch, final double rotationSpeed, final MovementFix correctMovement, final Function<Vector2f, Boolean> raycast) {
         setRotations(new Vector2f(yaw, pitch), rotationSpeed, correctMovement, raycast);
@@ -65,25 +57,9 @@ public class RotationManager {
         RotationManager.rotationSpeed = rotationSpeed * 36;
         RotationManager.correctMovement = correctMovement;
         RotationManager.raycast = raycast;
-
-        if (!active) {
-            lastRotations = new Vector2f(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
-            lastYawDelta = 0;
-            transitionStart = new Vector2f(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
-            transitionProgress = 0f;
-            releasing = false;
-        }
-
         active = true;
+
         smooth();
-    }
-
-    public static float getRotationYaw() {
-        return rotations != null ? rotations.x : mc.thePlayer.rotationYaw;
-    }
-
-    public static float getRotationPitch() {
-        return rotations != null ? rotations.y : mc.thePlayer.rotationPitch;
     }
 
     @EventHook(value = EventPriority.HIGH)
@@ -92,14 +68,19 @@ public class RotationManager {
             rotations = lastRotations = targetRotations = lastServerRotations = new Vector2f(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
         }
 
-        if (releasing) {
-            release();
-        } else if (active) {
+        if (active) {
             smooth();
+        }
+
+        if (correctMovement == MovementFix.BACKWARDS_SPRINT && active) {
+            if (Math.abs(rotations.x % 360 - Math.toDegrees(MoveUtils.direction()) % 360) > 45) {
+                mc.gameSettings.keyBindSprint.setPressed(false);
+                mc.thePlayer.setSprinting(false);
+            }
         }
     }
 
-    @EventHook(value = EventPriority.LOW)
+    @EventHook(value = EventPriority.VERY_HIGH)
     public void onMove(MoveEvent event) {
         if (active && correctMovement == MovementFix.NORMAL && rotations != null) {
             final float yaw = rotations.x;
@@ -107,30 +88,31 @@ public class RotationManager {
         }
     }
 
-    @EventHook(value = EventPriority.VERY_LOW)
+
+    @EventHook(value = EventPriority.HIGH)
     public void onLook(LookEvent event) {
         if (active && rotations != null) {
             event.setRotation(rotations);
         }
     }
 
-    @EventHook(value = EventPriority.VERY_LOW)
+    @EventHook(value = EventPriority.HIGH)
     public void onStrafe(StrafeEvent event) {
         if (active && (correctMovement == MovementFix.NORMAL || correctMovement == MovementFix.TRADITIONAL) && rotations != null) {
             event.setYaw(rotations.x);
         }
     }
 
-    @EventHook(value = EventPriority.VERY_LOW)
+    @EventHook(value = EventPriority.HIGH)
     public void onJump(JumpEvent event) {
-        if (active && (correctMovement == MovementFix.NORMAL || correctMovement == MovementFix.TRADITIONAL) && rotations != null) {
+        if (active && (correctMovement == MovementFix.NORMAL || correctMovement == MovementFix.TRADITIONAL || correctMovement == MovementFix.BACKWARDS_SPRINT) && rotations != null) {
             event.setYaw(rotations.x);
         }
     }
 
-    @EventHook(value = EventPriority.VERY_LOW)
+    @EventHook(value = EventPriority.HIGH)
     public void onMotion(MotionEvent event) {
-        if(!event.isPre()) return;
+        if (!event.isPre()) return;
         if (active && rotations != null) {
             final float yaw = rotations.x;
             final float pitch = rotations.y;
@@ -143,11 +125,10 @@ public class RotationManager {
 
             lastServerRotations = new Vector2f(yaw, pitch);
 
-            if (!releasing && Math.abs((rotations.x - mc.thePlayer.rotationYaw) % 360) < 1 && Math.abs((rotations.y - mc.thePlayer.rotationPitch)) < 1) {
-                releasing = true;
-                transitionProgress = 0f;
-                transitionStart = rotations;
-                releaseTarget = RotationUtils.resetRotation(RotationUtils.applySensitivityPatch(rotations, lastRotations));
+            if (Math.abs((rotations.x - mc.thePlayer.rotationYaw) % 360) < 1 && Math.abs((rotations.y - mc.thePlayer.rotationPitch)) < 1) {
+                active = false;
+
+                this.correctDisabledRotations();
             }
 
             lastRotations = rotations;
@@ -157,22 +138,15 @@ public class RotationManager {
 
         targetRotations = new Vector2f(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
         smoothed = false;
-        lastYawDelta = 0;
-    };
+    }
 
-    private void release() {
-        transitionProgress = Math.min(1f, transitionProgress + transitionSpeed);
+    private void correctDisabledRotations() {
+        final Vector2f rotations = new Vector2f(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+        final Vector2f fixedRotations = RotationUtils.resetRotation(RotationUtils.applySensitivityPatch(rotations, lastRotations));
 
-        float yaw = transitionStart.x + MathHelper.wrapAngleTo180_float(releaseTarget.x - transitionStart.x) * transitionProgress;
-        float pitch = transitionStart.y + (releaseTarget.y - transitionStart.y) * transitionProgress;
-
-        rotations = new Vector2f(yaw, pitch);
-        lastRotations = rotations;
-
-        if (transitionProgress >= 1f) {
-            active = false;
-            releasing = false;
-        }
+        float yawDelta = MathHelper.wrapAngleTo180_float(fixedRotations.x - mc.thePlayer.rotationYaw);
+        mc.thePlayer.rotationYaw = mc.thePlayer.rotationYaw + yawDelta;
+        mc.thePlayer.rotationPitch = fixedRotations.y;
     }
 
     public static void smooth() {
@@ -214,28 +188,11 @@ public class RotationManager {
                 }
             }
 
-            float yawDelta = MathHelper.wrapAngleTo180_float(targetYaw - lastRotations.x);
-
-            float maxDelta = 30f;
-            if (Math.abs(lastYawDelta) < 30 && Math.abs(yawDelta) > 320) {
-                yawDelta = Math.signum(yawDelta) * maxDelta;
-            }
-
-            targetYaw = lastRotations.x + yawDelta;
+            // Normalize target yaw to prevent 360-degree jumps
+            targetYaw = lastRotations.x + MathHelper.wrapAngleTo180_float(targetYaw - lastRotations.x);
 
             rotations = RotationUtils.smooth(new Vector2f(targetYaw, targetPitch),
                     rotationSpeed + Math.random());
-
-            if (transitionProgress < 1f) {
-                transitionProgress = Math.min(1f, transitionProgress + transitionSpeed);
-
-                float easedYaw = transitionStart.x + MathHelper.wrapAngleTo180_float(rotations.x - transitionStart.x) * transitionProgress;
-                float easedPitch = transitionStart.y + (rotations.y - transitionStart.y) * transitionProgress;
-
-                rotations = new Vector2f(easedYaw, easedPitch);
-            }
-
-            lastYawDelta = MathHelper.wrapAngleTo180_float(rotations.x - lastRotations.x);
 
             if (correctMovement == MovementFix.NORMAL || correctMovement == MovementFix.TRADITIONAL) {
                 mc.thePlayer.movementYaw = rotations.x;
@@ -245,6 +202,10 @@ public class RotationManager {
         }
 
         smoothed = true;
+
+        /*
+         * Updating MouseOver
+         */
         mc.entityRenderer.getMouseOver(1);
     }
 
