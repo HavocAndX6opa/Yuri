@@ -1051,8 +1051,6 @@ public class GuiIngame extends Gui {
             maxWidth = Math.max(maxWidth, width);
         }
 
-        maxWidth += useMcFont ? 0 : 12;
-
         int fontHeight = (useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight());
         int scoreCount = displayedScores.size();
 
