@@ -17,6 +17,7 @@ public class ManagerWrapper {
     private static BreakerWhitelistManager breakerWhitelistManager;
     private static ProgressBarManager progressBarManager;
     private static BadPacketsManager badPacketsManager;
+    private static SessionStatsManager sessionStatsManager;
 
     public static void init() {
         rotationManager = new RotationManager();
@@ -31,6 +32,9 @@ public class ManagerWrapper {
         breakerWhitelistManager = new BreakerWhitelistManager();
         progressBarManager = new ProgressBarManager();
         badPacketsManager = new BadPacketsManager();
+        // Last, so a stat feed can never delay anything the client needs, and
+        // after the module manager exists - its constructor publishes once.
+        sessionStatsManager = new SessionStatsManager();
     }
 
     public static void subscribe(EventBus eventBus) {
@@ -45,5 +49,8 @@ public class ManagerWrapper {
         eventBus.subscribe(badPacketsManager);
         eventBus.subscribe(breakerWhitelistManager);
         eventBus.subscribe(progressBarManager);
+        // Never unsubscribed, which is the whole point: kills, deaths and wins
+        // now count whether or not the Session Info overlay is switched on.
+        eventBus.subscribe(sessionStatsManager);
     }
 }

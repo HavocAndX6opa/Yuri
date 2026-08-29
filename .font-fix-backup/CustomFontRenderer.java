@@ -143,11 +143,6 @@ public class CustomFontRenderer extends CustomFont {
             return 0.0F;
         }
 
-        if (tex == null) {
-            // atlas failed to build - fall back to the vanilla renderer instead of crashing
-            return Minecraft.getMinecraft().fontRendererObj.drawString(text, (float) x, (float) y, color, shadow);
-        }
-
         if (color == 553648127) {
             color = 16777215;
         }
@@ -174,14 +169,13 @@ public class CustomFontRenderer extends CustomFont {
 
         if (render) {
             GL11.glPushMatrix();
-            try {
-                GlStateManager.scale(0.5D, 0.5D, 0.5D);
-                GlStateManager.enableBlend();
-                GlStateManager.blendFunc(770, 771);
-                GlStateManager.color((color >> 16 & 0xFF) / 255.0F, (color >> 8 & 0xFF) / 255.0F, (color & 0xFF) / 255.0F, alpha);
-                int size = text.length();
-                GlStateManager.enableTexture2D();
-                GlStateManager.bindTexture(tex.getGlTextureId());
+            GlStateManager.scale(0.5D, 0.5D, 0.5D);
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(770, 771);
+            GlStateManager.color((color >> 16 & 0xFF) / 255.0F, (color >> 8 & 0xFF) / 255.0F, (color & 0xFF) / 255.0F, alpha);
+            int size = text.length();
+            GlStateManager.enableTexture2D();
+            GlStateManager.bindTexture(tex.getGlTextureId());
 
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, tex.getGlTextureId());
 
@@ -298,9 +292,7 @@ public class CustomFontRenderer extends CustomFont {
             }
 
             GL11.glHint(GL11.GL_POLYGON_SMOOTH_HINT, GL11.GL_DONT_CARE);
-            } finally {
-                GL11.glPopMatrix();
-            }
+            GL11.glPopMatrix();
         }
 
         return (float) x / 2.0F;
