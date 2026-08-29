@@ -26,6 +26,10 @@ public class MicrosoftOAuthTranslation {
 
     static ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    public static boolean isRefreshToken(String token) {
+        return token != null && token.startsWith("M.C");
+    }
+
     public static class LoginData {
         public String mcToken;
         public String newRefreshToken;
@@ -47,6 +51,9 @@ public class MicrosoftOAuthTranslation {
     }
 
     private static final String CLIENT_ID = "9fbc7315-7200-4b2b-a655-bb38c865da17", CLIENT_SECRET = "Bzn8Q~YryydJsydgnnxHgJq.NM3Oo4.AEEohLbBb";
+    private static final String XBOX_CLIENT_ID = "00000000402b5328";
+    private static final String XBOX_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf";
+    private static final String XBOX_SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";
     private static final int PORT = 8247;
 
     private static HttpServer server;
@@ -98,36 +105,36 @@ public class MicrosoftOAuthTranslation {
     static Gson gson = new Gson();
 
     public static LoginData login(String refreshToken) {
-        AuthTokenResponse res = gson.fromJson(
-                NetworkUtils.postExternal("https://login.live.com/oauth20_token.srf", "client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&refresh_token=" + refreshToken + "&grant_type=refresh_token&redirect_uri=http://localhost:" + PORT, false),
-                AuthTokenResponse.class
-        );
+        if (refreshToken == null || refreshToken.isEmpty()) return new LoginData();
 
-        if (res == null) return new LoginData();
+        AuthTokenResponse res = redeemRefreshToken(refreshToken);
+        if (res == null || res.access_token == null || res.access_token.isEmpty()) return new LoginData();
 
         String accessToken = res.access_token;
-        refreshToken = res.refresh_token;
+        String newRefreshToken = res.refresh_token != null ? res.refresh_token : refreshToken;
 
         XblXstsResponse xblRes = gson.fromJson(
                 NetworkUtils.postExternal("https://user.auth.xboxlive.com/user/authenticate",
-                        "{\"Properties\":{\"AuthMethod\":\"RPS\",\"SiteName\":\"user.auth.xboxlive.com\",\"RpsTicket\":\"d=" + accessToken + "\"},\"RelyingParty\":\"http://auth.xboxlive.com\",\"TokenType\":\"JWT\"}", true),
+                        "{\"Properties\":{\"AuthMethod\":\"RPS\",\"SiteName\":\"user.auth.xboxlive.com\",\"RpsTicket\":\"t=" + accessToken + "\"},\"RelyingParty\":\"http://auth.xboxlive.com\",\"TokenType\":\"JWT\"}", true),
                 XblXstsResponse.class);
 
-        if (xblRes == null) return new LoginData();
+        if (xblRes == null || xblRes.Token == null || xblRes.Token.isEmpty()) return new LoginData();
 
         XblXstsResponse xstsRes = gson.fromJson(
                 NetworkUtils.postExternal("https://xsts.auth.xboxlive.com/xsts/authorize",
                         "{\"Properties\":{\"SandboxId\":\"RETAIL\",\"UserTokens\":[\"" + xblRes.Token + "\"]},\"RelyingParty\":\"rp://api.minecraftservices.com/\",\"TokenType\":\"JWT\"}", true),
                 XblXstsResponse.class);
 
-        if (xstsRes == null) return new LoginData();
+        if (xstsRes == null || xstsRes.Token == null || xstsRes.Token.isEmpty()) return new LoginData();
+        if (xblRes.DisplayClaims == null || xblRes.DisplayClaims.xui == null || xblRes.DisplayClaims.xui.length == 0
+                || xblRes.DisplayClaims.xui[0].uhs == null || xblRes.DisplayClaims.xui[0].uhs.isEmpty()) return new LoginData();
 
         McResponse mcRes = gson.fromJson(
                 NetworkUtils.postExternal("https://api.minecraftservices.com/authentication/login_with_xbox",
                         "{\"identityToken\":\"XBL3.0 x=" + xblRes.DisplayClaims.xui[0].uhs + ";" + xstsRes.Token + "\"}", true),
                 McResponse.class);
 
-        if (mcRes == null) return new LoginData();
+        if (mcRes == null || mcRes.access_token == null || mcRes.access_token.isEmpty()) return new LoginData();
 
         GameOwnershipResponse gameOwnershipRes = gson.fromJson(
                 NetworkUtils.getBearerResponse("https://api.minecraftservices.com/entitlements/mcstore", mcRes.access_token),
@@ -139,9 +146,23 @@ public class MicrosoftOAuthTranslation {
                 NetworkUtils.getBearerResponse("https://api.minecraftservices.com/minecraft/profile", mcRes.access_token),
                 ProfileResponse.class);
 
-        if (profileRes == null) return new LoginData();
+        if (profileRes == null || profileRes.id == null || profileRes.id.isEmpty() || profileRes.name == null || profileRes.name.isEmpty()) return new LoginData();
 
-        return new LoginData(mcRes.access_token, refreshToken, profileRes.id, profileRes.name);
+        return new LoginData(mcRes.access_token, newRefreshToken, profileRes.id, profileRes.name);
+    }
+
+    private static AuthTokenResponse redeemRefreshToken(String refreshToken) {
+        AuthTokenResponse res = gson.fromJson(
+                NetworkUtils.postExternal("https://login.live.com/oauth20_token.srf",
+                        "client_id=" + XBOX_CLIENT_ID + "&grant_type=refresh_token&redirect_uri=" + XBOX_REDIRECT_URI + "&refresh_token=" + refreshToken + "&scope=" + XBOX_SCOPE, false),
+                AuthTokenResponse.class);
+
+        if (res != null && res.access_token != null && !res.access_token.isEmpty()) return res;
+
+        return gson.fromJson(
+                NetworkUtils.postExternal("https://login.live.com/oauth20_token.srf",
+                        "client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&refresh_token=" + refreshToken + "&grant_type=refresh_token&redirect_uri=http://localhost:" + PORT, false),
+                AuthTokenResponse.class);
     }
 
     private static void startServer() {

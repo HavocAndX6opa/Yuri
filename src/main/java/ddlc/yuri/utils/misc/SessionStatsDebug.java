@@ -1,7 +1,6 @@
 package ddlc.yuri.utils.misc;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.ChatComponentText;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -198,8 +197,8 @@ public final class SessionStatsDebug {
             if (mc == null || mc.thePlayer == null) {
                 return;
             }
-            mc.thePlayer.addChatMessage(new ChatComponentText(
-                    COLOUR + "d[Yuri] " + COLOUR + "f" + message));
+//            mc.thePlayer.addChatMessage(new ChatComponentText(
+//                    COLOUR + "d[Yuri] " + COLOUR + "f" + message));
         } catch (Throwable ignored) {
             // Chat is unavailable outside a world; the log file still has it.
         }

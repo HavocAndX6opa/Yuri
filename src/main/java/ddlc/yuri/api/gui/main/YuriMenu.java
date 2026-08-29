@@ -13,7 +13,7 @@ import net.minecraft.client.gui.*;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
-import java.awt.Color;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,7 +86,6 @@ public class YuriMenu extends GuiScreen {
         buttons.add(new MenuButton("Settings", () -> mc.displayGuiScreen(new GuiOptions(this, mc.gameSettings))));
         buttons.add(new MenuButton("Exit", () -> mc.shutdown()));
 
-        // Initialize Welcome Window
         float windowWidth = 250f;
         float windowHeight = 100f;
         float windowX = 12f;
@@ -119,7 +118,6 @@ public class YuriMenu extends GuiScreen {
 
         drawContent(w, h, mouseX, mouseY, center);
 
-        // Render Welcome Window if active
         if (welcomeWindow != null && !welcomeWindow.shouldWindowClose()) {
             welcomeWindow.render(mouseX, mouseY);
         }
@@ -132,7 +130,6 @@ public class YuriMenu extends GuiScreen {
         CustomFontRenderer font = FontUtils.getScaledFont("sf", 18, (float) sr.getScaleFactor() / 2f);
         if (font == null) return;
 
-        float cardWidth = 420f;
         float logoHeight = 128f;
         float logoGap = 20f;
         float lineHeight = font.getHeight();

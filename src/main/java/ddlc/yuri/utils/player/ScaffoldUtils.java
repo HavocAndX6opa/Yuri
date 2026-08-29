@@ -160,11 +160,7 @@ public final class ScaffoldUtils {
     }
 
 
-    public static void computeNormalRotations(BlockPos blockFace, EnumFacingOffset enumFacing,
-                                              float[] target, float[] drift,
-                                              ScaffoldModule.SearchAlgorithm algorithm,
-                                              boolean strict) {
-
+    public static void computeNormalRotations(BlockPos blockFace, EnumFacingOffset enumFacing, float[] target, ScaffoldModule.SearchAlgorithm algorithm, boolean strict) {
         if (ScaffoldModule.rotations.getValue() == ScaffoldModule.Rotations.OLD) {
             computeOldRotations(blockFace, enumFacing, target);
             return;
@@ -254,23 +250,29 @@ public final class ScaffoldUtils {
             }
         }
     }
-    public static void computeOldRotations(BlockPos blockFace, EnumFacingOffset enumFacing, float[] target) {
-        Vec3 hitVec = computeHitVec(blockFace, enumFacing);
-        final double xDif = hitVec.xCoord - mc.thePlayer.posX;
-        final double zDif = hitVec.zCoord - mc.thePlayer.posZ;
 
-        final double yDif = hitVec.yCoord - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+    public static void computeOldRotations(BlockPos blockFace, EnumFacingOffset enumFacing, float[] target) {
+        double x = blockFace.getX() + 0.5;
+        double y = blockFace.getY() + 0.5;
+        double z = blockFace.getZ() + 0.5;
+
+        switch (enumFacing.getEnumFacing()) {
+            case DOWN:  y = blockFace.getY(); break;
+            case UP:    y = blockFace.getY() + 1.0; break;
+            case NORTH: z = blockFace.getZ(); break;
+            case EAST:  x = blockFace.getX() + 1.0; break;
+            case SOUTH: z = blockFace.getZ() + 1.0; break;
+            case WEST:  x = blockFace.getX(); break;
+        }
+
+        final double xDif = x - mc.thePlayer.posX;
+        final double zDif = z - mc.thePlayer.posZ;
+        final double yDif = y - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
         final double xzDist = StrictMath.sqrt(xDif * xDif + zDif * zDif);
 
-        float[] rots = new float[]{
-                (float) (StrictMath.atan2(zDif, xDif) * 180.0D / StrictMath.PI) - 90.0F,
-                (float) (-(StrictMath.atan2(yDif, xzDist) * 180.0D / StrictMath.PI))
-        };
-
-        target[0] = rots[0];
-        target[1] = rots[1];
+        target[0] = (float) (StrictMath.atan2(zDif, xDif) * 180.0D / StrictMath.PI) - 90.0F;
+        target[1] = (float) (-(StrictMath.atan2(yDif, xzDist) * 180.0D / StrictMath.PI));
     }
-
 
     public static Vec3 computeHitVec(BlockPos blockFace, EnumFacingOffset enumFacing) {
         Vec3 hitVec = new Vec3(
@@ -315,7 +317,7 @@ public final class ScaffoldUtils {
         return count;
     }
 
-    public static void renderBlockCounter(String counterMode, float alpha, int blockCount) {
+    public static void renderBlockCounter(Enum<?> counterMode, float alpha, int blockCount) {
         ScaledResolution sr = new ScaledResolution(mc);
         int centerX = sr.getScaledWidth() / 2;
         int textWidth = FontUtils.getFont("sf", 14).getStringWidth(String.valueOf(blockCount) + EnumChatFormatting.WHITE + " blocks");
@@ -325,7 +327,7 @@ public final class ScaffoldUtils {
         Color accent = ColorManager.getColor();
         int accentAlpha = RenderUtils.applyOpacity(accent.getRGB(), alpha);
 
-        if (counterMode.equals("Simple")) {
+        if (counterMode == ScaffoldModule.BlockCounter.SIMPLE) {
             FontUtils.getFont("sf", 14).drawStringWithShadow(
                     String.valueOf(blockCount) + EnumChatFormatting.WHITE + " blocks", textX, textY, accentAlpha);
         }

@@ -10,7 +10,6 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class CustomFont
 {
 
@@ -231,7 +230,8 @@ public class CustomFont
             else if (!isBase && ink[1] - ink[0] + 1 <= symbolMaxInkHeight)
             {
                 // small standalone symbol: center its ink on the game font's line
-                charData.glyphTop = (ink[0] + ink[1]) / 2 - baseInkCenter;
+                // (subtracting 1 or 2 pixels shifts the symbol slightly upward)
+                charData.glyphTop = ((ink[0] + ink[1]) / 2 - baseInkCenter) + 12;
             }
             else
             {

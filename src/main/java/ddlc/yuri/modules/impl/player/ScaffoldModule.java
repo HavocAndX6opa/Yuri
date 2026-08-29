@@ -175,7 +175,7 @@ public final class ScaffoldModule extends Module {
     private EnumFacingOffset enumFacing;
     public Vec3i offset = new Vec3i(0, 0, 0);
     private BlockPos blockFace;
-    private float targetYaw, targetPitch, yawDrift, pitchDrift;
+    private float targetYaw, targetPitch;
     @Getter
     @Setter
     private int ticksOnAir;
@@ -184,8 +184,6 @@ public final class ScaffoldModule extends Module {
     private int directionalChange;
     private int blockCount;
     private float rotSpeed;
-    private boolean overrided;
-    public int recursions, recursion;
     private boolean stop;
     private int blocksPlaced;
     private float counterAlpha = 0f;
@@ -193,13 +191,6 @@ public final class ScaffoldModule extends Module {
     private int initialBlockCount;
     private ProgressBarEntry barEntry;
     private boolean tellyNoPlace;
-
-    @EventHook
-    public void onMotion(MotionEvent event) {
-        if (!isEnabled()) return;
-        if (!event.isPre()) return;
-        this.offset = new Vec3i(0, 0, 0);
-    }
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
@@ -227,10 +218,7 @@ public final class ScaffoldModule extends Module {
             startY = Math.floor(mc.thePlayer.posY);
         }
 
-        for (recursion = 0; recursion <= recursions; recursion++) {
-            if (!overrided) {
-                this.rotSpeed = (float) MathUtils.getRandom(this.minRotationSpeed.getValue(), this.maxRotationSpeed.getValue());
-            }
+        this.rotSpeed = (float) MathUtils.getRandom(this.minRotationSpeed.getValue(), this.maxRotationSpeed.getValue());
 
             if (expand.getValue().intValue() != 0) {
                 double direction = MoveUtils.direction(mc.thePlayer.rotationYaw,
@@ -314,7 +302,42 @@ public final class ScaffoldModule extends Module {
                 this.place(blockStack);
                 ticksOnAir = 0;
             }
+    }
+
+    @EventHook
+    public void onMotion(MotionEvent event) {
+        if (!isEnabled()) return;
+        if (!event.isPre()) return;
+        this.offset = new Vec3i(0, 0, 0);
+    }
+
+    @EventHook
+    public void onStrafe(StrafeEvent event) {
+        if (!isEnabled()) return;
+        if (!mc.gameSettings.keyBindJump.isPressed()) {
+            this.jump();
+            if (mode.getValue() == Mode.GOD_BRIDGE && !autoJump.getValue()) {
+                if (blocksPlaced >= 8) {
+                    if (mc.thePlayer.onGround) mc.thePlayer.jump();
+                    blocksPlaced = 0;
+                }
+            }
         }
+    }
+
+    @EventHook
+    public void onMove(MoveEvent event) {
+        if (!isEnabled()) return;
+        if (stop) {
+            event.setForward(0);
+            event.setStrafe(0);
+            event.setJump(false);
+        }
+    }
+
+    @EventHook
+    public void onRender2D(Render2DEvent event) {
+        renderBlockCounter();
     }
 
     private void tellyLogic() {
@@ -351,126 +374,6 @@ public final class ScaffoldModule extends Module {
         return delta > 20 && delta < 70;
     }
 
-    @EventHook
-    public void onStrafe(StrafeEvent event) {
-        if (!isEnabled()) return;
-        if (!mc.gameSettings.keyBindJump.isPressed()) {
-            this.jump();
-            if (mode.getValue() == Mode.GOD_BRIDGE && !autoJump.getValue()) {
-                if (blocksPlaced >= 8) {
-                    if (mc.thePlayer.onGround) mc.thePlayer.jump();
-                    blocksPlaced = 0;
-                }
-            }
-        }
-    }
-
-    @EventHook
-    public void onMove(MoveEvent event) {
-        if (!isEnabled()) return;
-        if (stop) {
-            event.setForward(0);
-            event.setStrafe(0);
-            event.setJump(false);
-        }
-    }
-
-    @EventHook
-    public void onRender2D(Render2DEvent event) {
-        renderBlockCounter();
-    }
-
-    @Override
-    public void onEnable() {
-        if (mc.thePlayer != null) {
-            counterAlpha = 0f;
-            targetYaw = mc.thePlayer.rotationYaw - 180;
-            targetPitch = 90;
-            pitchDrift = (float) ((Math.random() - 0.5) * (Math.random() - 0.5) * 10);
-            yawDrift = (float) ((Math.random() - 0.5) * (Math.random() - 0.5) * 10);
-            startY = Math.floor(mc.thePlayer.posY);
-            targetBlock = null;
-            overrided = false;
-            recursions = 0;
-            tellyNoPlace = false;
-            this.initialBlockCount = ScaffoldUtils.countBlocks();
-        }
-        lastRenderTime = -1L;
-        barEntry = null;
-        super.onEnable();
-    }
-
-    @Override
-    public void onDisable() {
-        if (mc.thePlayer != null) {
-            mc.thePlayer.safeWalk = false;
-            mc.timer.timerSpeed = 1.0f;
-            SlotManager.swapBack();
-            overrided = false;
-            stop = false;
-            blocksPlaced = 0;
-            blockCount = 0;
-            initialBlockCount = 0;
-            tellyNoPlace = false;
-        }
-        resetBinds();
-        ProgressBarManager.remove(barEntry);
-        barEntry = null;
-        super.onDisable();
-    }
-
-    private void renderBlockCounter() {
-        if (blockCounter.getValue() == BlockCounter.NONE) {
-            counterAlpha = 0f;
-            lastRenderTime = -1L;
-            ProgressBarManager.remove(barEntry);
-            barEntry = null;
-            return;
-        }
-
-        long now = System.currentTimeMillis();
-        float delta = lastRenderTime < 0 ? 0f : (now - lastRenderTime) / 1000f;
-        lastRenderTime = now;
-
-        counterAlpha += ((isEnabled() ? 1f : 0f) - counterAlpha) * Math.min(1f, 4f * delta);
-
-        if (counterAlpha < 0.01f) {
-            if (!isEnabled()) {
-                blockCount = 0;
-                ProgressBarManager.remove(barEntry);
-                barEntry = null;
-            }
-            return;
-        }
-
-        blockCount = ScaffoldUtils.countBlocks();
-
-        ScaledResolution sr = new ScaledResolution(mc);
-        float centerX = sr.getScaledWidth() / 2.0f;
-        float textY = sr.getScaledHeight() / 2.0f + 13;
-        float width = 80.0f;
-        float thickness = 2.5f;
-        float percentage = initialBlockCount > 0 ? Math.min(1.0f, (float) blockCount / initialBlockCount) : 0.0f;
-
-        String mode = blockCounter.getValue().name;
-        if (mode.equals("Bar")) {
-            float barY = textY;
-            if (barEntry == null) {
-                barEntry = ProgressBarManager.add(percentage, centerX, barY);
-                barEntry.setWidth(width);
-                barEntry.setThickness(thickness);
-            }
-            barEntry.setProgress(percentage);
-            barEntry.setX(centerX);
-            barEntry.setY(barY);
-        } else {
-            ProgressBarManager.remove(barEntry);
-            barEntry = null;
-        }
-
-        ScaffoldUtils.renderBlockCounter(mode, counterAlpha, blockCount);
-    }
-
     public void resetBinds() {
         resetBinds(true, true, true, true, true, true);
     }
@@ -499,7 +402,7 @@ public final class ScaffoldModule extends Module {
                 mc.entityRenderer.getMouseOver(1);
                 if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                     if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
+                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target,
                                 searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
                     }
                 }
@@ -508,20 +411,13 @@ public final class ScaffoldModule extends Module {
                 mc.entityRenderer.getMouseOver(1);
                 if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                     if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
+                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target,
                                 searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
                     }
                 }
                 directionalChange++;
                 if (Math.abs(MathHelper.wrapAngleTo180_double(target[0] - (RotationManager.lastServerRotations != null ? RotationManager.lastServerRotations.getX() : mc.thePlayer.rotationYaw))) > 10) {
                     directionalChange = (int) (Math.random() * 4);
-                    yawDrift = (float) (Math.random() - 0.5) / 10f;
-                    pitchDrift = (float) (Math.random() - 0.5) / 10f;
-                }
-
-                if (Math.random() > 0.99) {
-                    yawDrift = (float) (Math.random() - 0.5) / 10f;
-                    pitchDrift = (float) (Math.random() - 0.5) / 10f;
                 }
 
                 mc.gameSettings.keyBindSneak.setPressed(directionalChange <= 10);
@@ -533,12 +429,9 @@ public final class ScaffoldModule extends Module {
                         target[1] = 90;
                     } else {
                         target[0] = (float) ((Math.toDegrees(Math.atan2(
-                                enumFacing.getOffset().zCoord, enumFacing.getOffset().xCoord)) % 360) - 90) + yawDrift;
-                        target[1] = 80 + pitchDrift;
+                                enumFacing.getOffset().zCoord, enumFacing.getOffset().xCoord)) % 360) - 90);
+                        target[1] = 80;
                     }
-                } else if (Math.random() > 0.99 || targetPitch % 90 == 0) {
-                    yawDrift = (float) (Math.random() - 0.5);
-                    pitchDrift = (float) (Math.random() - 0.5);
                 }
 
                 if (mc.gameSettings.keyBindForward.isKeyDown() && !mc.gameSettings.keyBindJump.isKeyDown()) {
@@ -581,7 +474,7 @@ public final class ScaffoldModule extends Module {
                     mc.entityRenderer.getMouseOver(1);
                     if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = 10.0f;
+                            rotSpeed = 6.0f;
                             target[0] = mc.thePlayer.rotationYaw;
                             target[1] = mc.thePlayer.rotationPitch;
                         } else {
@@ -591,11 +484,11 @@ public final class ScaffoldModule extends Module {
                         }
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                         if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{yawDrift, pitchDrift},
+                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target,
                                     searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
                         }
                         if (hypixelTelly.getValue()) {
-                            rotSpeed = 6.0f;
+                            rotSpeed = 4.0f;
                         }
                     }
                 break;
@@ -634,10 +527,6 @@ public final class ScaffoldModule extends Module {
         }
         blocksPlaced++;
         delayTimer.reset();
-    }
-
-    public ModeProperty<SwapMode> getSwapMode() {
-        return swapMode;
     }
 
     public void jump() {
@@ -740,5 +629,90 @@ public final class ScaffoldModule extends Module {
                 }
                 break;
         }
+    }
+
+    private void renderBlockCounter() {
+        if (blockCounter.getValue() == BlockCounter.NONE) {
+            counterAlpha = 0f;
+            lastRenderTime = -1L;
+            ProgressBarManager.remove(barEntry);
+            barEntry = null;
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        float delta = lastRenderTime < 0 ? 0f : (now - lastRenderTime) / 1000f;
+        lastRenderTime = now;
+
+        counterAlpha += ((isEnabled() ? 1f : 0f) - counterAlpha) * Math.min(1f, 4f * delta);
+
+        if (counterAlpha < 0.01f) {
+            if (!isEnabled()) {
+                blockCount = 0;
+                ProgressBarManager.remove(barEntry);
+                barEntry = null;
+            }
+            return;
+        }
+
+        blockCount = ScaffoldUtils.countBlocks();
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        float centerX = sr.getScaledWidth() / 2.0f;
+        float textY = sr.getScaledHeight() / 2.0f + 13;
+        float width = 80.0f;
+        float thickness = 2.5f;
+        float percentage = initialBlockCount > 0 ? Math.min(1.0f, (float) blockCount / initialBlockCount) : 0.0f;
+
+        if (blockCounter.getValue() == BlockCounter.BAR) {
+            float barY = textY;
+            if (barEntry == null) {
+                barEntry = ProgressBarManager.add(percentage, centerX, barY);
+                barEntry.setWidth(width);
+                barEntry.setThickness(thickness);
+            }
+            barEntry.setProgress(percentage);
+            barEntry.setX(centerX);
+            barEntry.setY(barY);
+        } else {
+            ProgressBarManager.remove(barEntry);
+            barEntry = null;
+        }
+
+        ScaffoldUtils.renderBlockCounter(blockCounter.getValue(), counterAlpha, blockCount);
+    }
+
+    @Override
+    public void onEnable() {
+        if (mc.thePlayer != null) {
+            counterAlpha = 0f;
+            targetYaw = mc.thePlayer.rotationYaw - 180;
+            targetPitch = 90;
+            startY = Math.floor(mc.thePlayer.posY);
+            targetBlock = null;
+            tellyNoPlace = false;
+            this.initialBlockCount = ScaffoldUtils.countBlocks();
+        }
+        lastRenderTime = -1L;
+        barEntry = null;
+        super.onEnable();
+    }
+
+    @Override
+    public void onDisable() {
+        if (mc.thePlayer != null) {
+            mc.thePlayer.safeWalk = false;
+            mc.timer.timerSpeed = 1.0f;
+            SlotManager.swapBack();
+            stop = false;
+            blocksPlaced = 0;
+            blockCount = 0;
+            initialBlockCount = 0;
+            tellyNoPlace = false;
+        }
+        resetBinds();
+        ProgressBarManager.remove(barEntry);
+        barEntry = null;
+        super.onDisable();
     }
 }

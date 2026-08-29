@@ -29,8 +29,10 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,43 +41,41 @@ import java.util.Scanner;
 
 public class YuriAltMenu extends GuiScreen {
 
-    private static final Color BACKGROUND = new Color(16, 16, 19);
+    private static final Color BACKGROUND = new Color(14, 14, 17, 255);
     private static final Color BODY_COLOR = new Color(0, 0, 0, 130);
+    private static final Color DANGER = new Color(232, 90, 90);
     private static final ResourceLocation PLACEHOLDER_HEAD = new ResourceLocation("yuri/gui/steve.png");
     private static final String NUMBERS = "0123456789";
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final SecureRandom RANDOM_SOURCE = new SecureRandom();
-    private static final String MS_CLIENT_ID = "00000000402B5328";
 
     private static final float RADIUS = 6f;
     private static final int HEADER_HEIGHT = 44;
     private static final int PADDING = 12;
     private static final int FIELD_HEIGHT = 24;
-    private static final int BUTTON_HEIGHT = 26;
+    private static final int BUTTON_HEIGHT = 27;
     private static final int BUTTON_SPACING = 8;
+    private static final int SHADOW_OFFSET = 3;
     private static final int SCROLLBAR_WIDTH = 4;
     private static final int COLUMNS = 3;
-    private static final int ENTRY_PADDING = 6;
-    private static final int ENTRY_HEIGHT = 42;
+    private static final int ENTRY_PADDING = 7;
+    private static final int ENTRY_HEIGHT = 50;
     private static final float ADD_PANEL_RATIO = 0.34f;
-    private static final long ENTRANCE_DURATION_MS = 450L;
-    private static final float HOVER_LERP_SPEED = 0.25f;
 
     private final ArrayList<Integer> selectedAlts = new ArrayList<>();
     private final ArrayList<String> alts = new ArrayList<>();
     private final Map<String, ResourceLocation> headCache = new HashMap<>();
     private final Map<String, Boolean> headLoading = new HashMap<>();
     private final Map<String, Integer> headTries = new HashMap<>();
-    private final Map<String, Float> hoverProgress = new HashMap<>();
 
-    private CustomTextBox username, password, tokenField;
+    private CustomTextBox username, tokenField;
     private int scrollOffset = 0;
     private boolean draggingScrollbar = false;
     private int dragStartY;
     private int scrollStart;
     private String statusString = "Ready To Work!";
+    private boolean statusIsError = false;
     private boolean isLoggingIn = false;
-    private long openTimestamp;
 
     private int contentY, contentHeight;
     private int addX, addY, addWidth, addHeight;
@@ -100,24 +100,33 @@ public class YuriAltMenu extends GuiScreen {
 
         selectedAlts.clear();
         buttonList.clear();
-        hoverProgress.clear();
-        openTimestamp = System.currentTimeMillis();
 
         username = new CustomTextBox(0, 0, 0, FIELD_HEIGHT);
-        username.setPlaceholder("Username / Email");
-        password = new CustomTextBox(0, 0, 0, FIELD_HEIGHT);
-        password.setPlaceholder("Password");
+        username.setPlaceholder("Username");
 
         tokenField = new CustomTextBox(0, 0, 0, FIELD_HEIGHT);
-        tokenField.setPlaceholder("Session ID / Access Token");
+        tokenField.setPlaceholder("Access / Refresh Token");
 
         super.initGui();
     }
 
-    private void loadAltsFromFile() {
+    private File getYuriDir() {
         File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File file = new File(dir, "alts.txt");
         if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private void appendLine(String fileName, String line) {
+        File file = new File(getYuriDir(), fileName);
+        try (FileWriter fw = new FileWriter(file, true); PrintWriter out = new PrintWriter(fw)) {
+            out.println(line);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadAltsFromFile() {
+        File file = new File(getYuriDir(), "alts.txt");
         if (!file.exists()) {
             try {
                 file.createNewFile();
@@ -141,9 +150,7 @@ public class YuriAltMenu extends GuiScreen {
     }
 
     private void saveAltsToFile() {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File file = new File(dir, "alts.txt");
-
+        File file = new File(getYuriDir(), "alts.txt");
         try (PrintWriter out = new PrintWriter(file)) {
             for (String alt : alts) out.println(alt);
         } catch (IOException e) {
@@ -151,46 +158,16 @@ public class YuriAltMenu extends GuiScreen {
         }
     }
 
-    private static float easeOutQuint(float t) {
-        float inv = 1f - t;
-        return 1f - inv * inv * inv * inv * inv;
-    }
-
-    private static Color lerpColor(Color a, Color b, float t) {
-        t = Math.max(0f, Math.min(1f, t));
-        int r = a.getRed() + (int) ((b.getRed() - a.getRed()) * t);
-        int g = a.getGreen() + (int) ((b.getGreen() - a.getGreen()) * t);
-        int bl = a.getBlue() + (int) ((b.getBlue() - a.getBlue()) * t);
-        int al = a.getAlpha() + (int) ((b.getAlpha() - a.getAlpha()) * t);
-        return new Color(r, g, bl, al);
-    }
-
-    private float hoverStep(String key, boolean hovered) {
-        float current = hoverProgress.getOrDefault(key, 0f);
-        float target = hovered ? 1f : 0f;
-        current += (target - current) * HOVER_LERP_SPEED;
-        hoverProgress.put(key, current);
-        return current;
-    }
-
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        Gui.drawRect(0, 0, (int) width, (int) height, BACKGROUND.getRGB());
+        Gui.drawRect(0, 0, width, height, BACKGROUND.getRGB());
         MenuShaderBackground.get().render(width, height);
 
         computeLayout();
+
         drawHeader(mouseX, mouseY);
-
-        long elapsed = System.currentTimeMillis() - openTimestamp;
-        float t = Math.min(1f, elapsed / (float) ENTRANCE_DURATION_MS);
-        float eased = easeOutQuint(t);
-        float slideOffset = (1f - eased) * 24f;
-
-        GL11.glPushMatrix();
-        GL11.glTranslatef(0f, slideOffset, 0f);
         drawAddAccountPanel(mouseX, mouseY);
         drawAccountsPanel(mouseX, mouseY);
-        GL11.glPopMatrix();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -210,19 +187,14 @@ public class YuriAltMenu extends GuiScreen {
         accountsHeight = contentHeight;
 
         int fontHeight = FontUtils.getFont("sf", 18).getHeight();
-        int fieldsStartY = addY + PADDING + fontHeight + PADDING;
+        int fieldsStartY = addY + PADDING + fontHeight + PADDING + 6;
 
         username.xPosition = addX + PADDING;
         username.yPosition = fieldsStartY;
         username.setWidth(addWidth - PADDING * 2);
 
-        int passwordY = fieldsStartY + FIELD_HEIGHT + BUTTON_SPACING;
-        password.xPosition = addX + PADDING;
-        password.yPosition = passwordY;
-        password.setWidth(addWidth - PADDING * 2);
-
         primaryButtonX = addX + PADDING;
-        primaryButtonY = passwordY + FIELD_HEIGHT + PADDING;
+        primaryButtonY = fieldsStartY + FIELD_HEIGHT + PADDING;
         primaryButtonWidth = addWidth - PADDING * 2;
 
         int secondaryWidth = (primaryButtonWidth - BUTTON_SPACING) / 2;
@@ -234,7 +206,7 @@ public class YuriAltMenu extends GuiScreen {
         generateButtonY = oauthButtonY;
         generateButtonWidth = secondaryWidth;
 
-        int tokenFieldY = oauthButtonY + BUTTON_HEIGHT + BUTTON_SPACING;
+        int tokenFieldY = oauthButtonY + BUTTON_HEIGHT + PADDING;
         tokenField.xPosition = addX + PADDING;
         tokenField.yPosition = tokenFieldY;
         tokenField.setWidth(addWidth - PADDING * 2);
@@ -243,12 +215,12 @@ public class YuriAltMenu extends GuiScreen {
         tokenButtonY = tokenFieldY + FIELD_HEIGHT + BUTTON_SPACING;
         tokenButtonWidth = addWidth - PADDING * 2;
 
-        statusY = tokenButtonY + BUTTON_HEIGHT + PADDING + 6;
+        statusY = tokenButtonY + BUTTON_HEIGHT + PADDING + 10;
         tipsY = statusY + fontHeight + PADDING * 2;
 
         backButtonWidth = FontUtils.getFont("sf", 18).getStringWidth("Back") + 8;
 
-        accountsDividerY = accountsY + PADDING + fontHeight + 8;
+        accountsDividerY = accountsY + PADDING + fontHeight + 10;
 
         gridListX = accountsX + PADDING;
         gridListY = accountsDividerY + PADDING;
@@ -264,16 +236,38 @@ public class YuriAltMenu extends GuiScreen {
         scrollbarHeight = gridListHeight;
     }
 
+    private void drawPanelShadow(int x, int y, int w, int h) {
+        RoundedUtils.drawRoundOutline(x + SHADOW_OFFSET, y + SHADOW_OFFSET, w, h, RADIUS, -0.5f,
+                RenderUtils.withAlphaColor(Color.BLACK, 90), RenderUtils.withAlphaColor(Color.BLACK, 0));
+    }
+
+    private void drawSectionHeader(int x, int y, String bold, String rest) {
+        Color accent = ColorManager.getColor();
+        Gui.drawRect(x, y + 1, x + 3, y + 15, accent.getRGB());
+
+        CustomFontRenderer boldFont = FontUtils.getFont("sf-bold", 18);
+        CustomFontRenderer regularFont = FontUtils.getFont("sf", 18);
+        int textX = x + 10;
+        boldFont.drawStringWithShadow(bold, textX, y, accent.getRGB());
+        regularFont.drawStringWithShadow(rest, textX + boldFont.getStringWidth(bold), y, Color.WHITE.getRGB());
+    }
+
     private void drawHeader(int mouseX, int mouseY) {
-        int accent = ColorManager.getColor().getRGB();
+        Color accent = ColorManager.getColor();
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
         int fontHeight = regular.getHeight();
 
-        boolean backHovered = isMouseOverButton(mouseX, mouseY, PADDING, 0, backButtonWidth, HEADER_HEIGHT);
-        float backProgress = hoverStep("back", backHovered);
-        Color backColor = lerpColor(Color.WHITE, ColorManager.getColor(), backProgress);
-        regular.drawStringWithShadow("Back", PADDING, (HEADER_HEIGHT - fontHeight) / 2, backColor.getRGB());
+        Gui.drawRect(0, HEADER_HEIGHT, width, HEADER_HEIGHT + 1, RenderUtils.withAlpha(Color.WHITE, 20));
+        int underlineWidth = 60;
+        Gui.drawRect(width / 2 - underlineWidth / 2, HEADER_HEIGHT, width / 2 + underlineWidth / 2, HEADER_HEIGHT + 2, accent.getRGB());
+
+        boolean backHovered = isMouseOverButton(mouseX, mouseY, PADDING - 6, 6, backButtonWidth + 12, HEADER_HEIGHT - 12);
+        if (backHovered) {
+            RoundedUtils.drawRoundOutline(PADDING - 6, 6, backButtonWidth + 12, HEADER_HEIGHT - 12, RADIUS, -0.5f,
+                    RenderUtils.withAlphaColor(Color.WHITE, 20), RenderUtils.withAlphaColor(Color.WHITE, 0));
+        }
+        regular.drawStringWithShadow("Back", PADDING, (HEADER_HEIGHT - fontHeight) / 2, backHovered ? accent.getRGB() : Color.WHITE.getRGB());
 
         String titleBold = "Y";
         String titleRest = new ChatComponentText("uri Account Manager").getFormattedText();
@@ -283,7 +277,7 @@ public class YuriAltMenu extends GuiScreen {
         float titleX = width / 2f - titleTotalWidth / 2f;
         float titleY = (HEADER_HEIGHT - fontHeight) / 2f;
 
-        bold.drawStringWithShadow(titleBold, titleX, titleY, accent);
+        bold.drawStringWithShadow(titleBold, titleX, titleY, accent.getRGB());
         regular.drawStringWithShadow(titleRest, titleX + titleBoldWidth, titleY, Color.WHITE.getRGB());
 
         String currentUser = Minecraft.getMinecraft().getSession().getUsername();
@@ -296,77 +290,98 @@ public class YuriAltMenu extends GuiScreen {
         int pillX = width - PADDING - pillWidth;
         int pillY = (HEADER_HEIGHT - pillHeight) / 2;
 
-        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
+        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, -0.5f, BODY_COLOR, RenderUtils.withAlphaColor(accent, 160));
         int dotX = pillX + pillPaddingX;
         int dotY = pillY + (pillHeight - dotSize) / 2;
-        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, accent, RenderUtils.withAlphaColor(Color.BLACK, 180));
         regular.drawString(pillLabel, dotX + dotSize + 6, pillY + (pillHeight - fontHeight) / 2f, Color.WHITE.getRGB());
     }
 
     private void drawAddAccountPanel(int mouseX, int mouseY) {
+        drawPanelShadow(addX, addY, addWidth, addHeight);
         RoundedUtils.drawRoundOutline(addX, addY, addWidth, addHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
 
-        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
-        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
-
-        String headerBold = "Add";
-        String headerRest = new ChatComponentText(" Account").getFormattedText();
-        bold.drawStringWithShadow(headerBold, addX + PADDING, addY + PADDING, ColorManager.getColor().getRGB());
-        regular.drawStringWithShadow(headerRest, addX + PADDING + bold.getStringWidth(headerBold), addY + PADDING, Color.WHITE.getRGB());
+        drawSectionHeader(addX + PADDING, addY + PADDING, "Add", new ChatComponentText(" Account").getFormattedText());
 
         username.drawTextBox();
-        password.drawTextBox();
 
-        drawSecondaryButton(primaryButtonX, primaryButtonY, primaryButtonWidth, "Login", mouseX, mouseY);
-        drawSecondaryButton(oauthButtonX, oauthButtonY, oauthButtonWidth, "Microsoft", mouseX, mouseY);
-        drawSecondaryButton(generateButtonX, generateButtonY, generateButtonWidth, "Generate Random Cracked Alt", mouseX, mouseY);
+        drawButton(primaryButtonX, primaryButtonY, primaryButtonWidth, "Login", mouseX, mouseY, true);
+        drawButton(oauthButtonX, oauthButtonY, oauthButtonWidth, "Microsoft", mouseX, mouseY, false);
+        drawButton(generateButtonX, generateButtonY, generateButtonWidth, "Generate Random", mouseX, mouseY, false);
 
         tokenField.drawTextBox();
-        drawSecondaryButton(tokenButtonX, tokenButtonY, tokenButtonWidth, "Login Via Token", mouseX, mouseY);
+        drawButton(tokenButtonX, tokenButtonY, tokenButtonWidth, "Login Via Token", mouseX, mouseY, false);
 
-        if (statusString != null) {
-            regular.drawCenteredStringWithShadow(statusString, addX + addWidth / 2f, statusY, 0xAAAAAA);
-        }
+        drawStatusPill();
 
-        Gui.drawRect(addX + PADDING, tipsY - 8, addX + addWidth - PADDING, tipsY - 7, RenderUtils.withAlpha(Color.WHITE, 25));
-        regular.drawString("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete", (float) regular.getStringWidth("Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete") / 3f + 4f, tipsY, 0x888888);
+        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
+        Gui.drawRect(addX + PADDING, tipsY - 10, addX + addWidth - PADDING, tipsY - 9, RenderUtils.withAlpha(Color.WHITE, 20));
+        String tips = "Alt+Click Select  \u00b7  Alt+A All  \u00b7  Alt+Backspace Delete";
+        float tipsX = addX + (addWidth - regular.getStringWidth(tips)) / 2f;
+        regular.drawString(tips, tipsX, tipsY, 0x777777);
     }
 
-    private void drawSecondaryButton(int x, int y, int w, String label, int mouseX, int mouseY) {
+    private void drawStatusPill() {
+        if (statusString == null || statusString.isEmpty()) return;
+
+        CustomFontRenderer regular = FontUtils.getFont("sf", 18);
+        Color tint = statusIsError ? DANGER : ColorManager.getColor();
+        int textWidth = regular.getStringWidth(statusString);
+        int pillWidth = textWidth + 20;
+        int pillHeight = 22;
+        int pillX = addX + (addWidth - pillWidth) / 2;
+        int pillY = statusY - pillHeight / 2;
+
+        RoundedUtils.drawRoundOutline(pillX, pillY, pillWidth, pillHeight, RADIUS, -0.5f,
+                RenderUtils.withAlphaColor(tint, 25), RenderUtils.withAlphaColor(tint, 130));
+        regular.drawCenteredStringWithShadow(statusString, addX + addWidth / 2f, pillY + (pillHeight - regular.getHeight()) / 2f, tint.getRGB());
+    }
+
+    private void drawButton(int x, int y, int w, String label, int mouseX, int mouseY, boolean primary) {
         boolean hovered = isMouseOverButton(mouseX, mouseY, x, y, w, BUTTON_HEIGHT);
         Color accent = ColorManager.getColor();
-        float progress = hoverStep(label, hovered);
 
-        Color baseOutline = RenderUtils.withAlphaColor(accent, 130);
-        Color outlineColor = lerpColor(baseOutline, accent, progress);
-        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, -0.5f, BODY_COLOR, outlineColor);
+        Color fill = primary
+                ? RenderUtils.withAlphaColor(accent, hovered ? 220 : 190)
+                : RenderUtils.withAlphaColor(accent, hovered ? 45 : 18);
+        Color outline = primary ? accent : (hovered ? accent : RenderUtils.withAlphaColor(accent, 130));
+
+        RoundedUtils.drawRoundOutline(x, y, w, BUTTON_HEIGHT, RADIUS, -0.5f, fill, outline);
 
         CustomFontRenderer font = FontUtils.getFont("sf", 18);
+        int textColor = primary ? Color.BLACK.getRGB() : (hovered ? accent.getRGB() : Color.WHITE.getRGB());
         int textX = x + (w - font.getStringWidth(label)) / 2;
         int textY = y + (BUTTON_HEIGHT - font.getHeight()) / 2;
-        Color textColor = lerpColor(Color.WHITE, accent, progress);
-        font.drawStringWithShadow(label, textX, textY, textColor.getRGB());
+        if (primary) font.drawString(label, textX, textY, textColor);
+        else font.drawStringWithShadow(label, textX, textY, textColor);
     }
 
     private void drawAccountsPanel(int mouseX, int mouseY) {
+        drawPanelShadow(accountsX, accountsY, accountsWidth, accountsHeight);
         RoundedUtils.drawRoundOutline(accountsX, accountsY, accountsWidth, accountsHeight, RADIUS, -0.5f, BODY_COLOR, ColorManager.getColor());
 
-        CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
         int fontHeight = regular.getHeight();
 
-        String headerBold = "Accounts";
-        String headerRest = new ChatComponentText(" (" + alts.size() + ")").getFormattedText();
-        bold.drawStringWithShadow(headerBold, accountsX + PADDING, accountsY + PADDING, ColorManager.getColor().getRGB());
-        regular.drawStringWithShadow(headerRest, accountsX + PADDING + bold.getStringWidth(headerBold), accountsY + PADDING, Color.WHITE.getRGB());
+        drawSectionHeader(accountsX + PADDING, accountsY + PADDING, "Accounts", new ChatComponentText(" (" + alts.size() + ")").getFormattedText());
 
-        Gui.drawRect(accountsX + PADDING, accountsDividerY, accountsX + accountsWidth - PADDING, accountsDividerY + 1, RenderUtils.withAlpha(Color.WHITE, 25));
+        if (!selectedAlts.isEmpty()) {
+            String selectedLabel = selectedAlts.size() + " Selected";
+            CustomFontRenderer small = FontUtils.getFont("sf", 18);
+            int labelWidth = small.getStringWidth(selectedLabel) + 16;
+            int labelX = accountsX + accountsWidth - PADDING - labelWidth;
+            RoundedUtils.drawRoundOutline(labelX, accountsY + PADDING - 2, labelWidth, 20, RADIUS, -0.5f,
+                    RenderUtils.withAlphaColor(ColorManager.getColor(), 30), RenderUtils.withAlphaColor(ColorManager.getColor(), 150));
+            small.drawCenteredStringWithShadow(selectedLabel, labelX + labelWidth / 2f, accountsY + PADDING, ColorManager.getColor().getRGB());
+        }
+
+        Gui.drawRect(accountsX + PADDING, accountsDividerY, accountsX + accountsWidth - PADDING, accountsDividerY + 1, RenderUtils.withAlpha(Color.WHITE, 20));
 
         if (alts.isEmpty()) {
             float centerX = gridListX + gridListWidth / 2f;
             float centerY = gridListY + gridListHeight / 2f - fontHeight;
             regular.drawCenteredStringWithShadow("No Accounts Yet", centerX, centerY, Color.WHITE.getRGB());
-            regular.drawCenteredStringWithShadow("Add One Using The Form On The Left", centerX, centerY + fontHeight + 4, 0xAAAAAA);
+            regular.drawCenteredStringWithShadow("Add One Using The Form On The Left", centerX, centerY + fontHeight + 4, 0x999999);
             return;
         }
 
@@ -387,7 +402,7 @@ public class YuriAltMenu extends GuiScreen {
                 String altName = parts.length > 1 ? parts[1] : "Unknown";
                 String uuid = (type.equals("token") && parts.length > 2) ? parts[2] : (premium ? altName : "");
 
-                drawAccountCell(x, y, gridCellWidth - ENTRY_PADDING, ENTRY_HEIGHT, altName, uuid, premium, altIndex, mouseX, mouseY);
+                drawAccountCell(x, y, gridCellWidth - ENTRY_PADDING, ENTRY_HEIGHT, altName, uuid, type, altIndex, mouseX, mouseY);
             }
         }
 
@@ -399,37 +414,54 @@ public class YuriAltMenu extends GuiScreen {
         int maxScroll = Math.max(0, totalRows - gridVisibleRows);
         int thumbHeight = Math.max(scrollbarHeight * gridVisibleRows / Math.max(1, totalRows), 20);
         int thumbY = scrollbarY + (scrollbarHeight - thumbHeight) * scrollOffset / Math.max(1, maxScroll);
+        boolean scrollbarHovered = mouseX >= scrollbarX - 2 && mouseX <= scrollbarX + SCROLLBAR_WIDTH + 2 && mouseY >= thumbY && mouseY <= thumbY + thumbHeight;
 
-        Gui.drawRect(scrollbarX, scrollbarY, scrollbarX + SCROLLBAR_WIDTH, scrollbarY + scrollbarHeight, RenderUtils.withAlpha(BODY_COLOR, 200));
-        Gui.drawRect(scrollbarX, thumbY, scrollbarX + SCROLLBAR_WIDTH, thumbY + thumbHeight, ColorManager.getColor().getRGB());
+        RoundedUtils.drawRoundOutline(scrollbarX, scrollbarY, SCROLLBAR_WIDTH, scrollbarHeight, SCROLLBAR_WIDTH / 2f, -0.5f,
+                RenderUtils.withAlphaColor(BODY_COLOR, 200), RenderUtils.withAlphaColor(Color.BLACK, 0));
+        RoundedUtils.drawRoundOutline(scrollbarX, thumbY, SCROLLBAR_WIDTH, thumbHeight, SCROLLBAR_WIDTH / 2f, -0.5f,
+                (draggingScrollbar || scrollbarHovered) ? ColorManager.getColor() : RenderUtils.withAlphaColor(ColorManager.getColor(), 170),
+                RenderUtils.withAlphaColor(Color.BLACK, 0));
 
         disableScissor();
     }
 
-    private void drawAccountCell(int x, int y, int w, int h, String text, String uuid, boolean premium, int index, int mouseX, int mouseY) {
+    private static String typeLabel(String type) {
+        switch (type) {
+            case "microsoftOAuth": return "Microsoft";
+            case "token": return "Token";
+            default: return "Cracked";
+        }
+    }
+
+    private void drawAccountCell(int x, int y, int w, int h, String text, String uuid, String type, int index, int mouseX, int mouseY) {
         boolean selected = selectedAlts.contains(index);
         boolean hovered = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
         Color accent = ColorManager.getColor();
-        float progress = hoverStep("cell-" + index, hovered && !selected);
 
-        Color baseOutline = RenderUtils.withAlphaColor(Color.WHITE, 25);
-        Color hoveredOutline = RenderUtils.withAlphaColor(accent, 150);
-        Color outline = selected ? accent : lerpColor(baseOutline, hoveredOutline, progress);
-        RoundedUtils.drawRoundOutline(x, y, w, h, RADIUS, selected ? 0.5f : -0.5f, BODY_COLOR, outline);
+        Color fill = selected ? RenderUtils.withAlphaColor(accent, 35) : BODY_COLOR;
+        Color outline = selected ? accent : (hovered ? RenderUtils.withAlphaColor(accent, 150) : RenderUtils.withAlphaColor(Color.WHITE, 25));
+        RoundedUtils.drawRoundOutline(x, y, w, h, RADIUS, selected ? 0.5f : -0.5f, fill, outline);
 
         loadHead(uuid);
         drawHead(x, y, uuid, h);
 
         int avatarSize = h - ENTRY_PADDING * 2;
+        boolean premium = type.equals("microsoftOAuth") || type.equals("token");
         int dotSize = 6;
         int dotX = x + ENTRY_PADDING + avatarSize - dotSize + 2;
         int dotY = y + ENTRY_PADDING + avatarSize - dotSize + 2;
-        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, ColorManager.getColor(), RenderUtils.withAlphaColor(Color.BLACK, 180));
+        Color dotColor = premium ? new Color(90, 210, 130) : new Color(150, 150, 150);
+        RoundedUtils.drawRoundOutline(dotX, dotY, dotSize, dotSize, 2.0f, -0.5f, dotColor, RenderUtils.withAlphaColor(Color.BLACK, 180));
 
         int textX = x + ENTRY_PADDING + avatarSize + ENTRY_PADDING;
-        CustomFontRenderer font = FontUtils.getFont("sf", 18);
-        Color textColor = selected ? accent : lerpColor(Color.WHITE, accent, progress * 0.6f);
-        font.drawString(text, textX, y + (h - font.getHeight()) / 2f, textColor.getRGB());
+        CustomFontRenderer nameFont = FontUtils.getFont("sf", 18);
+        CustomFontRenderer typeFont = FontUtils.getFont("sf", 14);
+        int blockHeight = nameFont.getHeight() + 3 + typeFont.getHeight();
+        int nameY = y + (h - blockHeight) / 2;
+        int typeY = nameY + nameFont.getHeight() + 3;
+
+        nameFont.drawString(text, textX, nameY, selected ? accent.getRGB() : Color.WHITE.getRGB());
+        typeFont.drawString(typeLabel(type), textX, typeY, dotColor.getRGB());
     }
 
     public void loadHead(String uuid) {
@@ -487,21 +519,24 @@ public class YuriAltMenu extends GuiScreen {
         return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
     }
 
+    private void setStatus(String message, boolean isError) {
+        statusString = message;
+        statusIsError = isError;
+    }
+
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         username.mouseClicked(mouseX, mouseY, mouseButton);
-        password.mouseClicked(mouseX, mouseY, mouseButton);
         tokenField.mouseClicked(mouseX, mouseY, mouseButton);
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
-        if (isMouseOverButton(mouseX, mouseY, PADDING, 0, backButtonWidth, HEADER_HEIGHT)) {
+        if (isMouseOverButton(mouseX, mouseY, PADDING - 6, 6, backButtonWidth + 12, HEADER_HEIGHT - 12)) {
             mc.displayGuiScreen(new YuriMenu());
             return;
         }
 
         if (!isLoggingIn && isMouseOverButton(mouseX, mouseY, primaryButtonX, primaryButtonY, primaryButtonWidth, BUTTON_HEIGHT)) {
-            if (password.getText().isEmpty()) handleCrackedLogin(username.getText());
-            else handleMicrosoftPasswordLogin();
+            handleCrackedLogin(username.getText());
             return;
         }
 
@@ -547,232 +582,128 @@ public class YuriAltMenu extends GuiScreen {
         String[] parts = alt.split("\\|");
         if (alt.startsWith("cracked|")) {
             SessionChanger.getInstance().setUserOffline(parts[1]);
+            setStatus("Logged In With " + parts[1] + "!", false);
         } else if (alt.startsWith("microsoftOAuth|")) {
             String user = parts[1];
             String refreshToken = loadRefreshToken(user);
             if (refreshToken != null) {
                 MicrosoftOAuthTranslation.LoginData login = MicrosoftOAuthTranslation.login(refreshToken);
                 mc.setSession(new Session(login.username, login.uuid, login.mcToken, "microsoft"));
+                setStatus("Logged In With " + login.username + "!", false);
+            } else {
+                setStatus("No Stored Token For " + user + "!", true);
             }
         } else if (alt.startsWith("token|")) {
             if (parts.length >= 4) {
                 mc.setSession(new Session(parts[1], parts[2], parts[3], "mojang"));
+                setStatus("Logged In With " + parts[1] + "!", false);
             }
         }
-    }
-
-    private static String postForm(String urlStr, Map<String, String> params) throws IOException {
-        StringBuilder body = new StringBuilder();
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (body.length() > 0) body.append('&');
-            body.append(URLEncoder.encode(entry.getKey(), "UTF-8")).append('=').append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-        }
-        return sendRequest(urlStr, "application/x-www-form-urlencoded", body.toString());
-    }
-
-    private static String postJson(String urlStr, String jsonBody) throws IOException {
-        return sendRequest(urlStr, "application/json", jsonBody);
-    }
-
-    private static String sendRequest(String urlStr, String contentType, String body) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", contentType);
-        conn.setRequestProperty("Accept", "application/json");
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-
-        int code = conn.getResponseCode();
-        StringBuilder response = new StringBuilder();
-        try (Scanner scanner = new Scanner(code == 200 ? conn.getInputStream() : conn.getErrorStream(), "UTF-8")) {
-            while (scanner.hasNextLine()) response.append(scanner.nextLine());
-        }
-
-        if (code != 200) throw new IOException("HTTP " + code + ": " + response);
-        return response.toString();
-    }
-
-    private static String[] fetchMinecraftProfile(String accessToken) throws IOException {
-        URL profUrl = new URL("https://api.minecraftservices.com/minecraft/profile");
-        HttpURLConnection profConn = (HttpURLConnection) profUrl.openConnection();
-        profConn.setRequestMethod("GET");
-        profConn.setRequestProperty("Authorization", "Bearer " + accessToken);
-
-        int responseCode = profConn.getResponseCode();
-        StringBuilder profRespStr = new StringBuilder();
-        try (Scanner profScan = new Scanner(responseCode == 200 ? profConn.getInputStream() : profConn.getErrorStream(), "UTF-8")) {
-            while (profScan.hasNextLine()) profRespStr.append(profScan.nextLine());
-        }
-
-        if (responseCode != 200) throw new IOException("HTTP " + responseCode + ": " + profRespStr);
-
-        JsonObject profileRes = new JsonParser().parse(profRespStr.toString()).getAsJsonObject();
-        return new String[]{profileRes.get("name").getAsString(), profileRes.get("id").getAsString()};
-    }
-
-    private static String refreshMicrosoftToken(String refreshToken) throws IOException {
-        Map<String, String> params = new HashMap<>();
-        params.put("client_id", MS_CLIENT_ID);
-        params.put("grant_type", "refresh_token");
-        params.put("refresh_token", refreshToken);
-        params.put("scope", "service::user.auth.xboxlive.com::MBI_SSL");
-
-        String resp = postForm("https://login.live.com/oauth20_token.srf", params);
-        return new JsonParser().parse(resp).getAsJsonObject().get("access_token").getAsString();
-    }
-
-    private static String passwordGrantMicrosoftToken(String emailOrUsername, String pass) throws IOException {
-        Map<String, String> params = new HashMap<>();
-        params.put("client_id", MS_CLIENT_ID);
-        params.put("grant_type", "password");
-        params.put("username", emailOrUsername);
-        params.put("password", pass);
-        params.put("scope", "service::user.auth.xboxlive.com::MBI_SSL");
-
-        String resp = postForm("https://login.live.com/oauth20_token.srf", params);
-        return new JsonParser().parse(resp).getAsJsonObject().get("access_token").getAsString();
-    }
-
-    private static String microsoftToMinecraft(String msAccessToken) throws IOException {
-        String xblResp = postJson(
-                "https://user.auth.xboxlive.com/user/authenticate",
-                "{\"Properties\":{\"AuthMethod\":\"RPS\",\"SiteName\":\"user.auth.xboxlive.com\",\"RpsTicket\":\"d=" + msAccessToken + "\"},\"RelyingParty\":\"http://auth.xboxlive.com\",\"TokenType\":\"JWT\"}"
-        );
-        String xblToken = new JsonParser().parse(xblResp).getAsJsonObject().get("Token").getAsString();
-
-        String xstsResp = postJson(
-                "https://xsts.auth.xboxlive.com/xsts/authorize",
-                "{\"Properties\":{\"SandboxId\":\"RETAIL\",\"UserTokens\":[\"" + xblToken + "\"]},\"RelyingParty\":\"rp://api.minecraftservices.com/\",\"TokenType\":\"JWT\"}"
-        );
-        JsonObject xsts = new JsonParser().parse(xstsResp).getAsJsonObject();
-        String uhs = xsts.getAsJsonObject("DisplayClaims").getAsJsonArray("xui").get(0).getAsJsonObject().get("uhs").getAsString();
-        String xstsToken = xsts.get("Token").getAsString();
-
-        String mcResp = postJson(
-                "https://api.minecraftservices.com/authentication/login_with_xbox",
-                "{\"identityToken\":\"XBL3.0 x=" + uhs + ";" + xstsToken + "\"}"
-        );
-        return new JsonParser().parse(mcResp).getAsJsonObject().get("access_token").getAsString();
     }
 
     private void handleTokenLogin() {
         if (isLoggingIn) return;
         String rawToken = tokenField.getText().trim();
         if (rawToken.isEmpty()) {
-            statusString = "Enter A Token First!";
+            setStatus("Enter A Token First!", true);
             return;
         }
         isLoggingIn = true;
-        statusString = "Authenticating...";
+
+        if (MicrosoftOAuthTranslation.isRefreshToken(rawToken)) {
+            handleRefreshTokenLogin(rawToken);
+        } else {
+            handleAccessTokenLogin(rawToken);
+        }
+    }
+
+    private void handleRefreshTokenLogin(String refreshToken) {
+        setStatus("Authenticating Refresh Token...", false);
 
         new Thread(() -> {
             try {
-                String[] profile = fetchMinecraftProfile(rawToken);
+                MicrosoftOAuthTranslation.LoginData login = MicrosoftOAuthTranslation.login(refreshToken);
                 mc.addScheduledTask(() -> {
-                    mc.setSession(new Session(profile[0], profile[1], rawToken, "mojang"));
-                    saveTokenAltToFile(profile[0], profile[1], rawToken);
-                    tokenField.setText("");
-                    statusString = "Logged In Via Token As " + profile[0] + "!";
+                    if (login.isGood()) {
+                        mc.setSession(new Session(login.username, login.uuid, login.mcToken, "microsoft"));
+                        saveOAuthAltToFile(login.username, login.newRefreshToken != null ? login.newRefreshToken : refreshToken);
+                        tokenField.setText("");
+                        setStatus("Logged In Via Token As " + login.username + "!", false);
+                    } else {
+                        setStatus("Invalid Refresh Token!", true);
+                    }
                     isLoggingIn = false;
                 });
-            } catch (IOException directFail) {
-                try {
-                    statusString = "Refreshing Microsoft Token...";
-                    String msToken = refreshMicrosoftToken(rawToken);
-                    statusString = "Authenticating With Xbox Live...";
-                    String mcToken = microsoftToMinecraft(msToken);
-                    String[] profile = fetchMinecraftProfile(mcToken);
+            } catch (Exception e) {
+                e.printStackTrace();
+                mc.addScheduledTask(() -> {
+                    setStatus("Refresh Token Auth Failed!", true);
+                    isLoggingIn = false;
+                });
+            }
+        }, "Refresh Token Auth Worker").start();
+    }
 
+    private void handleAccessTokenLogin(String rawToken) {
+        setStatus("Authenticating Token...", false);
+
+        new Thread(() -> {
+            try {
+                URL profUrl = new URL("https://api.minecraftservices.com/minecraft/profile");
+                HttpURLConnection profConn = (HttpURLConnection) profUrl.openConnection();
+                profConn.setRequestMethod("GET");
+                profConn.setRequestProperty("Authorization", "Bearer " + rawToken);
+
+                int responseCode = profConn.getResponseCode();
+                if (responseCode != 200) {
                     mc.addScheduledTask(() -> {
-                        mc.setSession(new Session(profile[0], profile[1], mcToken, "mojang"));
-                        saveTokenAltToFile(profile[0], profile[1], mcToken);
-                        tokenField.setText("");
-                        statusString = "Logged In Via Token As " + profile[0] + "!";
+                        setStatus("Invalid Token! (HTTP " + responseCode + ")", true);
                         isLoggingIn = false;
                     });
-                } catch (Exception refreshFail) {
-                    mc.addScheduledTask(() -> {
-                        statusString = "Invalid Session ID / Token!";
-                        isLoggingIn = false;
-                    });
+                    return;
                 }
+
+                StringBuilder profRespStr = new StringBuilder();
+                try (Scanner profScan = new Scanner(profConn.getInputStream(), "UTF-8")) {
+                    while (profScan.hasNextLine()) profRespStr.append(profScan.nextLine());
+                }
+                JsonObject profileRes = new JsonParser().parse(profRespStr.toString()).getAsJsonObject();
+
+                String profileName = profileRes.get("name").getAsString();
+                String profileId = profileRes.get("id").getAsString();
+
+                mc.addScheduledTask(() -> {
+                    mc.setSession(new Session(profileName, profileId, rawToken, "mojang"));
+                    saveTokenAltToFile(profileName, profileId, rawToken);
+                    tokenField.setText("");
+                    setStatus("Logged In Via Token As " + profileName + "!", false);
+                    isLoggingIn = false;
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                mc.addScheduledTask(() -> {
+                    setStatus("Token Auth Failed!", true);
+                    isLoggingIn = false;
+                });
             }
         }, "Token Auth Worker").start();
     }
 
-    private void handleMicrosoftPasswordLogin() {
-        if (isLoggingIn) return;
-        String user = username.getText().trim();
-        String pass = password.getText();
-        if (user.isEmpty() || pass.isEmpty()) {
-            statusString = "Enter Email And Password!";
-            return;
-        }
-        isLoggingIn = true;
-        statusString = "Authenticating With Microsoft...";
-
-        new Thread(() -> {
-            try {
-                String msToken = passwordGrantMicrosoftToken(user, pass);
-                statusString = "Authenticating With Xbox Live...";
-                String mcToken = microsoftToMinecraft(msToken);
-                String[] profile = fetchMinecraftProfile(mcToken);
-
-                mc.addScheduledTask(() -> {
-                    mc.setSession(new Session(profile[0], profile[1], mcToken, "mojang"));
-                    saveTokenAltToFile(profile[0], profile[1], mcToken);
-                    clearTextBoxes();
-                    statusString = "Logged In As " + profile[0] + "!";
-                    isLoggingIn = false;
-                });
-            } catch (Exception e) {
-                mc.addScheduledTask(() -> {
-                    statusString = "Microsoft Login Failed!";
-                    isLoggingIn = false;
-                });
-            }
-        }, "Microsoft Password Auth").start();
-    }
-
     private void saveTokenAltToFile(String name, String uuid, String mcToken) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File file = new File(dir, "alts.txt");
-        if (!dir.exists()) dir.mkdirs();
-
-        try (FileWriter fw = new FileWriter(file, true); PrintWriter out = new PrintWriter(fw)) {
-            String entry = "token|" + name + "|" + uuid + "|" + mcToken;
-            out.println(entry);
-            alts.add(entry);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String entry = "token|" + name + "|" + uuid + "|" + mcToken;
+        appendLine("alts.txt", entry);
+        alts.add(entry);
     }
 
     private void saveOAuthAltToFile(String username, String refreshToken) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File altsFile = new File(dir, "alts.txt");
-        if (!dir.exists()) dir.mkdirs();
-
-        try (FileWriter fw = new FileWriter(altsFile, true); PrintWriter out = new PrintWriter(fw)) {
-            out.println("microsoftOAuth|" + username);
-            alts.add("microsoftOAuth|" + username);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        File tokensFile = new File(dir, "tokens.txt");
-        try (FileWriter fw = new FileWriter(tokensFile, true); PrintWriter out = new PrintWriter(fw)) {
-            out.println(username + "|" + TokenEncryption.encrypt(refreshToken));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String entry = "microsoftOAuth|" + username;
+        appendLine("alts.txt", entry);
+        alts.add(entry);
+        appendLine("tokens.txt", username + "|" + TokenEncryption.encrypt(refreshToken));
     }
 
     private String loadRefreshToken(String username) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File file = new File(dir, "tokens.txt");
+        File file = new File(getYuriDir(), "tokens.txt");
         if (!file.exists()) return null;
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
@@ -829,7 +760,7 @@ public class YuriAltMenu extends GuiScreen {
         mc.setSession(new Session(loginUsername, loginUsername, "0", "legacy"));
         saveCrackedToFile(loginUsername);
 
-        statusString = "Logged In With " + loginUsername + "!";
+        setStatus("Logged In With " + loginUsername + "!", false);
         clearTextBoxes();
         isLoggingIn = false;
     }
@@ -837,7 +768,7 @@ public class YuriAltMenu extends GuiScreen {
     private void handleOAuthLogin() {
         if (isLoggingIn) return;
         isLoggingIn = true;
-        statusString = "Awaiting Response For Microsoft Login...";
+        setStatus("Awaiting Response For Microsoft Login...", false);
 
         MicrosoftOAuthTranslation.getRefreshToken(refreshToken -> {
             try {
@@ -846,12 +777,12 @@ public class YuriAltMenu extends GuiScreen {
                     if (login.isGood()) {
                         mc.setSession(new Session(login.username, login.uuid, login.mcToken, "microsoft"));
                         saveOAuthAltToFile(login.username, login.newRefreshToken);
-                        statusString = "Logged In With " + login.username + "!";
+                        setStatus("Logged In With " + login.username + "!", false);
                     } else {
-                        statusString = "Failed To Login With Microsoft OAuth!";
+                        setStatus("Failed To Login With Microsoft OAuth!", true);
                     }
                 } else {
-                    statusString = "Failed To Get Refresh Token!";
+                    setStatus("Failed To Get Refresh Token!", true);
                 }
             } finally {
                 isLoggingIn = false;
@@ -860,15 +791,9 @@ public class YuriAltMenu extends GuiScreen {
     }
 
     private void saveCrackedToFile(String sessionUsername) {
-        File dir = new File(Minecraft.getMinecraft().mcDataDir, "Yuri");
-        File file = new File(dir, "alts.txt");
-
-        try (FileWriter fw = new FileWriter(file, true); PrintWriter out = new PrintWriter(fw)) {
-            out.println("cracked|" + sessionUsername);
-            alts.add("cracked|" + sessionUsername);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String entry = "cracked|" + sessionUsername;
+        appendLine("alts.txt", entry);
+        alts.add(entry);
     }
 
     public static String generateRandomString() {
@@ -880,7 +805,6 @@ public class YuriAltMenu extends GuiScreen {
 
     private void clearTextBoxes() {
         username.setText("");
-        password.setText("");
         tokenField.setText("");
     }
 
@@ -892,7 +816,6 @@ public class YuriAltMenu extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         username.keyTyped(typedChar, keyCode);
-        password.keyTyped(typedChar, keyCode);
         tokenField.keyTyped(typedChar, keyCode);
 
         if (tokenField.isFocused() && keyCode == Keyboard.KEY_RETURN) {

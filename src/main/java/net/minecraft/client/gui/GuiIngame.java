@@ -39,7 +39,6 @@ import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.src.Config;
 import net.minecraft.util.*;
 import net.minecraft.world.border.WorldBorder;
@@ -1013,15 +1012,12 @@ public class GuiIngame extends Gui {
         this.overlayPlayerList.resetFooterHeader();
     }
 
-    // Place these fields at the class level of your Scoreboard renderer class
-    private float arraylistOffsetAnim = 0f;
-    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
-
-    // hypixel decorates some sidebar lines with a soccer ball icon ("Starting in 3s⚽"
-    // or a standalone ball row) - strip it and hide rows that contain nothing else
     private static String stripSidebarDecorations(String text) {
         return text == null ? "" : text.replace("\u26BD", "");
     }
+
+    private float arraylistOffsetAnim = 0f;
+    private static final Color BG_COLOR = new Color(0, 0, 0, 130);
 
     public void renderCustomScoreboard(ScoreObjective scoreObjective, ScaledResolution resolution) {
         net.minecraft.scoreboard.Scoreboard scoreboard = scoreObjective.getScoreboard();
@@ -1032,37 +1028,12 @@ public class GuiIngame extends Gui {
         ScoreboardModule scoreboardModule = Yuri.INSTANCE.getModuleManager().getModule(ScoreboardModule.class);
         ModListModule hudModule = Yuri.INSTANCE.getModuleManager().getModule(ModListModule.class);
 
-        // scoreboard always renders with the custom font
-        boolean useMcFont = false;
+        boolean useMcFont = (scoreboardModule != null && !ScoreboardModule.customFont.getValue());
 
         List<Score> filteredScores = Lists.newArrayList(Iterables.filter(scores, new Predicate<Score>() {
             @Override
             public boolean apply(Score score) {
-                if (score.getPlayerName() == null || score.getPlayerName().startsWith("#")) {
-                    return false;
-                }
-
-                String raw = ScorePlayerTeam.formatPlayerName(scoreboard.getPlayersTeam(score.getPlayerName()), score.getPlayerName());
-                String visible = EnumChatFormatting.getTextWithoutFormattingCodes(stripSidebarDecorations(raw));
-
-                if (visible == null) {
-                    return true;
-                }
-
-                visible = visible.trim();
-
-                if (visible.isEmpty()) {
-                    // keep genuine spacer rows, hide rows that were decoration only
-                    return raw.trim().isEmpty();
-                }
-
-                for (int i = 0; i < visible.length(); i++) {
-                    if (Character.isLetterOrDigit(visible.charAt(i))) {
-                        return true;
-                    }
-                }
-
-                return false;
+                return score.getPlayerName() != null && !score.getPlayerName().startsWith("#");
             }
         }));
 
@@ -1083,7 +1054,7 @@ public class GuiIngame extends Gui {
             maxWidth = Math.max(maxWidth, width);
         }
 
-        int fontHeight = (useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight()) + 5;
+        int fontHeight = (useMcFont ? this.mc.fontRendererObj.FONT_HEIGHT : customFr.getHeight());
         int scoreCount = displayedScores.size();
 
         int totalBoardHeight = (scoreCount + 1) * fontHeight;

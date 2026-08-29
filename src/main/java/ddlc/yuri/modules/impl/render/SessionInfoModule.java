@@ -18,12 +18,6 @@ import net.minecraft.client.gui.ScaledResolution;
 
 import java.awt.*;
 
-/**
- * Draws the session HUD. It no longer counts anything: kills, deaths, wins and
- * the session clock all live in {@link SessionStatsManager}, which is subscribed
- * for the whole client run, so the overlay is now purely a view onto numbers
- * that keep moving whether or not this module is switched on.
- */
 @ModuleInfo(label = "Session Info", description = "Displays session information on the screen.", category = ModuleCategory.RENDER)
 public class SessionInfoModule extends Module implements IMinecraft {
 
@@ -66,9 +60,6 @@ public class SessionInfoModule extends Module implements IMinecraft {
 
     @Override
     public void onEnable() {
-        // Deliberately does not reset the counters any more. They belong to the
-        // client run now, so toggling the overlay mid-game no longer throws away
-        // the kills the launcher has already been shown.
         component.setWidth(0);
         component.setHeight(0);
     }
@@ -189,7 +180,6 @@ public class SessionInfoModule extends Module implements IMinecraft {
         String singleplayerText = "No stats to render.";
         String killsText = "You have " + SessionStatsManager.getKills() + " kills and "
                 + SessionStatsManager.getDeaths() + " deaths.";
-        String winsText = "You have won " + SessionStatsManager.getWins() + " games.";
         String timeText = "You have been playing for "
                 + formatTimeYuri(SessionStatsManager.getSessionMs()) + ".";
         String serverText = "Server: " + getServerName();
@@ -198,12 +188,11 @@ public class SessionInfoModule extends Module implements IMinecraft {
         float welcomeWidth = welcome.getStringWidth(welcomeText);
         float singleplayerWidth = body.getStringWidth(singleplayerText);
         float killsWidth = body.getStringWidth(killsText);
-        float winsWidth = body.getStringWidth(winsText);
         float timeWidth = body.getStringWidth(timeText);
         float serverWidth = body.getStringWidth(serverText);
 
         float contentWidth = Math.max(titleWidth, Math.max(welcomeWidth, Math.max(killsWidth,
-                Math.max(winsWidth, Math.max(timeWidth, serverWidth)))));
+                Math.max(timeWidth, serverWidth))));
         float width = Math.max(MIN_WIDTH, contentWidth + PADDING_X * 2);
 
         float titleHeight = title.getHeight();
@@ -216,7 +205,7 @@ public class SessionInfoModule extends Module implements IMinecraft {
         float gapKillsServer = 14f;
 
         float height = PADDING_Y * 2 + titleHeight + gapTitleWelcome + welcomeHeight + gapWelcomeKills
-                + lineHeight + gapLine + lineHeight + gapLine + lineHeight + gapKillsServer + lineHeight;
+                + lineHeight + gapLine + lineHeight + gapLine + lineHeight + gapKillsServer;
 
         component.setWidth(width);
         component.setHeight(height);
@@ -243,9 +232,6 @@ public class SessionInfoModule extends Module implements IMinecraft {
             body.drawStringWithShadow(singleplayerText, cx - singleplayerWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
         } else {
             body.drawStringWithShadow(killsText, cx - killsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
-            cursorY += lineHeight + gapLine;
-
-            body.drawStringWithShadow(winsText, cx - winsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
             cursorY += lineHeight + gapLine;
 
             body.drawStringWithShadow(timeText, cx - timeWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
