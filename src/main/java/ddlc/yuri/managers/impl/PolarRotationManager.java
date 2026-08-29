@@ -1,7 +1,7 @@
 package ddlc.yuri.managers.impl;
 
 import ddlc.yuri.utils.client.MathUtils;
-import ddlc.yuri.utils.client.PolarNoise;
+import ddlc.yuri.utils.client.PolarNoiseUtils;
 import ddlc.yuri.utils.player.RotationUtils;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.AxisAlignedBB;
@@ -305,8 +305,8 @@ public class PolarRotationManager {
         noiseDriftY += (POLAR_RNG.nextDouble() - 0.5) * 0.02;
 
         // ---- LAYER 1: classic perlin jitter ---------------------------
-        float yawJitter = (float) (PolarNoise.noise(noiseTime + noiseDriftX, 0) * 1.4);
-        float pitchJitter = (float) (PolarNoise.noise(0, noiseTime + noiseDriftY) * 0.7);
+        float yawJitter = (float) (PolarNoiseUtils.noise(noiseTime + noiseDriftX, 0) * 1.4);
+        float pitchJitter = (float) (PolarNoiseUtils.noise(0, noiseTime + noiseDriftY) * 0.7);
         baseRotation = new Vector2f(baseRotation.x + yawJitter, baseRotation.y + pitchJitter);
 
         // ---- LAYER 2: chaos doubles --------------------------------
@@ -364,40 +364,40 @@ public class PolarRotationManager {
         baseRotation = new Vector2f(baseRotation.x + beatYaw, baseRotation.y + beatPitch);
 
         // ---- LAYER 11: independent per-axis fractal noise -------------
-        float axisYaw = (float) (PolarNoise.simplex2D(now * yawNoiseFreq * 0.002, noiseDriftX) * yawNoiseAmp);
-        float axisPitch = (float) (PolarNoise.simplex2D(now * pitchNoiseFreq * 0.0017, noiseDriftY) * pitchNoiseAmp);
+        float axisYaw = (float) (PolarNoiseUtils.simplex2D(now * yawNoiseFreq * 0.002, noiseDriftX) * yawNoiseAmp);
+        float axisPitch = (float) (PolarNoiseUtils.simplex2D(now * pitchNoiseFreq * 0.0017, noiseDriftY) * pitchNoiseAmp);
         baseRotation = new Vector2f(baseRotation.x + axisYaw, baseRotation.y + axisPitch);
 
         // ---- LAYER 12: cellular / worley micro-stutter -----------------
-        float cellYaw = (float) ((PolarNoise.cellularNoise(noiseTime * 0.5, noiseDriftY * 0.3) - 0.5) * 0.4);
-        float cellPitch = (float) ((PolarNoise.cellularNoise(noiseDriftX * 0.3, noiseTime * 0.5) - 0.5) * 0.25);
+        float cellYaw = (float) ((PolarNoiseUtils.cellularNoise(noiseTime * 0.5, noiseDriftY * 0.3) - 0.5) * 0.4);
+        float cellPitch = (float) ((PolarNoiseUtils.cellularNoise(noiseDriftX * 0.3, noiseTime * 0.5) - 0.5) * 0.25);
         baseRotation = new Vector2f(baseRotation.x + cellYaw, baseRotation.y + cellPitch);
 
         // ---- LAYER 13: turbulence spikes -------------------------------
-        float turbYaw = (float) ((PolarNoise.turbulence(noiseTime * 0.3, noiseDriftX, 3) - 0.9) * 0.7 * noiseScale * 0.2);
-        float turbPitch = (float) ((PolarNoise.billow(noiseTime * 0.25, noiseDriftY, 3) - 0.9) * 0.4 * noiseScale * 0.2);
+        float turbYaw = (float) ((PolarNoiseUtils.turbulence(noiseTime * 0.3, noiseDriftX, 3) - 0.9) * 0.7 * noiseScale * 0.2);
+        float turbPitch = (float) ((PolarNoiseUtils.billow(noiseTime * 0.25, noiseDriftY, 3) - 0.9) * 0.4 * noiseScale * 0.2);
         baseRotation = new Vector2f(baseRotation.x + turbYaw, baseRotation.y + turbPitch);
 
         // ---- LAYER 14: ridged multifractal edges -----------------------
-        float ridgedYaw = (float) ((float) PolarNoise.ridgedNoise(noiseTime * 0.35, noiseDriftY, 4, 2.0, 0.7) * 0.5);
-        float ridgedPitch = (float) ((float) PolarNoise.ridgedNoise(noiseDriftX, noiseTime * 0.35, 4, 2.0, 0.7) * 0.3);
+        float ridgedYaw = (float) ((float) PolarNoiseUtils.ridgedNoise(noiseTime * 0.35, noiseDriftY, 4, 2.0, 0.7) * 0.5);
+        float ridgedPitch = (float) ((float) PolarNoiseUtils.ridgedNoise(noiseDriftX, noiseTime * 0.35, 4, 2.0, 0.7) * 0.3);
         baseRotation = new Vector2f(baseRotation.x + ridgedYaw, baseRotation.y + ridgedPitch);
 
         // ---- LAYER 15: rotating simplex domain warp --------------------
         double warpAngle = Math.sin(now * 0.0003) * 0.5 + baseBlend;
-        double rotatingWarp = PolarNoise.domainWarpRotating(noiseTime * 0.2, noiseDriftY, warpStrength * 0.15, noiseScale * 0.2, noiseOctaves, warpAngle);
+        double rotatingWarp = PolarNoiseUtils.domainWarpRotating(noiseTime * 0.2, noiseDriftY, warpStrength * 0.15, noiseScale * 0.2, noiseOctaves, warpAngle);
         baseRotation = new Vector2f(baseRotation.x + (float) (rotatingWarp * 0.6), baseRotation.y + (float) (rotatingWarp * 0.35));
 
         // ---- LAYER 16: dual-blend fractal -------------------------------
-        double dual = PolarNoise.dualFbm(noiseTime * 0.18, noiseDriftY, noiseOctaves, 2.0, 0.5, 2.6, 0.35, baseBlend);
+        double dual = PolarNoiseUtils.dualFbm(noiseTime * 0.18, noiseDriftY, noiseOctaves, 2.0, 0.5, 2.6, 0.35, baseBlend);
         baseRotation = new Vector2f(baseRotation.x + (float) (dual * 0.45), baseRotation.y + (float) (dual * 0.28));
 
         // ---- LAYER 17: blended perlin/simplex/value ---------------------
-        double blended = PolarNoise.blendedNoise(noiseTime * 0.22, noiseDriftX, noiseOctaves, 0.4, 0.35, 0.25);
+        double blended = PolarNoiseUtils.blendedNoise(noiseTime * 0.22, noiseDriftX, noiseOctaves, 0.4, 0.35, 0.25);
         baseRotation = new Vector2f(baseRotation.x + (float) (blended * 0.55), baseRotation.y + (float) (blended * 0.32));
 
         // ---- LAYER 18: white-noise micro flutter ------------------------
-        float flutter = (float) PolarNoise.jitter(noiseTime * 0.11) * 0.18f;
+        float flutter = (float) PolarNoiseUtils.jitter(noiseTime * 0.11) * 0.18f;
         baseRotation = new Vector2f(baseRotation.x + flutter, baseRotation.y + flutter * 0.6f);
 
         if (flicking) {
@@ -542,15 +542,15 @@ public class PolarRotationManager {
             double warpX, warpY;
 
             if (useSimplex) {
-                warpX = PolarNoise.fbmSimplex(nx, ny, octaves, 2.0, 0.5) * warpStrength * chaosScale;
-                warpY = PolarNoise.fbmSimplex(ny + 1.7, nx + 4.3, octaves, 2.2, 0.45) * warpStrength * chaosScale;
+                warpX = PolarNoiseUtils.fbmSimplex(nx, ny, octaves, 2.0, 0.5) * warpStrength * chaosScale;
+                warpY = PolarNoiseUtils.fbmSimplex(ny + 1.7, nx + 4.3, octaves, 2.2, 0.45) * warpStrength * chaosScale;
             } else {
-                warpX = PolarNoise.domainWarp(nx, ny, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
-                warpY = PolarNoise.domainWarp(ny + 3.7, nx + 7.1, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
+                warpX = PolarNoiseUtils.domainWarp(nx, ny, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
+                warpY = PolarNoiseUtils.domainWarp(ny + 3.7, nx + 7.1, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
             }
 
-            double fbmX = PolarNoise.fbm(nx + warpX, ny + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
-            double fbmY = PolarNoise.fbm(nx + 5.3 + warpX, ny + 9.1 + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
+            double fbmX = PolarNoiseUtils.fbm(nx + warpX, ny + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
+            double fbmY = PolarNoiseUtils.fbm(nx + 5.3 + warpX, ny + 9.1 + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
 
             warped.add(new Vec3(
                     p.xCoord + warpX + fbmX,

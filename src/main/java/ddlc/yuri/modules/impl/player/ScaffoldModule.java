@@ -179,6 +179,7 @@ public final class ScaffoldModule extends Module {
     @Getter
     @Setter
     private int ticksOnAir;
+    public int recursions, recursion;
     public double startY;
     private boolean canPlace;
     private int directionalChange;
@@ -218,7 +219,9 @@ public final class ScaffoldModule extends Module {
             startY = Math.floor(mc.thePlayer.posY);
         }
 
-        this.rotSpeed = (float) MathUtils.getRandom(this.minRotationSpeed.getValue(), this.maxRotationSpeed.getValue());
+        for (recursion = 0; recursion <= recursions; recursion++) {
+
+            this.rotSpeed = (float) MathUtils.getRandom(this.minRotationSpeed.getValue(), this.maxRotationSpeed.getValue());
 
             if (expand.getValue().intValue() != 0) {
                 double direction = MoveUtils.direction(mc.thePlayer.rotationYaw,
@@ -302,6 +305,7 @@ public final class ScaffoldModule extends Module {
                 this.place(blockStack);
                 ticksOnAir = 0;
             }
+        }
     }
 
     @EventHook
@@ -345,8 +349,6 @@ public final class ScaffoldModule extends Module {
             if (mc.thePlayer.onGroundTicks == 0) {
                 tellyNoPlace = true;
             }
-        } else if (mc.theWorld.checkBlockCollision(mc.thePlayer.getEntityBoundingBox().offset(mc.thePlayer.motionX, mc.thePlayer.motionY + 0.1, mc.thePlayer.motionZ))) {
-            tellyNoPlace = true;
         } else if (!hypixelTelly.getValue()) {
             if (mc.gameSettings.keyBindJump.isKeyDown()) {
                 if (mc.thePlayer.offGroundTicks >= tellyJumpDownTicks.getValue().intValue()) {
@@ -362,7 +364,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks == 1) {
+            if (mc.thePlayer.offGroundTicks <= 2) {
                 tellyNoPlace = false;
             }
         }
@@ -471,26 +473,26 @@ public final class ScaffoldModule extends Module {
                 break;
 
             case TELLY:
-                    mc.entityRenderer.getMouseOver(1);
-                    if (mc.thePlayer.onGround && MoveUtils.isMoving() && !canPlace) {
-                        if (hypixelTelly.getValue()) {
-                            rotSpeed = 6.0f;
-                            target[0] = mc.thePlayer.rotationYaw;
-                            target[1] = mc.thePlayer.rotationPitch;
-                        } else {
-                            rotSpeed = 10.0f;
-                            target[0] = mc.thePlayer.rotationYaw;
-                            target[1] = MathUtils.getRandomInt(78, 90);
-                        }
-                    } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
-                        if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target,
-                                    searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
-                        }
-                        if (hypixelTelly.getValue()) {
-                            rotSpeed = 4.0f;
-                        }
+                if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
+                    if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
+                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target,
+                                searchAlgorithm.getValue(), rayCast.getValue() == RayCast.STRICT);
                     }
+                }
+
+                mc.entityRenderer.getMouseOver(1);
+                if (mc.thePlayer.onGround && MoveUtils.isMoving()) {
+                    if (hypixelTelly.getValue()) {
+                        rotSpeed = isDiagonal() || mc.gameSettings.keyBindJump.isKeyDown() ? 6.0f : 5.0f;
+                    } else {
+                        rotSpeed = 10.0f;
+                    }
+                    target[0] = mc.thePlayer.rotationYaw;
+                } else {
+                    if (hypixelTelly.getValue()) {
+                        rotSpeed = isDiagonal() || mc.gameSettings.keyBindJump.isKeyDown() ? 4.5f : 1.2f;
+                    }
+                }
                 break;
         }
 
@@ -551,8 +553,6 @@ public final class ScaffoldModule extends Module {
     }
 
     private void handleJump() {
-        if (mode.getValue() == Mode.TELLY && !hypixelTelly.getValue() && mc.thePlayer.offGroundTicks == 0 && mc.thePlayer.onGroundTicks == 0)
-            return;
         if (autoJump.getValue()) mc.thePlayer.jump();
     }
 
@@ -694,6 +694,7 @@ public final class ScaffoldModule extends Module {
             this.initialBlockCount = ScaffoldUtils.countBlocks();
         }
         lastRenderTime = -1L;
+        recursions = 0;
         barEntry = null;
         super.onEnable();
     }

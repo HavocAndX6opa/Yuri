@@ -8,7 +8,7 @@ import java.util.Random;
  * the polar rotation manager can layer and blend them into near-unrecognizable,
  * human-like wobble.
  */
-public class PolarNoise {
+public class PolarNoiseUtils {
 
     // ---------------------------------------------------------------
     //  Classic Perlin permutation table
