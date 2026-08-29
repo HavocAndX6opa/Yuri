@@ -37,26 +37,15 @@ import org.lwjgl.util.vector.Vector2f;
 @ModuleInfo(label = "Scaffold", description = "Automatically builds bridges for you", category = ModuleCategory.PLAYER)
 public final class ScaffoldModule extends Module {
 
-    /*
-        I have NO fucking clue why Hypixel decided to make you
-        place ghost blocks after flagging even ONCE!!!
-        If ANYONE can find a fix for this, please tell me.
-
-        Till that point, after flagging any Scaffold mode
-        WILL NOT WORK. I have no idea why this is a thing, but it is.
-
-        This usually fixes itself after 10 mins (on server or not) after your VL levels reset.
-    */
-
     public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.NORMAL);
     public final Property<Boolean> hypixelTelly = new Property<>("Hypixel Telly", false, () -> mode.getValue() == Mode.TELLY);
     private final NumberProperty tellyStraightTicks = new NumberProperty("Telly Straight Ticks", 6, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final NumberProperty tellyDiagonalTicks = new NumberProperty("Telly Diagonal Ticks", 4, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
     private final NumberProperty tellyJumpDownTicks = new NumberProperty("Telly Jump Down Ticks", 1, 0, 8, 1, () -> mode.getValue() == Mode.TELLY && !hypixelTelly.getValue());
-    private final ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL);
+    public static final ModeProperty<Rotations> rotations = new ModeProperty<>("Rotations", Rotations.NORMAL);
     private final NumberProperty randomizedSpeedMin = new NumberProperty("Randomized Speed Min", 3, 0, 10, 0.5f, () -> rotations.getValue() == Rotations.RANDOMIZED);
     private final NumberProperty randomizedSpeedMax = new NumberProperty("Randomized Speed Max", 7, 0, 10, 0.5f, () -> rotations.getValue() == Rotations.RANDOMIZED);
-    public final ModeProperty<SearchAlgorithm> searchAlgorithm = new ModeProperty<>("Search Algorithm", SearchAlgorithm.NORMAL);
+    public final ModeProperty<SearchAlgorithm> searchAlgorithm = new ModeProperty<>("Search Algorithm", SearchAlgorithm.NORMAL, () -> rotations.getValue() != Rotations.OLD);
     private final NumberProperty minRotationSpeed = new NumberProperty("Min Rotation Speed", 3, 0, 10, 0.5f);
     private final NumberProperty maxRotationSpeed = new NumberProperty("Max Rotation Speed", 7, 0, 10, 0.5f);
     private final NumberProperty placeDelay = new NumberProperty("Place Delay", 0, 0, 10, 1);
@@ -91,7 +80,7 @@ public final class ScaffoldModule extends Module {
     }
 
     public enum Rotations {
-        NORMAL("Normal"), RANDOMIZED("Randomized");
+        NORMAL("Normal"), RANDOMIZED("Randomized"), OLD("Old");
         public final String name;
 
         Rotations(String name) {
@@ -598,7 +587,7 @@ public final class ScaffoldModule extends Module {
                         } else {
                             rotSpeed = 10.0f;
                             target[0] = mc.thePlayer.rotationYaw;
-                            target[1] = MathUtils.getRandomInt(-90, 90);
+                            target[1] = MathUtils.getRandomInt(78, 90);
                         }
                     } else if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                         if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
@@ -629,26 +618,6 @@ public final class ScaffoldModule extends Module {
         if (rotSpeed != 0 && blockFace != null && enumFacing != null) {
             RotationManager.setRotations(new Vector2f(targetYaw, targetPitch), rotSpeed, movementFix);
         }
-    }
-
-    private boolean rotationHitsBlock(float yaw, float pitch, BlockPos placePos, EnumFacing side, boolean strict) {
-        Vec3 eye = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
-
-        double yawRad = Math.toRadians(yaw);
-        double pitchRad = Math.toRadians(pitch);
-        double dirX = -Math.sin(yawRad) * Math.cos(pitchRad);
-        double dirY = -Math.sin(pitchRad);
-        double dirZ = Math.cos(yawRad) * Math.cos(pitchRad);
-
-        double reach = strict ? 4.0 : mc.playerController.getBlockReachDistance();
-        Vec3 end = eye.addVector(dirX * reach, dirY * reach, dirZ * reach);
-
-        MovingObjectPosition result = mc.theWorld.rayTraceBlocks(eye, end, false, !strict, false);
-
-        return result != null
-                && result.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                && result.getBlockPos().equals(placePos)
-                && result.sideHit == side;
     }
 
     private void place(ItemStack blockStack) {

@@ -164,6 +164,12 @@ public final class ScaffoldUtils {
                                               float[] target, float[] drift,
                                               ScaffoldModule.SearchAlgorithm algorithm,
                                               boolean strict) {
+
+        if (ScaffoldModule.rotations.getValue() == ScaffoldModule.Rotations.OLD) {
+            computeOldRotations(blockFace, enumFacing, target);
+            return;
+        }
+
         switch (algorithm) {
             case NORMAL: {
                 double difference = mc.thePlayer.posY + mc.thePlayer.getEyeHeight()
@@ -248,47 +254,23 @@ public final class ScaffoldUtils {
             }
         }
     }
+    public static void computeOldRotations(BlockPos blockFace, EnumFacingOffset enumFacing, float[] target) {
+        Vec3 hitVec = computeHitVec(blockFace, enumFacing);
+        final double xDif = hitVec.xCoord - mc.thePlayer.posX;
+        final double zDif = hitVec.zCoord - mc.thePlayer.posZ;
 
-    public static float[] predictionHypixelRotations(BlockPos blockFace, EnumFacingOffset enumFacing, ScaffoldModule.SearchAlgorithm algorithm) {
-        float[] target = new float[2];
-        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target, new float[]{0, 0}, algorithm, true);
-        float originalYaw = target[0];
-        float originalPitch = target[1];
+        final double yDif = hitVec.yCoord - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        final double xzDist = StrictMath.sqrt(xDif * xDif + zDif * zDif);
 
-        float directionalOffset = 0.0f;
-        if (mc.thePlayer != null) {
-            int horizontalFacingIndex = mc.thePlayer.getHorizontalFacing().getHorizontalIndex();
-            directionalOffset = horizontalFacingIndex * 90.0f;
-        }
+        float[] rots = new float[]{
+                (float) (StrictMath.atan2(zDif, xDif) * 180.0D / StrictMath.PI) - 90.0F,
+                (float) (-(StrictMath.atan2(yDif, xzDist) * 180.0D / StrictMath.PI))
+        };
 
-        float bestYaw = originalYaw;
-        float bestPitch = originalPitch;
-        boolean foundValid = false;
-
-        for (int i = 0; i < 20; i++) {
-            float randomYawOffset = (float) ((Math.random() - 0.5) * 10.0f); // ±5 degrees
-            float randomPitchOffset = (float) ((Math.random() - 0.5) * 6.0f); // ±3 degrees
-
-            float testYaw = originalYaw + 2.5f + randomYawOffset + (directionalOffset % 45.0f != 0 ? 0 : 0);
-            float testPitch = MathHelper.clamp_float(originalPitch + randomPitchOffset, -90.0f, 90.0f);
-
-            Vector2f testRotation = new Vector2f(testYaw, testPitch);
-
-            if (RayCastUtils.overBlock(testRotation, enumFacing.getEnumFacing(), blockFace, true)) {
-                bestYaw = testYaw;
-                bestPitch = testPitch;
-                foundValid = true;
-                break;
-            }
-        }
-
-        if (!foundValid) {
-            bestYaw = originalYaw - 20.0f;
-            bestPitch = originalPitch;
-        }
-
-        return new float[]{bestYaw, bestPitch};
+        target[0] = rots[0];
+        target[1] = rots[1];
     }
+
 
     public static Vec3 computeHitVec(BlockPos blockFace, EnumFacingOffset enumFacing) {
         Vec3 hitVec = new Vec3(
@@ -322,30 +304,6 @@ public final class ScaffoldUtils {
         return BlockUtils.blockRelativeToPlayer(offset.getX(), -down + offset.getY(), offset.getZ())
                 .isReplaceable(mc.theWorld, new BlockPos(mc.thePlayer).down(down));
     }
-
-    public static float getNearestDiagonalYaw(float yaw) {
-        float normalizedYaw = MathHelper.wrapAngleTo180_float(yaw);
-        float[] diagonals = {-135.0f, -45.0f, 45.0f, 135.0f};
-
-        float closest = diagonals[0];
-        float minDiff = Math.abs(MathHelper.wrapAngleTo180_float(normalizedYaw - closest));
-
-        for (int i = 1; i < diagonals.length; i++) {
-            float diff = Math.abs(MathHelper.wrapAngleTo180_float(normalizedYaw - diagonals[i]));
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = diagonals[i];
-            }
-        }
-
-        float yawDelta = MathHelper.wrapAngleTo180_float(closest - yaw);
-        if (Math.abs(yawDelta) > 89.0f) {
-            closest = yaw + Math.signum(yawDelta) * 89.0f;
-        }
-
-        return closest;
-    }
-
     public static int countBlocks() {
         int count = 0;
         for (ItemStack stack : mc.thePlayer.inventory.mainInventory) {
