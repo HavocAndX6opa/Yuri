@@ -1,13 +1,12 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.api.events.annotations.EventHook;
-import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
-import ddlc.yuri.api.events.impl.player.KillEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.managers.impl.ColorManager;
+import ddlc.yuri.managers.impl.SessionStatsManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
@@ -16,11 +15,15 @@ import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.network.play.server.S45PacketTitle;
-import net.minecraft.util.StringUtils;
 
 import java.awt.*;
 
+/**
+ * Draws the session HUD. It no longer counts anything: kills, deaths, wins and
+ * the session clock all live in {@link SessionStatsManager}, which is subscribed
+ * for the whole client run, so the overlay is now purely a view onto numbers
+ * that keep moving whether or not this module is switched on.
+ */
 @ModuleInfo(label = "Session Info", description = "Displays session information on the screen.", category = ModuleCategory.RENDER)
 public class SessionInfoModule extends Module implements IMinecraft {
 
@@ -57,19 +60,15 @@ public class SessionInfoModule extends Module implements IMinecraft {
 
     private final DragUtils.DraggableComponent component = new DragUtils.DraggableComponent(20, 20);
 
-    private static long sessionStart;
-    private static int kills;
-    private static int gamesWon;
-
     public SessionInfoModule() {
         DragUtils.registerComponent(KEY, component);
     }
 
     @Override
     public void onEnable() {
-        sessionStart = System.currentTimeMillis();
-        kills = 0;
-        gamesWon = 0;
+        // Deliberately does not reset the counters any more. They belong to the
+        // client run now, so toggling the overlay mid-game no longer throws away
+        // the kills the launcher has already been shown.
         component.setWidth(0);
         component.setHeight(0);
     }
@@ -78,15 +77,6 @@ public class SessionInfoModule extends Module implements IMinecraft {
     public void onDisable() {
         component.setWidth(0);
         component.setHeight(0);
-    }
-
-    public static void addWin() {
-        gamesWon++;
-    }
-
-    @EventHook
-    public void onKill(KillEvent event) {
-        kills++;
     }
 
     @EventHook
@@ -113,18 +103,6 @@ public class SessionInfoModule extends Module implements IMinecraft {
         }
     }
 
-    @EventHook
-    public void onPacketReceived(PacketReceivedEvent event) {
-        if (event.getPacket() instanceof S45PacketTitle) {
-            S45PacketTitle s45 = (S45PacketTitle) event.getPacket();
-            if (s45.getMessage() == null) return;
-
-            if (StringUtils.stripControlCodes(s45.getMessage().getUnformattedText()).equals("VICTORY!")) {
-                addWin();
-            }
-        }
-    }
-
     public void renderPulsive() {
         CustomFontRenderer bold = FontUtils.getFont("sf-bold", 18);
         CustomFontRenderer regular = FontUtils.getFont("sf", 18);
@@ -134,9 +112,10 @@ public class SessionInfoModule extends Module implements IMinecraft {
 
         String sessionWord = "session";
         String infoWord = "information";
-        String timeText = formatTime(System.currentTimeMillis() - sessionStart);
-        String killsText = "You have gotten " + kills + " kills";
-        String winsText = "Games won " + gamesWon + " times";
+        String timeText = formatTime(SessionStatsManager.getSessionMs());
+        String killsText = "You have gotten " + SessionStatsManager.getKills() + " kills";
+        String deathsText = "You have died " + SessionStatsManager.getDeaths() + " times";
+        String winsText = "Games won " + SessionStatsManager.getWins() + " times";
 
         float sessionWidth = bold.getStringWidth(sessionWord);
         float infoWidth = regular.getStringWidth(infoWord);
@@ -147,13 +126,16 @@ public class SessionInfoModule extends Module implements IMinecraft {
         float timeHeight = timeFont.getHeight();
 
         float killsWidth = body.getStringWidth(killsText);
+        float deathsWidth = body.getStringWidth(deathsText);
         float winsWidth = body.getStringWidth(winsText);
         float lineHeight = body.getHeight();
 
-        float contentWidth = Math.max(titleWidth, Math.max(timeWidth, Math.max(killsWidth, winsWidth)));
+        float contentWidth = Math.max(titleWidth, Math.max(timeWidth,
+                Math.max(killsWidth, Math.max(deathsWidth, winsWidth))));
 
         float headerHeight = titleHeight + HEADER_PADDING_Y * 2;
-        float bodyContentHeight = timeHeight + GAP_TIME + lineHeight + GAP_LINE + lineHeight;
+        float bodyContentHeight = timeHeight + GAP_TIME + lineHeight + GAP_LINE
+                + lineHeight + GAP_LINE + lineHeight;
 
         float width = Math.max(MIN_WIDTH, contentWidth + PADDING_X * 2);
         float bodyHeight = GAP_HEADER_TIME + bodyContentHeight + PADDING_Y;
@@ -190,6 +172,9 @@ public class SessionInfoModule extends Module implements IMinecraft {
         body.drawStringWithShadow(killsText, leftX, cursorY, new Color(190, 190, 190).getRGB());
         cursorY += lineHeight + GAP_LINE;
 
+        body.drawStringWithShadow(deathsText, leftX, cursorY, new Color(190, 190, 190).getRGB());
+        cursorY += lineHeight + GAP_LINE;
+
         body.drawStringWithShadow(winsText, leftX, cursorY, new Color(190, 190, 190).getRGB());
     }
 
@@ -202,18 +187,23 @@ public class SessionInfoModule extends Module implements IMinecraft {
         String titleText = "Session Info";
         String welcomeText = "Welcome, " + mc.getSession().getUsername() + "!";
         String singleplayerText = "No stats to render.";
-        String killsText = "You have " + kills + " kills.";
-        String timeText = "You have been playing for " + formatTimeYuri(System.currentTimeMillis() - sessionStart) + ".";
+        String killsText = "You have " + SessionStatsManager.getKills() + " kills and "
+                + SessionStatsManager.getDeaths() + " deaths.";
+        String winsText = "You have won " + SessionStatsManager.getWins() + " games.";
+        String timeText = "You have been playing for "
+                + formatTimeYuri(SessionStatsManager.getSessionMs()) + ".";
         String serverText = "Server: " + getServerName();
 
         float titleWidth = title.getStringWidth(titleText);
         float welcomeWidth = welcome.getStringWidth(welcomeText);
         float singleplayerWidth = body.getStringWidth(singleplayerText);
         float killsWidth = body.getStringWidth(killsText);
+        float winsWidth = body.getStringWidth(winsText);
         float timeWidth = body.getStringWidth(timeText);
         float serverWidth = body.getStringWidth(serverText);
 
-        float contentWidth = Math.max(titleWidth, Math.max(welcomeWidth, Math.max(killsWidth, Math.max(timeWidth, serverWidth))));
+        float contentWidth = Math.max(titleWidth, Math.max(welcomeWidth, Math.max(killsWidth,
+                Math.max(winsWidth, Math.max(timeWidth, serverWidth)))));
         float width = Math.max(MIN_WIDTH, contentWidth + PADDING_X * 2);
 
         float titleHeight = title.getHeight();
@@ -226,7 +216,7 @@ public class SessionInfoModule extends Module implements IMinecraft {
         float gapKillsServer = 14f;
 
         float height = PADDING_Y * 2 + titleHeight + gapTitleWelcome + welcomeHeight + gapWelcomeKills
-                + lineHeight + gapLine + lineHeight + gapKillsServer + lineHeight;
+                + lineHeight + gapLine + lineHeight + gapLine + lineHeight + gapKillsServer + lineHeight;
 
         component.setWidth(width);
         component.setHeight(height);
@@ -253,6 +243,9 @@ public class SessionInfoModule extends Module implements IMinecraft {
             body.drawStringWithShadow(singleplayerText, cx - singleplayerWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
         } else {
             body.drawStringWithShadow(killsText, cx - killsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
+            cursorY += lineHeight + gapLine;
+
+            body.drawStringWithShadow(winsText, cx - winsWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());
             cursorY += lineHeight + gapLine;
 
             body.drawStringWithShadow(timeText, cx - timeWidth / 2f, cursorY, new Color(220, 220, 220).getRGB());

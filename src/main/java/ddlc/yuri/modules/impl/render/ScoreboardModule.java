@@ -18,7 +18,7 @@ public class ScoreboardModule extends Module {
     
     public static ModeProperty<Mode> scoreboardStyle = new ModeProperty<>("Scoreboard Style", Mode.LEFT_OFFSET);
     public static Property<Boolean> yuriRect = new Property<Boolean>("Yuri Rect", true);
-    public static Property<Boolean> customFont = new Property<Boolean>("Custom Font", false);
+    public static Property<Boolean> customFont = new Property<Boolean>("Custom Font", true);
     public static Property<Boolean> smartY = new Property<Boolean>("Smart Y", true, () -> scoreboardStyle.getValue() == Mode.VANILLA || scoreboardStyle.getValue() == Mode.VANILLA_OFFSET);
 
     public enum Mode {
