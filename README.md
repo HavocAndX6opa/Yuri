@@ -2,7 +2,7 @@
 
 [![Download](https://img.shields.io/github/v/release/unleg1t/Yuri?style=for-the-badge)](https://github.com/unleg1t/Yuri/releases)
 
-**Yuri is a clean, 1.8.9 MCP hacked client that can bypass any anti-cheat and has smooth, polished visuals inspired by Nursultan and Pulsive.**
+**Yuri is a clean, Optifine 1.8.9-based Minecraft hacked client that can bypass any anti-cheat and has smooth, polished visuals inspired by Nursultan and Pulsive.**
 
 <img width="400" src="https://raw.githubusercontent.com/unleg1t/Yuri/main/ss1.png"> <img width="400" src="https://raw.githubusercontent.com/unleg1t/Yuri/main/ss2.png">
 
