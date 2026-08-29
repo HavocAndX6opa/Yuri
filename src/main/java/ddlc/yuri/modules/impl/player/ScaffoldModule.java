@@ -631,34 +631,6 @@ public final class ScaffoldModule extends Module {
         }
     }
 
-    private float computeMaxSafeYawOffset(float baseYaw, float pitch, float maxOffset) {
-        if (targetBlock == null || enumFacing == null || enumFacing.getEnumFacing() == null) return 0f;
-
-        BlockPos placePos = new BlockPos(targetBlock.xCoord, targetBlock.yCoord, targetBlock.zCoord);
-        EnumFacing side = enumFacing.getEnumFacing();
-        boolean strict = rayCast.getValue() == RayCast.STRICT;
-
-        if (rotationHitsBlock(baseYaw + maxOffset, pitch, placePos, side, strict)) {
-            return maxOffset;
-        }
-
-        float low = 0f;
-        float high = maxOffset;
-        float best = 0f;
-
-        for (int i = 0; i < 12; i++) {
-            float mid = (low + high) / 2f;
-            if (rotationHitsBlock(baseYaw + mid, pitch, placePos, side, strict)) {
-                best = mid;
-                low = mid;
-            } else {
-                high = mid;
-            }
-        }
-
-        return best;
-    }
-
     private boolean rotationHitsBlock(float yaw, float pitch, BlockPos placePos, EnumFacing side, boolean strict) {
         Vec3 eye = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
 

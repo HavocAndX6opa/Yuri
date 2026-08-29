@@ -15,6 +15,13 @@ import java.util.Random;
 
 import static ddlc.yuri.utils.misc.IMinecraft.mc;
 
+/**
+ * MASSIVELY, HUGELY randomized polar rotation manager.
+ * Stacks an absurd number of independent randomization algorithms on top of
+ * each other so the resulting rotation path is essentially unpredictable yet
+ * still aims at the target. Every single layer reseeds its own parameters on a
+ * random timer, meaning the behaviour constantly rewrites itself.
+ */
 public class PolarRotationManager {
 
     private static final long SEED = MathUtils.getRandomInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -38,6 +45,39 @@ public class PolarRotationManager {
     private static double orbitFreq, orbitPhase, orbitRadiusYaw, orbitRadiusPitch;
     private static long orbitReseedAt;
 
+    // ---- NEW: multi-orbit layers ------------------------------------
+    private static double orbit2Freq, orbit2Phase, orbit2RadiusYaw, orbit2RadiusPitch;
+    private static double orbit3Freq, orbit3Phase, orbit3RadiusYaw, orbit3RadiusPitch;
+    private static long orbit2ReseedAt, orbit3ReseedAt;
+
+    // ---- NEW: lissajous path ----------------------------------------
+    private static double lissFreqX, lissFreqY, lissPhase, lissAmpX, lissAmpY;
+    private static long lissReseedAt;
+
+    // ---- NEW: spirograph / rose path ---------------------------------
+    private static double spiroPetal, spiroAmp, spiroPhase;
+    private static long spiroReseedAt;
+
+    // ---- NEW: random-walk brownian wander ----------------------------
+    private static double walkX, walkY, walkTargetX, walkTargetY, walkSpeed;
+    private static long walkReseedAt;
+
+    // ---- NEW: logistic chaos seed -------------------------------------
+    private static double logisticR, logisticX;
+    private static long logisticReseedAt;
+
+    // ---- NEW: beat interference ----------------------------------------
+    private static double beatFreqA, beatFreqB, beatPhase;
+    private static long beatReseedAt;
+
+    // ---- NEW: independent per-axis amplitude/frequency noise ----------
+    private static double yawNoiseAmp, yawNoiseFreq, pitchNoiseAmp, pitchNoiseFreq;
+    private static long axisReseedAt;
+
+    // ---- NEW: randomized base point blend ------------------------------
+    private static double baseBlend;
+    private static long baseReseedAt;
+
     private static Vec3 heldPoint;
     private static long holdUntil;
     private static long nextReseedAt;
@@ -49,6 +89,15 @@ public class PolarRotationManager {
         reseedChaos();
         reseedOrbit();
         reseedWeights();
+        reseedOrbit2();
+        reseedOrbit3();
+        reseedLissajous();
+        reseedSpirograph();
+        reseedWalk();
+        reseedLogistic();
+        reseedBeats();
+        reseedAxis();
+        reseedBase();
     }
 
     private static void reseedChaos() {
@@ -75,6 +124,73 @@ public class PolarRotationManager {
         weightReseedAt = System.currentTimeMillis() + 800 + POLAR_RNG.nextInt(1600);
     }
 
+    private static void reseedOrbit2() {
+        orbit2Freq = 0.0009 + POLAR_RNG.nextDouble() * 0.0025;
+        orbit2Phase = POLAR_RNG.nextDouble() * Math.PI * 2;
+        orbit2RadiusYaw = 0.1 + POLAR_RNG.nextDouble() * 0.7;
+        orbit2RadiusPitch = 0.05 + POLAR_RNG.nextDouble() * 0.4;
+        orbit2ReseedAt = System.currentTimeMillis() + 900 + POLAR_RNG.nextInt(2600);
+    }
+
+    private static void reseedOrbit3() {
+        orbit3Freq = 0.0012 + POLAR_RNG.nextDouble() * 0.003;
+        orbit3Phase = POLAR_RNG.nextDouble() * Math.PI * 2;
+        orbit3RadiusYaw = 0.05 + POLAR_RNG.nextDouble() * 0.45;
+        orbit3RadiusPitch = 0.03 + POLAR_RNG.nextDouble() * 0.25;
+        orbit3ReseedAt = System.currentTimeMillis() + 600 + POLAR_RNG.nextInt(2000);
+    }
+
+    private static void reseedLissajous() {
+        lissFreqX = 1 + POLAR_RNG.nextInt(6);
+        lissFreqY = 1 + POLAR_RNG.nextInt(6);
+        lissPhase = POLAR_RNG.nextDouble() * Math.PI * 2;
+        lissAmpX = 0.1 + POLAR_RNG.nextDouble() * 0.5;
+        lissAmpY = 0.05 + POLAR_RNG.nextDouble() * 0.3;
+        lissReseedAt = System.currentTimeMillis() + 1200 + POLAR_RNG.nextInt(3000);
+    }
+
+    private static void reseedSpirograph() {
+        spiroPetal = 2 + POLAR_RNG.nextInt(6);
+        spiroAmp = 0.1 + POLAR_RNG.nextDouble() * 0.6;
+        spiroPhase = POLAR_RNG.nextDouble() * Math.PI * 2;
+        spiroReseedAt = System.currentTimeMillis() + 1400 + POLAR_RNG.nextInt(3200);
+    }
+
+    private static void reseedWalk() {
+        walkX = 0;
+        walkY = 0;
+        walkTargetX = (POLAR_RNG.nextDouble() - 0.5) * 2.0;
+        walkTargetY = (POLAR_RNG.nextDouble() - 0.5) * 2.0;
+        walkSpeed = 0.01 + POLAR_RNG.nextDouble() * 0.04;
+        walkReseedAt = System.currentTimeMillis() + 700 + POLAR_RNG.nextInt(1800);
+    }
+
+    private static void reseedLogistic() {
+        logisticR = 3.6 + POLAR_RNG.nextDouble() * 0.4;
+        logisticX = POLAR_RNG.nextDouble();
+        logisticReseedAt = System.currentTimeMillis() + 1000 + POLAR_RNG.nextInt(2600);
+    }
+
+    private static void reseedBeats() {
+        beatFreqA = 0.0008 + POLAR_RNG.nextDouble() * 0.0015;
+        beatFreqB = beatFreqA * (0.7 + POLAR_RNG.nextDouble() * 0.6);
+        beatPhase = POLAR_RNG.nextDouble() * Math.PI * 2;
+        beatReseedAt = System.currentTimeMillis() + 1500 + POLAR_RNG.nextInt(3000);
+    }
+
+    private static void reseedAxis() {
+        yawNoiseAmp = 0.3 + POLAR_RNG.nextDouble() * 1.2;
+        yawNoiseFreq = 0.4 + POLAR_RNG.nextDouble() * 1.4;
+        pitchNoiseAmp = 0.15 + POLAR_RNG.nextDouble() * 0.7;
+        pitchNoiseFreq = 0.3 + POLAR_RNG.nextDouble() * 1.2;
+        axisReseedAt = System.currentTimeMillis() + 500 + POLAR_RNG.nextInt(1500);
+    }
+
+    private static void reseedBase() {
+        baseBlend = 0.2 + POLAR_RNG.nextDouble() * 0.8;
+        baseReseedAt = System.currentTimeMillis() + 900 + POLAR_RNG.nextInt(2200);
+    }
+
     public static void reset() {
         flicking = false;
         heldPoint = null;
@@ -83,6 +199,15 @@ public class PolarRotationManager {
         reseedChaos();
         reseedOrbit();
         reseedWeights();
+        reseedOrbit2();
+        reseedOrbit3();
+        reseedLissajous();
+        reseedSpirograph();
+        reseedWalk();
+        reseedLogistic();
+        reseedBeats();
+        reseedAxis();
+        reseedBase();
     }
 
     public static void resetFlick() {
@@ -136,6 +261,15 @@ public class PolarRotationManager {
 
         if (now >= weightReseedAt) reseedWeights();
         if (now >= orbitReseedAt) reseedOrbit();
+        if (now >= orbit2ReseedAt) reseedOrbit2();
+        if (now >= orbit3ReseedAt) reseedOrbit3();
+        if (now >= lissReseedAt) reseedLissajous();
+        if (now >= spiroReseedAt) reseedSpirograph();
+        if (now >= walkReseedAt) reseedWalk();
+        if (now >= logisticReseedAt) reseedLogistic();
+        if (now >= beatReseedAt) reseedBeats();
+        if (now >= axisReseedAt) reseedAxis();
+        if (now >= baseReseedAt) reseedBase();
 
         Vec3 bestPoint;
 
@@ -170,19 +304,101 @@ public class PolarRotationManager {
         noiseDriftX += (POLAR_RNG.nextDouble() - 0.5) * 0.02;
         noiseDriftY += (POLAR_RNG.nextDouble() - 0.5) * 0.02;
 
+        // ---- LAYER 1: classic perlin jitter ---------------------------
         float yawJitter = (float) (PolarNoise.noise(noiseTime + noiseDriftX, 0) * 1.4);
         float pitchJitter = (float) (PolarNoise.noise(0, noiseTime + noiseDriftY) * 0.7);
         baseRotation = new Vector2f(baseRotation.x + yawJitter, baseRotation.y + pitchJitter);
 
+        // ---- LAYER 2: chaos doubles --------------------------------
         float chaosYaw = (float) (Math.sin(now * chaosFreqA + chaosPhaseA) * chaosAmpA
                 + Math.sin(now * chaosFreqB * 1.7 + chaosPhaseB) * chaosAmpA * 0.4);
         float chaosPitch = (float) (Math.cos(now * chaosFreqB + chaosPhaseB) * chaosAmpB
                 + Math.cos(now * chaosFreqA * 1.3 + chaosPhaseA) * chaosAmpB * 0.4);
         baseRotation = new Vector2f(baseRotation.x + chaosYaw, baseRotation.y + chaosPitch);
 
+        // ---- LAYER 3: primary orbit ---------------------------------
         float orbitYaw = (float) (Math.sin(now * orbitFreq + orbitPhase) * orbitRadiusYaw);
         float orbitPitch = (float) (Math.cos(now * orbitFreq * 0.8 + orbitPhase) * orbitRadiusPitch);
         baseRotation = new Vector2f(baseRotation.x + orbitYaw, baseRotation.y + orbitPitch);
+
+        // ---- LAYER 4: secondary orbit (independent freq) ------------
+        float orbitYaw2 = (float) (Math.sin(now * orbit2Freq + orbit2Phase) * orbit2RadiusYaw);
+        float orbitPitch2 = (float) (Math.cos(now * orbit2Freq * 1.13 + orbit2Phase) * orbit2RadiusPitch);
+        baseRotation = new Vector2f(baseRotation.x + orbitYaw2, baseRotation.y + orbitPitch2);
+
+        // ---- LAYER 5: tertiary micro-orbit ---------------------------
+        float orbitYaw3 = (float) (Math.sin(now * orbit3Freq * 1.61 + orbit3Phase) * orbit3RadiusYaw);
+        float orbitPitch3 = (float) (Math.cos(now * orbit3Freq + orbit3Phase * 1.7) * orbit3RadiusPitch);
+        baseRotation = new Vector2f(baseRotation.x + orbitYaw3, baseRotation.y + orbitPitch3);
+
+        // ---- LAYER 6: lissajous curve --------------------------------
+        float lissT = (float) (now * 0.0006);
+        float lissYaw = (float) (Math.sin(lissFreqX * lissT + lissPhase) * lissAmpX);
+        float lissPitch = (float) (Math.sin(lissFreqY * lissT) * lissAmpY);
+        baseRotation = new Vector2f(baseRotation.x + lissYaw, baseRotation.y + lissPitch);
+
+        // ---- LAYER 7: spirograph / rose curve ------------------------
+        float spiroT = (float) (now * 0.0004);
+        float spiroYaw = (float) (Math.sin(spiroPetal * spiroT + spiroPhase) * Math.cos(spiroT) * spiroAmp);
+        float spiroPitch = (float) (Math.cos(spiroPetal * spiroT + spiroPhase) * Math.sin(spiroT * 1.3) * spiroAmp * 0.5);
+        baseRotation = new Vector2f(baseRotation.x + spiroYaw, baseRotation.y + spiroPitch);
+
+        // ---- LAYER 8: brownian random walk ----------------------------
+        walkX += (walkTargetX - walkX) * walkSpeed + (POLAR_RNG.nextDouble() - 0.5) * 0.03;
+        walkY += (walkTargetY - walkY) * walkSpeed + (POLAR_RNG.nextDouble() - 0.5) * 0.02;
+        if ((walkTargetX - walkX) * (walkTargetX - walkX) < 0.01 &&
+                (walkTargetY - walkY) * (walkTargetY - walkY) < 0.01) {
+            walkTargetX = (POLAR_RNG.nextDouble() - 0.5) * 2.0;
+            walkTargetY = (POLAR_RNG.nextDouble() - 0.5) * 2.0;
+        }
+        baseRotation = new Vector2f(baseRotation.x + (float) walkX, baseRotation.y + (float) walkY);
+
+        // ---- LAYER 9: logistic map chaos ------------------------------
+        logisticX = logisticR * logisticX * (1.0 - logisticX);
+        double logisticVal = (logisticX - 0.5) * 2.0;
+        baseRotation = new Vector2f(baseRotation.x + (float) (logisticVal * 0.5), baseRotation.y + (float) (logisticVal * 0.35));
+
+        // ---- LAYER 10: beat interference ------------------------------
+        float beatYaw = (float) (Math.sin(now * beatFreqA + beatPhase) * Math.sin(now * beatFreqB) * 0.6);
+        float beatPitch = (float) (Math.cos(now * beatFreqA * 0.9) * Math.cos(now * beatFreqB + beatPhase) * 0.35);
+        baseRotation = new Vector2f(baseRotation.x + beatYaw, baseRotation.y + beatPitch);
+
+        // ---- LAYER 11: independent per-axis fractal noise -------------
+        float axisYaw = (float) (PolarNoise.simplex2D(now * yawNoiseFreq * 0.002, noiseDriftX) * yawNoiseAmp);
+        float axisPitch = (float) (PolarNoise.simplex2D(now * pitchNoiseFreq * 0.0017, noiseDriftY) * pitchNoiseAmp);
+        baseRotation = new Vector2f(baseRotation.x + axisYaw, baseRotation.y + axisPitch);
+
+        // ---- LAYER 12: cellular / worley micro-stutter -----------------
+        float cellYaw = (float) ((PolarNoise.cellularNoise(noiseTime * 0.5, noiseDriftY * 0.3) - 0.5) * 0.4);
+        float cellPitch = (float) ((PolarNoise.cellularNoise(noiseDriftX * 0.3, noiseTime * 0.5) - 0.5) * 0.25);
+        baseRotation = new Vector2f(baseRotation.x + cellYaw, baseRotation.y + cellPitch);
+
+        // ---- LAYER 13: turbulence spikes -------------------------------
+        float turbYaw = (float) ((PolarNoise.turbulence(noiseTime * 0.3, noiseDriftX, 3) - 0.9) * 0.7 * noiseScale * 0.2);
+        float turbPitch = (float) ((PolarNoise.billow(noiseTime * 0.25, noiseDriftY, 3) - 0.9) * 0.4 * noiseScale * 0.2);
+        baseRotation = new Vector2f(baseRotation.x + turbYaw, baseRotation.y + turbPitch);
+
+        // ---- LAYER 14: ridged multifractal edges -----------------------
+        float ridgedYaw = (float) ((float) PolarNoise.ridgedNoise(noiseTime * 0.35, noiseDriftY, 4, 2.0, 0.7) * 0.5);
+        float ridgedPitch = (float) ((float) PolarNoise.ridgedNoise(noiseDriftX, noiseTime * 0.35, 4, 2.0, 0.7) * 0.3);
+        baseRotation = new Vector2f(baseRotation.x + ridgedYaw, baseRotation.y + ridgedPitch);
+
+        // ---- LAYER 15: rotating simplex domain warp --------------------
+        double warpAngle = Math.sin(now * 0.0003) * 0.5 + baseBlend;
+        double rotatingWarp = PolarNoise.domainWarpRotating(noiseTime * 0.2, noiseDriftY, warpStrength * 0.15, noiseScale * 0.2, noiseOctaves, warpAngle);
+        baseRotation = new Vector2f(baseRotation.x + (float) (rotatingWarp * 0.6), baseRotation.y + (float) (rotatingWarp * 0.35));
+
+        // ---- LAYER 16: dual-blend fractal -------------------------------
+        double dual = PolarNoise.dualFbm(noiseTime * 0.18, noiseDriftY, noiseOctaves, 2.0, 0.5, 2.6, 0.35, baseBlend);
+        baseRotation = new Vector2f(baseRotation.x + (float) (dual * 0.45), baseRotation.y + (float) (dual * 0.28));
+
+        // ---- LAYER 17: blended perlin/simplex/value ---------------------
+        double blended = PolarNoise.blendedNoise(noiseTime * 0.22, noiseDriftX, noiseOctaves, 0.4, 0.35, 0.25);
+        baseRotation = new Vector2f(baseRotation.x + (float) (blended * 0.55), baseRotation.y + (float) (blended * 0.32));
+
+        // ---- LAYER 18: white-noise micro flutter ------------------------
+        float flutter = (float) PolarNoise.jitter(noiseTime * 0.11) * 0.18f;
+        baseRotation = new Vector2f(baseRotation.x + flutter, baseRotation.y + flutter * 0.6f);
 
         if (flicking) {
             baseRotation = applyFlick(baseRotation);
@@ -321,8 +537,17 @@ public class PolarRotationManager {
             double nx = p.xCoord * noiseScale + i * 0.5 + noiseDriftX;
             double ny = p.yCoord * noiseScale + i * 0.3 + noiseDriftY;
 
-            double warpX = PolarNoise.domainWarp(nx, ny, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
-            double warpY = PolarNoise.domainWarp(ny + 3.7, nx + 7.1, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
+            // increase randomization: pick a random warp variant per octave pass
+            boolean useSimplex = POLAR_RNG.nextBoolean();
+            double warpX, warpY;
+
+            if (useSimplex) {
+                warpX = PolarNoise.fbmSimplex(nx, ny, octaves, 2.0, 0.5) * warpStrength * chaosScale;
+                warpY = PolarNoise.fbmSimplex(ny + 1.7, nx + 4.3, octaves, 2.2, 0.45) * warpStrength * chaosScale;
+            } else {
+                warpX = PolarNoise.domainWarp(nx, ny, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
+                warpY = PolarNoise.domainWarp(ny + 3.7, nx + 7.1, warpStrength, noiseScale, octaves) * warpStrength * chaosScale;
+            }
 
             double fbmX = PolarNoise.fbm(nx + warpX, ny + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
             double fbmY = PolarNoise.fbm(nx + 5.3 + warpX, ny + 9.1 + warpY, octaves, 2.0, 0.5) * warpStrength * 0.5 * chaosScale;
