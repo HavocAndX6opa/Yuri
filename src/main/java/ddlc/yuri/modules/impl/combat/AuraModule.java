@@ -302,7 +302,7 @@ public class AuraModule extends Module {
                 autoBlocking = true;
                 break;
             case HYPIXEL:
-                canAttack = true;
+                canAttack = !BadPacketsManager.bad(false, false, false, true, false);
                 if (hypixelBlocking) {
                     releaseBlock();
                 }
@@ -409,9 +409,17 @@ public class AuraModule extends Module {
         } else {
             canAttack = true;
         }
-        if (hypixelBlocking) {
-            releaseBlock();
+        if (ab.getValue() == AutoBlock.HYPIXEL) {
+            boolean wasBlocking = hypixelBlocking;
+            hypixelBlocking = false;
+            hypixelTick = 0;
+            if (mc.thePlayer == null) return;
+            if (wasBlocking || mc.thePlayer.isUsingItem() || mc.thePlayer.isBlocking()) {
+                PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+                mc.thePlayer.stopUsingItem();
+            }
         }
+        autoBlocking = false;
         hypixelTick = 0;
         if (SlotManager.isActive()) {
             SlotManager.swapBack();
