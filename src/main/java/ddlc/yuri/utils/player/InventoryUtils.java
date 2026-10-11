@@ -107,25 +107,8 @@ public class InventoryUtils implements IMinecraft {
     }
 
     public static boolean isBadStackStealer(ItemStack is, boolean preferSword, boolean keepTools) {
-        int type = 1;
-        while (type < 5) {
-            String strType = "";
-            if (type == 1) {
-                strType = "helmet";
-            } else if (type == 2) {
-                strType = "chestplate";
-            } else if (type == 3) {
-                strType = "leggings";
-            } else if (type == 4) {
-                strType = "boots";
-            }
-            if (is.getItem() instanceof ItemArmor && !InventoryUtils.isBestArmor(is, type) && is.getUnlocalizedName().contains(strType)) {
-                return true;
-            }
-            if (InventoryUtils.mc.thePlayer.inventoryContainer.getSlot(4 + type).getHasStack() && InventoryUtils.isBestArmor(InventoryUtils.mc.thePlayer.inventoryContainer.getSlot(4 + type).getStack(), type) && InventoryUtils.mc.thePlayer.inventoryContainer.getSlot(4 + type).getStack().getUnlocalizedName().contains(strType) && is.getUnlocalizedName().contains(strType)) {
-                return true;
-            }
-            ++type;
+        if (is.getItem() instanceof ItemArmor) {
+            return false;
         }
         if (is.getItem() instanceof ItemSword && InventoryUtils.getWeaponSkill(is) <= InventoryUtils.bestWeaponSkill() && !preferSword) {
             return true;
