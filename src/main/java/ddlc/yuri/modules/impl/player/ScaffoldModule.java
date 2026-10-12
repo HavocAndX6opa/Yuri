@@ -218,7 +218,7 @@ public final class ScaffoldModule extends Module {
         }
 
         if (mode.getValue() == Mode.TELLY) {
-            if (tellySafeTimer.hasTimeElapsed(500)) {
+            if (tellySafeTimer.hasTimeElapsed(400)) {
                 mc.gameSettings.keyBindJump.setPressed(Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode()));
             } else {
                 mc.gameSettings.keyBindJump.setPressed(true);
@@ -421,7 +421,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks <= (isDiagonal() || mc.gameSettings.keyBindJump.isKeyDown() ? 3 : 3)) {
+            if (mc.thePlayer.offGroundTicks <= (isDiagonal() ? 1 : 3)) {
                 tellyNoPlace = false;
             }
         }
@@ -548,7 +548,7 @@ public final class ScaffoldModule extends Module {
                         target[0] = mc.thePlayer.rotationYaw;
                 } else {
                     if (hypixelTelly.getValue()) {
-                        rotSpeed = isDiagonal() ? 4.8f : mc.gameSettings.keyBindJump.isKeyDown() ? 3.25f : 2.5f;
+                        rotSpeed = isDiagonal() ? 3.3f : mc.gameSettings.keyBindJump.isKeyDown() ? 3.25f : 2.5f;
                     }
                 }
                 break;
@@ -588,7 +588,7 @@ public final class ScaffoldModule extends Module {
         if (!canPlace || !delayTimer.hasTimeElapsed(placeDelay.getValue().longValue() * 20)) return;
 
         if (rayCast.getValue() == RayCast.STRICT) {
-            mc.rightClickMouse();
+            mc.rightClickMouseSilentSwing();
         } else {
             Vec3 hitVec = ScaffoldUtils.computeHitVec(blockFace, enumFacing);
             if (mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,

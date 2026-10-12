@@ -18,6 +18,7 @@ import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.api.gui.initalization.YuriInitializationScreen;
 import ddlc.yuri.api.gui.main.YuriMenu;
 import ddlc.yuri.modules.impl.render.MotionBlurModule;
+import ddlc.yuri.utils.player.packet.PacketUtils;
 import lombok.Setter;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -74,6 +75,7 @@ import net.minecraft.network.EnumConnectionState;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.handshake.client.C00Handshake;
 import net.minecraft.network.login.client.C00PacketLoginStart;
+import net.minecraft.network.play.client.C0APacketAnimation;
 import net.minecraft.network.play.client.C16PacketClientStatus;
 import net.minecraft.profiler.IPlayerUsage;
 import net.minecraft.profiler.PlayerUsageSnooper;
@@ -1414,6 +1416,79 @@ public class Minecraft implements IThreadListener, IPlayerUsage
                             {
                                 flag = false;
                                 this.thePlayer.swingItem();
+                            }
+
+                            if (itemstack == null)
+                            {
+                                return;
+                            }
+
+                            if (itemstack.stackSize == 0)
+                            {
+                                this.thePlayer.inventory.mainInventory[this.thePlayer.inventory.currentItem] = null;
+                            }
+                            else if (itemstack.stackSize != i || this.playerController.isInCreativeMode())
+                            {
+                                this.entityRenderer.itemRenderer.resetEquippedProgress();
+                            }
+                        }
+                }
+            }
+
+            if (flag)
+            {
+                ItemStack itemstack1 = this.thePlayer.inventory.getCurrentItem();
+
+                if (itemstack1 != null && this.playerController.sendUseItem(this.thePlayer, this.theWorld, itemstack1))
+                {
+                    this.entityRenderer.itemRenderer.resetEquippedProgress2();
+                }
+            }
+        }
+    }
+
+    public void rightClickMouseSilentSwing()
+    {
+        RightClickEvent rightClickEvent = new RightClickEvent();
+        Yuri.INSTANCE.getEventBus().post(rightClickEvent);
+        if (rightClickEvent.isCancelled()) return;
+        if (!this.playerController.getIsHittingBlock())
+        {
+            this.rightClickDelayTimer = 4;
+            boolean flag = true;
+            ItemStack itemstack = this.thePlayer.inventory.getCurrentItem();
+
+            if (this.objectMouseOver == null)
+            {
+                logger.warn("Null returned as \'hitResult\', this shouldn\'t happen!");
+            }
+            else
+            {
+                switch (this.objectMouseOver.typeOfHit)
+                {
+                    case ENTITY:
+                        if (this.playerController.isPlayerRightClickingOnEntity(this.thePlayer, this.objectMouseOver.entityHit, this.objectMouseOver))
+                        {
+                            flag = false;
+                        }
+                        else if (this.playerController.interactWithEntitySendPacket(this.thePlayer, this.objectMouseOver.entityHit))
+                        {
+                            flag = false;
+                        }
+
+                        break;
+
+                    case BLOCK:
+                        BlockPos blockpos = this.objectMouseOver.getBlockPos();
+
+                        if (this.theWorld.getBlockState(blockpos).getBlock().getMaterial() != Material.air)
+                        {
+                            int i = itemstack != null ? itemstack.stackSize : 0;
+
+                            if (this.playerController.onPlayerRightClick(this.thePlayer, this.theWorld, itemstack, blockpos, this.objectMouseOver.sideHit, this.objectMouseOver.hitVec))
+                            {
+                                flag = false;
+                                PacketUtils.sendPacket(new C0APacketAnimation());
                             }
 
                             if (itemstack == null)
