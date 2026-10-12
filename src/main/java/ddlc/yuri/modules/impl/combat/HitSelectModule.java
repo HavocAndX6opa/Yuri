@@ -1,6 +1,5 @@
 package ddlc.yuri.modules.impl.combat;
 
-import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.ClientTickEvent;
 import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
@@ -10,27 +9,35 @@ import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import net.minecraft.client.settings.GameSettings;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.potion.Potion;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.HashMap;
 
-@ModuleInfo(label = "Hit Select", description = "Baits the first hit then counters into a combo", category = ModuleCategory.COMBAT)
+@ModuleInfo(label = "Hit Select", description = "Holds attacks to prioritise clean hits and combos", category = ModuleCategory.COMBAT)
 public final class HitSelectModule extends Module {
 
-    private final NumberProperty chance = new NumberProperty("Chance", 100.0, 10.0, 100.0, 1.0);
-    private final NumberProperty comboDelay = new NumberProperty("Combo Delay", 50.0, 0.0, 300.0, 5.0);
-    private final NumberProperty resetTimeout = new NumberProperty("Reset Timeout", 1200.0, 300.0, 3000.0, 50.0);
-    private final Property<Boolean> predict = new Property<>("Predict", true);
-    private final NumberProperty predictReach = new NumberProperty("Predict Reach", 3.2, 2.0, 4.5, 0.1);
-    private final NumberProperty swingThreshold = new NumberProperty("Swing Threshold", 0.1, 0.0, 1.0, 0.05);
-    private final Property<Boolean> idleAttack = new Property<>("Idle Attack", false);
-    private final NumberProperty idleCps = new NumberProperty("Idle CPS", 2.0, 1.0, 10.0, 0.5);
+    private final NumberProperty pause = new NumberProperty("Pause", 0.0, 0.0, 500.0, 50.0);
+    private final NumberProperty onlyInCombo = new NumberProperty("Only in combo", 0.0, 0.0, 10.0, 1.0);
+    private final Property<Boolean> disableOnLowHealth = new Property<>("Disable on low health", true);
+    private final Property<Boolean> fakeSwing = new Property<>("Fake swing", false);
+    private final Property<Boolean> forceFirstHit = new Property<>("Force first hit", false);
+    private final Property<Boolean> onlyCriticalHits = new Property<>("Only critical hits", false);
+    private final Property<Boolean> onlyWhileJumping = new Property<>("Only while jumping", false);
+    private final Property<Boolean> resetComboOnSwap = new Property<>("Reset combo on swap", false);
+    private final Property<Boolean> resetOnDamage = new Property<>("Reset on damage", false);
 
-    private boolean hitReceived;
-    private long hitTimestamp;
-    private long lastAttackTimestamp;
-    private float prevTargetSwing;
-    private boolean attackAllowed = true;
+    private final HashMap<Integer, Long> firstHits = new HashMap<>();
+
+    private int combo;
+    private int lastTarget = -1;
+    private int lastSlot = -1;
+    private int prevTargetHurt;
+    private int prevPlayerHurt;
+    private long lastAttack;
+    private long damagedAt;
 
     @Override
     public void onEnable() {
@@ -40,7 +47,6 @@ public final class HitSelectModule extends Module {
     @Override
     public void onDisable() {
         reset();
-        AuraModule.canAttack = true;
     }
 
     @EventHook
@@ -50,11 +56,27 @@ public final class HitSelectModule extends Module {
 
     @EventHook
     public void onAttack(PlayerAttackEvent event) {
-        if (!attackAllowed) {
+        if (mc.thePlayer == null || mc.theWorld == null) {
+            return;
+        }
+
+        Entity entity = AuraModule.target;
+        if (entity == null && mc.objectMouseOver != null) {
+            entity = mc.objectMouseOver.entityHit;
+        }
+        if (entity == null) {
+            return;
+        }
+
+        if (hold(entity)) {
             event.setCancelled(true);
             return;
         }
-        lastAttackTimestamp = System.currentTimeMillis();
+
+        if (onlyInCombo.getValue() > 0.0) {
+            lastTarget = entity.getEntityId();
+            lastAttack = System.currentTimeMillis();
+        }
     }
 
     @EventHook
@@ -63,70 +85,94 @@ public final class HitSelectModule extends Module {
             return;
         }
 
-        EntityLivingBase target = AuraModule.target instanceof EntityLivingBase ? (EntityLivingBase) AuraModule.target : null;
-
-        if (target == null) {
-            reset();
-            AuraModule.canAttack = true;
-            return;
-        }
-
         long now = System.currentTimeMillis();
 
-        if (mc.thePlayer.hurtTime > 0 && mc.thePlayer.hurtTime >= mc.thePlayer.maxHurtTime - 1) {
-            if (!hitReceived) {
-                hitReceived = true;
-                hitTimestamp = now;
+        int slot = mc.thePlayer.inventory.currentItem;
+        if (lastSlot != -1 && slot != lastSlot && resetComboOnSwap.getValue()) {
+            combo = 0;
+        }
+        lastSlot = slot;
+
+        int playerHurt = mc.thePlayer.hurtTime;
+        if (playerHurt > 0 && playerHurt == mc.thePlayer.maxHurtTime && playerHurt > prevPlayerHurt) {
+            combo = 0;
+            if (resetOnDamage.getValue()) {
+                damagedAt = now;
             }
         }
+        prevPlayerHurt = playerHurt;
 
-        if (!hitReceived && predict.getValue() && isPredictingHit(target)) {
-            hitReceived = true;
-            hitTimestamp = now;
-        }
-
-        if (hitReceived && (now - hitTimestamp >= resetTimeout.getValue())) {
-            hitReceived = false;
-        }
-
-        boolean rollSuccess = ThreadLocalRandom.current().nextDouble(0.0, 100.0) <= chance.getValue();
-
-        if (!rollSuccess) {
-            attackAllowed = true;
-        } else if (!hitReceived) {
-            if (idleAttack.getValue()) {
-                long idleDelay = (long) (1000.0 / idleCps.getValue());
-                attackAllowed = now - lastAttackTimestamp >= idleDelay;
-            } else {
-                attackAllowed = false;
+        Entity tracked = lastTarget == -1 ? null : mc.theWorld.getEntityByID(lastTarget);
+        if (tracked instanceof EntityLivingBase) {
+            EntityLivingBase living = (EntityLivingBase) tracked;
+            int hurt = living.hurtTime;
+            if (onlyInCombo.getValue() > 0.0 && hurt > 0 && hurt == living.maxHurtTime && hurt > prevTargetHurt
+                    && Math.abs(now - lastAttack) < 750L) {
+                combo++;
             }
+            prevTargetHurt = hurt;
         } else {
-            long requiredDelay = (long) comboDelay.getValue().longValue();
-            attackAllowed = now - hitTimestamp >= requiredDelay;
+            prevTargetHurt = 0;
         }
 
-        if (Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled()) {
-            AuraModule.canAttack = attackAllowed;
+        if (combo > 0 && Math.abs(now - lastAttack) > 1250L) {
+            combo = 0;
         }
     }
 
-    private boolean isPredictingHit(EntityLivingBase target) {
-        float swing = target.swingProgress;
-        boolean swingStarted = swing > swingThreshold.getValue() && prevTargetSwing <= swingThreshold.getValue();
-        prevTargetSwing = swing;
-
-        if (!swingStarted) {
+    private boolean hold(Entity entity) {
+        if (!(entity instanceof EntityLivingBase)) {
+            return false;
+        }
+        if (disableOnLowHealth.getValue() && !mc.thePlayer.capabilities.isCreativeMode && mc.thePlayer.getHealth() <= 4.0f) {
+            return false;
+        }
+        if (onlyInCombo.getValue() > 0.0 && combo < onlyInCombo.getValue().intValue()) {
+            return false;
+        }
+        if (onlyWhileJumping.getValue() && !GameSettings.isKeyDown(mc.gameSettings.keyBindJump)) {
+            return false;
+        }
+        if (damagedAt != 0L && Math.abs(System.currentTimeMillis() - damagedAt) < 170L) {
             return false;
         }
 
-        return mc.thePlayer.getDistanceToEntity(target) <= predictReach.getValue();
+        boolean hold = shouldHold((EntityLivingBase) entity);
+
+        if (hold && forceFirstHit.getValue()) {
+            long now = System.currentTimeMillis();
+            Long t = firstHits.get(entity.getEntityId());
+            if (t == null || now - t > 10000L) {
+                hold = false;
+            }
+            firstHits.put(entity.getEntityId(), now);
+        }
+
+        if (hold && fakeSwing.getValue()) {
+            mc.thePlayer.isSwingInProgress = false;
+            mc.thePlayer.swingItem();
+        }
+
+        return hold;
+    }
+
+    private boolean shouldHold(EntityLivingBase e) {
+        int hurtLimit = 10 - pause.getValue().intValue() / 50;
+        if (pause.getValue() > 0.0 && e.hurtTime > hurtLimit) {
+            return true;
+        }
+        return !(!onlyCriticalHits.getValue() || mc.thePlayer.onGround || mc.thePlayer.fallDistance != 0.0f || mc.thePlayer.isInWater()
+                || mc.thePlayer.ridingEntity != null || mc.thePlayer.isPotionActive(Potion.blindness) || mc.thePlayer.isOnLadder());
     }
 
     private void reset() {
-        hitReceived = false;
-        hitTimestamp = -1L;
-        lastAttackTimestamp = -1L;
-        prevTargetSwing = 0.0f;
-        attackAllowed = true;
+        combo = 0;
+        lastTarget = -1;
+        lastSlot = -1;
+        prevTargetHurt = 0;
+        prevPlayerHurt = 0;
+        lastAttack = 0L;
+        damagedAt = 0L;
+        firstHits.clear();
     }
 }

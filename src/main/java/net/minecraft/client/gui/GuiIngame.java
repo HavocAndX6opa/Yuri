@@ -1157,9 +1157,9 @@ public class GuiIngame extends Gui {
             float playerX = startX + (maxWidth - playerNameWidth) / 2f;
 
             if (useMcFont) {
-                this.mc.fontRendererObj.drawString(playerName, playerX, rowY, textColor, false);
+                this.mc.fontRendererObj.drawStringWithShadow(playerName, playerX, rowY, textColor);
             } else {
-                customFr.drawString(playerName, playerX, (float) rowY, textColor);
+                customFr.drawStringWithShadow(playerName, playerX, (float) rowY, textColor);
             }
         }
     }
