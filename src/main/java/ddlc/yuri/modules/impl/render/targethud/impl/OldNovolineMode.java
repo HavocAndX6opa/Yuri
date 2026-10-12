@@ -28,6 +28,14 @@ public final class OldNovolineMode extends TargetHudMode {
     public int getLabelHeight() { return 0; }
 
     @Override
+    public int getBlurWidth(EntityLivingBase targetEntity) {
+        return 2 + 24 + mc.fontRendererObj.getStringWidth(targetEntity.getName()) + 15;
+    }
+
+    @Override
+    public int getBlurHeight(EntityLivingBase targetEntity) { return 2 + 24 + 2; }
+
+    @Override
     public void draw(EntityLivingBase targetEntity, TargetHudModule.TargetState state,
                      double x, double y, long now, float delta) {
 

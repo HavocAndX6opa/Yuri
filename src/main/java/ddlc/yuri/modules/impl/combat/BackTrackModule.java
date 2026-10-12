@@ -3,9 +3,10 @@ package ddlc.yuri.modules.impl.combat;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
+import ddlc.yuri.api.events.annotations.EventPriority;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
-import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.NumberProperty;
@@ -13,19 +14,16 @@ import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
-import ddlc.yuri.utils.client.TimerUtils;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.INetHandlerPlayClient;
-import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.network.play.server.S08PacketPlayerPosLook;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S14PacketEntity;
 import net.minecraft.network.play.server.S18PacketEntityTeleport;
 import net.minecraft.util.Vec3;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayDeque;
 
 @ModuleInfo(label = "Back Track", category = ModuleCategory.COMBAT, description = "Allows you to backtrack players' positions")
 public class BackTrackModule extends Module {
@@ -35,98 +33,103 @@ public class BackTrackModule extends Module {
     public final NumberProperty maxDelay = new NumberProperty("Max Delay", 400.0, 40.0, 2000.0, 10.0);
     public final Property<Boolean> onlyKillAura = new Property<>("Only Kill Aura", true);
 
-    private volatile EntityLivingBase target;
+    private static final class Held {
+        private final Packet<INetHandlerPlayClient> packet;
+        private final long releaseAt;
+
+        private Held(Packet<INetHandlerPlayClient> packet, long releaseAt) {
+            this.packet = packet;
+            this.releaseAt = releaseAt;
+        }
+    }
+
+    private final ArrayDeque<Held> held = new ArrayDeque<>();
+    private volatile boolean holding;
+    private volatile int targetId = -1;
     private volatile Vec3 spoofedPosition;
-    private volatile boolean spoofing;
-
-    private final TimerUtils timer = new TimerUtils();
-    private final ConcurrentLinkedQueue<Packet<INetHandlerPlayClient>> packetBuffer = new ConcurrentLinkedQueue<>();
-
+    private int realX, realY, realZ;
+    private NetHandlerPlayClient connection;
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null) {
-            releaseBuffer();
-            spoofing = false;
-            return;
-        }
-
-        target = resolveTarget();
-
-        if (target == null) {
-            releaseBuffer();
-            spoofing = false;
-            return;
-        }
-
-        float distance = calculateDistance(target.posX, target.posY, target.posZ);
-        spoofing = distance > minRange.getValue() && distance < maxRange.getValue() && !timer.hasTimeElapsed(maxDelay.getValue());
-
         setSuffix(maxDelay.getValue().intValue() + "ms");
 
-        if (!spoofing) {
-            releaseBuffer();
-            timer.reset();
-            spoofedPosition = null;
-        }
-    }
-
-    @EventHook
-    public void onPacketReceived(PacketReceivedEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null || target == null) return;
-
-        Packet<?> packet = event.getPacket();
-
-        if (packet instanceof S08PacketPlayerPosLook) {
-            releaseBuffer();
-            spoofing = false;
+        NetHandlerPlayClient current = mc.getNetHandler();
+        if (mc.thePlayer == null || mc.theWorld == null || current == null || current != connection) {
+            synchronized (held) {
+                holding = false;
+                held.clear();
+                targetId = -1;
+                spoofedPosition = null;
+            }
+            connection = current;
             return;
         }
 
-        if (packet instanceof S12PacketEntityVelocity) {
-            if (((S12PacketEntityVelocity) packet).getEntityID() == mc.thePlayer.getEntityId()) {
-                releaseBuffer();
-                spoofing = false;
-                timer.reset();
-                spoofedPosition = null;
-                return;
+        EntityLivingBase target = resolveTarget();
+        if (target == null || !mc.thePlayer.isEntityAlive() || !inRange(target)) {
+            stop();
+            return;
+        }
+
+        if (!holding || target.getEntityId() != targetId) {
+            synchronized (held) {
+                releaseLocked(true);
+                targetId = target.getEntityId();
+                realX = target.serverPosX;
+                realY = target.serverPosY;
+                realZ = target.serverPosZ;
+                updateSpoofedPosition();
+                holding = true;
             }
         }
 
-        if (!spoofing || !shouldBufferPacket(packet)) return;
+        release(false);
+    }
 
-        packetBuffer.add((Packet<INetHandlerPlayClient>) packet);
+    @EventHook
+    public void onRender2D(Render2DEvent event) {
+        release(false);
+    }
+
+    @EventHook(EventPriority.VERY_HIGH)
+    public void onPacketReceived(PacketReceivedEvent event) {
+        if (event.isCancelled()) return;
+
+        synchronized (held) {
+            if (!holding) return;
+
+            Packet<?> packet = event.getPacket();
+            follow(packet);
+            held.addLast(new Held((Packet<INetHandlerPlayClient>) packet, System.currentTimeMillis() + maxDelay.getValue().longValue()));
+        }
         event.setCancelled(true);
+    }
+
+    private void follow(Packet<?> packet) {
+        int target = targetId;
 
         if (packet instanceof S14PacketEntity) {
             S14PacketEntity p = (S14PacketEntity) packet;
-            if (p.getEntity(mc.theWorld) == target) {
-                backertrack(new Vec3(
-                        target.posX + p.getPosX() / 32.0,
-                        target.posY + p.getPosY() / 32.0,
-                        target.posZ + p.getPosZ() / 32.0
-                ));
+            if (p.entityId == target) {
+                realX += p.getPosX();
+                realY += p.getPosY();
+                realZ += p.getPosZ();
+                updateSpoofedPosition();
             }
         } else if (packet instanceof S18PacketEntityTeleport) {
             S18PacketEntityTeleport p = (S18PacketEntityTeleport) packet;
-            if (p.getEntityId() == target.getEntityId()) {
-                backertrack(new Vec3(p.getX() / 32.0, p.getY() / 32.0, p.getZ() / 32.0));
+            if (p.getEntityId() == target) {
+                realX = p.getX();
+                realY = p.getY();
+                realZ = p.getZ();
+                updateSpoofedPosition();
             }
         }
     }
 
-    @EventHook
-    public void onPacketSend(PacketSendEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null || target == null || !spoofing) return;
-
-        Packet<?> packet = event.getPacket();
-        Vec3 position = spoofedPosition;
-
-        if (packet instanceof C02PacketUseEntity && position != null) {
-            if (((C02PacketUseEntity) packet).getEntityFromWorld(mc.theWorld) == target) {
-                target.setPosition(position.xCoord, position.yCoord, position.zCoord);
-            }
-        }
+    private void updateSpoofedPosition() {
+        spoofedPosition = new Vec3(realX / 32.0, realY / 32.0, realZ / 32.0);
     }
 
 /*    @EventHook
@@ -166,10 +169,6 @@ public class BackTrackModule extends Module {
         GlStateManager.resetColor();
     }*/
 
-    private void backertrack(Vec3 position) {
-        spoofedPosition = position;
-    }
-
     private EntityLivingBase resolveTarget() {
         if (onlyKillAura.getValue()) {
             AuraModule aura = Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class);
@@ -180,54 +179,68 @@ public class BackTrackModule extends Module {
         return entity instanceof EntityLivingBase ? (EntityLivingBase) entity : null;
     }
 
+    private boolean inRange(EntityLivingBase target) {
+        if (!target.isEntityAlive()) return false;
+        float distance = calculateDistance(target.posX, target.posY, target.posZ);
+        return distance > minRange.getValue() && distance < maxRange.getValue();
+    }
+
     private float calculateDistance(double x, double y, double z) {
         Vec3 playerEyes = mc.thePlayer.getPositionEyes(mc.timer.renderPartialTicks);
         return (float) playerEyes.distanceTo(new Vec3(x, y, z));
     }
 
-    private boolean shouldBufferPacket(Packet<?> packet) {
-        return packet instanceof S14PacketEntity || packet instanceof S18PacketEntityTeleport;
+    private void stop() {
+        synchronized (held) {
+            holding = false;
+            releaseLocked(true);
+            targetId = -1;
+            spoofedPosition = null;
+        }
     }
 
-    private void releaseBuffer() {
-        INetHandlerPlayClient handler = mc.getNetHandler();
+    private void release(boolean all) {
+        synchronized (held) {
+            releaseLocked(all);
+        }
+    }
 
-        while (!packetBuffer.isEmpty()) {
-            Packet<INetHandlerPlayClient> packet = packetBuffer.poll();
-            if (packet == null || handler == null) continue;
+    private void releaseLocked(boolean all) {
+        NetHandlerPlayClient handler = mc.getNetHandler();
+        long now = System.currentTimeMillis();
+
+        while (!held.isEmpty() && (all || held.peekFirst().releaseAt <= now)) {
+            Held next = held.pollFirst();
+            if (handler == null || handler != connection) continue;
 
             try {
-                packet.processPacket(handler);
+                next.packet.processPacket(handler);
             } catch (Exception ignored) {
             }
         }
-
-        packetBuffer.clear();
     }
 
     @EventHook
     public void onWorldJoin(WorldJoinEvent event) {
-        packetBuffer.clear();
+        targetId = -1;
         spoofedPosition = null;
-        spoofing = false;
-        target = null;
     }
 
     @Override
     public void onEnable() {
         super.onEnable();
-        spoofing = false;
-        spoofedPosition = null;
-        packetBuffer.clear();
-        timer.reset();
+        synchronized (held) {
+            holding = false;
+            held.clear();
+            targetId = -1;
+            spoofedPosition = null;
+        }
+        connection = mc.getNetHandler();
     }
 
     @Override
     public void onDisable() {
         super.onDisable();
-        releaseBuffer();
-        spoofedPosition = null;
-        spoofing = false;
-        target = null;
+        stop();
     }
 }

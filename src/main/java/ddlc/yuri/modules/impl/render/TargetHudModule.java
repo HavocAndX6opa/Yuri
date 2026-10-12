@@ -208,9 +208,9 @@ public final class TargetHudModule extends Module {
             EntityLivingBase mainTarget = mc.currentScreen instanceof GuiChat ? mc.thePlayer : AuraModule.target;
             double[] base = getFollowBase(mainTarget, modeInstance);
             if (base != null) {
-                int panelWidth = modeInstance.getMinWidth();
-                int panelHeight = modeInstance.getHudHeight() + modeInstance.getLabelHeight();
-                Gui.drawRect((int) base[0], (int) base[1], (int) (base[0] + panelWidth), (int) (base[1] + panelHeight), 0xFFFFFFFF);
+                int blurWidth = modeInstance.getBlurWidth(mainTarget);
+                int blurHeight = modeInstance.getBlurHeight(mainTarget);
+                Gui.drawRect((int) base[0], (int) base[1], (int) (base[0] + blurWidth), (int) (base[1] + blurHeight), 0xFFFFFFFF);
             }
             return;
         }
@@ -238,8 +238,6 @@ public final class TargetHudModule extends Module {
 
     private void renderBlurMask(List<TargetState> states, DragUtils.DraggableComponent draggable, TargetHudMode modeInstance) {
         boolean useGrid = grid.getValue();
-        int panelWidth = modeInstance.getMinWidth();
-        int panelHeight = modeInstance.getHudHeight() + modeInstance.getLabelHeight();
 
         for (int i = 0; i < states.size(); i++) {
             if (!useGrid && i > 0) break;
@@ -250,7 +248,11 @@ public final class TargetHudModule extends Module {
             double baseX = draggable.getX() + col * INFO_SPACING_X;
             double baseY = draggable.getY() + row * INFO_SPACING_Y;
 
-            Gui.drawRect((int) baseX, (int) baseY, (int) (baseX + panelWidth), (int) (baseY + panelHeight), 0xFFFFFFFF);
+            EntityLivingBase entity = states.get(i).entity;
+            int blurWidth = modeInstance.getBlurWidth(entity);
+            int blurHeight = modeInstance.getBlurHeight(entity);
+
+            Gui.drawRect((int) baseX, (int) baseY, (int) (baseX + blurWidth), (int) (baseY + blurHeight), 0xFFFFFFFF);
         }
     }
 

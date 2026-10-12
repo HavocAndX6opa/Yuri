@@ -18,6 +18,14 @@ public abstract class TargetHudMode {
     public abstract int getHudHeight();
     public abstract int getLabelHeight();
 
+    public int getBlurWidth(EntityLivingBase targetEntity) {
+        return getMinWidth();
+    }
+
+    public int getBlurHeight(EntityLivingBase targetEntity) {
+        return getHudHeight() + getLabelHeight();
+    }
+
     public abstract void draw(EntityLivingBase targetEntity, TargetHudModule.TargetState state,
                               double x, double y, long now, float delta);
 }
