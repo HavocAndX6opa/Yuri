@@ -86,7 +86,7 @@ public final class AdjustMode extends TargetHudMode {
             parentModule.renderPlayerFace((AbstractClientPlayer) targetEntity, FACE_X, FACE_Y, FACE_SIZE,
                     1f, tintAmount, alpha);
         } else {
-            parentModule.render3DEntity(targetEntity, 12, 22, 10, 1f, tintAmount, alpha);
+            parentModule.render3DEntity(targetEntity, 12, 22, 10, alpha);
         }
 
         float trackWidth = WIDTH - 4f;

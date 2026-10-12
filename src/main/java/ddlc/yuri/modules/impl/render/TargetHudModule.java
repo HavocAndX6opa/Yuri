@@ -19,6 +19,7 @@ import ddlc.yuri.modules.impl.render.targethud.TargetHudMode;
 import ddlc.yuri.modules.impl.render.targethud.impl.*;
 import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.utils.render.GLUtils;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
@@ -30,7 +31,6 @@ import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
-import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -414,31 +414,42 @@ public final class TargetHudModule extends Module {
         GlStateManager.popMatrix();
     }
 
-    public void render3DEntity(EntityLivingBase entity, int x, int y, int scale, float sizeScale, float tintAmount, float alpha) {
+    public void render3DEntity(EntityLivingBase entity, int x, int y, int scale, float alpha) {
         GlStateManager.enableColorMaterial();
         GlStateManager.pushMatrix();
-        GlStateManager.translate((float) x, (float) y, 50.0F);
-        GlStateManager.scale((float) (-scale) * sizeScale, (float) scale * sizeScale, (float) scale);
-        GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
-        GlStateManager.rotate(135.0F, 0.0F, 1.0F, 0.0F);
+        GlStateManager.enableDepth();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, alpha);
+        GlStateManager.translate(x, y, 50.0f);
+        GlStateManager.scale(-scale, scale, scale);
+        GlStateManager.rotate(180.0f, 0.0f, 0.0f, 1.0f);
+        float f = entity.renderYawOffset;
+        float f1 = entity.rotationYaw;
+        float f2 = entity.rotationPitch;
+        float f3 = entity.prevRotationYawHead;
+        float f4 = entity.rotationYawHead;
+        GlStateManager.rotate(135.0f, 0.0f, 1.0f, 0.0f);
         RenderHelper.enableStandardItemLighting();
-        GlStateManager.rotate(-135.0F, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(0.0F, 1.0F, 0.0F, 0.0F);
-
-        RenderManager rendermanager = mc.getRenderManager();
+        GlStateManager.rotate(-135.0f, 0.0f, 1.0f, 0.0f);
+        GlStateManager.rotate(-((float)Math.atan(-entity.rotationPitch / 40.0f)) * 20.0f, 1.0f, 0.0f, 0.0f);
+        entity.renderYawOffset = entity.rotationYaw;
+        entity.rotationYawHead = entity.rotationYaw;
+        entity.prevRotationYawHead = entity.rotationYaw;
+        GlStateManager.translate(0.0f, 0.0f, 0.0f);
+        RenderManager rendermanager = Minecraft.getMinecraft().getRenderManager();
         rendermanager.setRenderShadow(false);
-
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.color(1f, 1f - tintAmount, 1f - tintAmount, alpha);
-
-        rendermanager.renderEntityWithPosYaw(entity, 0.0D, 0.0D, 0.0D, entity.rotationYaw, 1.0F);
+        rendermanager.renderEntityWithPosYaw(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f);
         rendermanager.setRenderShadow(true);
+        entity.renderYawOffset = f;
+        entity.rotationYaw = f1;
+        entity.rotationPitch = f2;
+        entity.prevRotationYawHead = f3;
+        entity.rotationYawHead = f4;
         GlStateManager.popMatrix();
         RenderHelper.disableStandardItemLighting();
         GlStateManager.disableRescaleNormal();
         GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GlStateManager.disableTexture2D();
+        GlStateManager.disableDepth();
         GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
     }
 

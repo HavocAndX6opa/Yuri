@@ -78,7 +78,7 @@ public final class OldAstolfoMode extends TargetHudMode {
         Gui.drawRect((int) TEXT_X, (int) BAR_Y, (int) (TEXT_X + BAR_WIDTH * healthPercentage),
                 (int) (BAR_Y + BAR_HEIGHT), healthColor);
 
-        parentModule.render3DEntity(targetEntity, 14, 41, 18, 1f, tintAmount, alpha);
+        parentModule.render3DEntity(targetEntity, 14, 41, 18, alpha);
 
         GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();

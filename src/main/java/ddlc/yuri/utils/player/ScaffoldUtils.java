@@ -1,3 +1,4 @@
+
 package ddlc.yuri.utils.player;
 
 import ddlc.yuri.managers.impl.ColorManager;
@@ -191,6 +192,8 @@ public final class ScaffoldUtils {
                 block != Blocks.furnace &&
                 block != Blocks.crafting_table &&
                 block != Blocks.dropper &&
+                block != Blocks.pumpkin &&
+                block != Blocks.lit_pumpkin &&
                 block != Blocks.beacon;
     }
 

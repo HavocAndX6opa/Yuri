@@ -9,6 +9,7 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.model.ModelPlayer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
@@ -122,7 +123,8 @@ public class SkeletonsModule extends Module {
         GL11.glPushMatrix();
         GL11.glTranslated(interpX - renderManager.renderPosX, interpY - renderManager.renderPosY, interpZ - renderManager.renderPosZ);
 
-        float yawOffset = entity.prevRenderYawOffset + (entity.renderYawOffset - entity.prevRenderYawOffset) * partialTicks;
+        float yawOffset = RenderUtils.interpolateAngle(entity.prevRenderYawOffset, entity.renderYawOffset, partialTicks);
+        float headYaw = RenderUtils.interpolateAngle(entity.prevRotationYawHead, entity.rotationYawHead, partialTicks);
         GL11.glRotatef(-yawOffset, 0.0F, 1.0F, 0.0F);
         GL11.glTranslated(0.0, 0.0, entity.isSneaking() ? -0.235 : 0.0);
 
@@ -169,7 +171,7 @@ public class SkeletonsModule extends Module {
         GL11.glEnd();
         GL11.glPopMatrix();
 
-        GL11.glRotatef(yawOffset - entity.rotationYawHead, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(yawOffset - headYaw, 0.0F, 1.0F, 0.0F);
         GL11.glPushMatrix();
         GL11.glTranslated(0.0, legHeight + 0.55, 0.0);
         if (angles[0][0] != 0.0F) {

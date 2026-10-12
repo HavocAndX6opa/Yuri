@@ -9,18 +9,18 @@ import ddlc.yuri.modules.ModuleInfo;
 @ModuleInfo(label = "Toggle Sounds", description = "Plays sounds when toggling modules.", category = ModuleCategory.MISC)
 public class ToggleSoundsModule extends Module {
 
-    // known issues with PulseAudio on Linux. for some reason it doesn't play the sound, but it works fine on Pipewire and Windows.
-
-    public ModeProperty<ToggleSounds> moduleToggleSounds = new ModeProperty<>("Toggle Sounds", ToggleSounds.NURSULTAN);
+    public ModeProperty<ToggleSounds> moduleToggleSounds = new ModeProperty<>("Toggle Sounds", ToggleSounds.YURI);
     public NumberProperty volume = new NumberProperty("Volume", 1.0f, 0.1f, 1.0f, 0.05f);
 
     public enum ToggleSounds {
+        YURI("Yuri"),
         EVISCERATE("Eviscerate"),
         NURSULTAN("Nursultan"),
         SIGMA("Sigma"),
         AUGUSTUS("Augustus"),
         MINECRAFT("Minecraft"),
         SMOOTH("Smooth"),
+        SPOOKY("Spooky"),
         HANABI("Hanabi");
 
         private final String name;

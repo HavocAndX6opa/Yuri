@@ -10,6 +10,7 @@ public enum ModuleCategory {
     MOVEMENT("Movement"),
     PLAYER("Player"),
     RENDER("Render"),
-    MISC("Misc");
+    MISC("Misc"),
+    GHOST("Ghost");
     private final String name;
 }

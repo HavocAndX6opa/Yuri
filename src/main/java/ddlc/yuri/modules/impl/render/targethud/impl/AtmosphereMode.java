@@ -87,7 +87,7 @@ public final class AtmosphereMode extends TargetHudMode {
             parentModule.renderPlayerFace((AbstractClientPlayer) targetEntity, FACE_X, FACE_Y, FACE_SIZE,
                     1f - pushAmount, tintAmount, alpha);
         } else {
-            parentModule.render3DEntity(targetEntity, 18, 29, 14, 1f - pushAmount, tintAmount, alpha);
+            parentModule.render3DEntity(targetEntity, 18, 29, 14, alpha);
         }
 
         float barX = TEXT_X;

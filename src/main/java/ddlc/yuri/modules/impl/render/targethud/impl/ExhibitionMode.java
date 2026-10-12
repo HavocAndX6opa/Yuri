@@ -125,7 +125,7 @@ public final class ExhibitionMode extends TargetHudMode {
         float hurtProgress = elapsed >= 400 ? 1f : Math.max(0f, elapsed / 400f);
         float tintAmount = hurtProgress < 1f ? (1f - hurtProgress) * 0.7f : 0f;
 
-        parentModule.render3DEntity(targetEntity, (int) (3 + size / 2f), (int) (size + 1), (int) (18 * scale), 1.0f, tintAmount, alpha);
+        parentModule.render3DEntity(targetEntity, (int) (3 + size / 2f), (int) (size + 1), (int) (18 * scale), alpha);
 
         float iconScale = Math.min(1f, scale);
         float iconSize = 16 * iconScale;

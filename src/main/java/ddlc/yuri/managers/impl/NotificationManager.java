@@ -9,7 +9,6 @@ import ddlc.yuri.api.events.impl.render.Shader2DEvent;
 import ddlc.yuri.modules.impl.misc.ToggleSoundsModule;
 import ddlc.yuri.utils.client.SoundUtils;
 import ddlc.yuri.utils.render.notifications.NotificationRenderer;
-import net.minecraft.client.Minecraft;
 
 public class NotificationManager {
 
@@ -34,47 +33,61 @@ public class NotificationManager {
             switch (toggleSounds.moduleToggleSounds.getValue()) {
                 case EVISCERATE:
                     if (enabled) {
-                        SoundUtils.playSound("eviscerate-enable.wav", volume);
+                        SoundUtils.playSound("eviscerate-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("eviscerate-disable.wav", volume);
+                        SoundUtils.playSound("eviscerate-disable.ogg", volume);
+                    }
+                    break;
+                case YURI:
+                    if (enabled) {
+                        SoundUtils.playSound("yuri-enable.ogg", volume);
+                    } else {
+                        SoundUtils.playSound("yuri-disable.ogg", volume);
+                    }
+                    break;
+                case SPOOKY:
+                    if (enabled) {
+                        SoundUtils.playSound("spooky-enable.ogg", volume);
+                    } else {
+                        SoundUtils.playSound("spooky-disable.ogg", volume);
                     }
                     break;
                 case NURSULTAN:
                     if (enabled) {
-                        SoundUtils.playSound("nursultan-enable.wav", volume);
+                        SoundUtils.playSound("nursultan-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("nursultan-disable.wav", volume);
+                        SoundUtils.playSound("nursultan-disable.ogg", volume);
                     }
                     break;
                 case AUGUSTUS:
                     if (enabled) {
-                        SoundUtils.playSound("augustus-enable.wav", volume);
+                        SoundUtils.playSound("augustus-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("augustus-disable.wav", volume);
+                        SoundUtils.playSound("augustus-disable.ogg", volume);
                     }
                     break;
                 case MINECRAFT:
-                    SoundUtils.playSound("minecraft-toggle.wav", volume);
+                    SoundUtils.playSound("minecraft-toggle.ogg", volume);
                     break;
                 case SMOOTH:
                     if (enabled) {
-                        SoundUtils.playSound("smooth-enable.wav", volume);
+                        SoundUtils.playSound("smooth-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("smooth-disable.wav", volume);
+                        SoundUtils.playSound("smooth-disable.ogg", volume);
                     }
                     break;
                 case HANABI:
                     if (enabled) {
-                        SoundUtils.playSound("hanabi-enable.wav", volume);
+                        SoundUtils.playSound("hanabi-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("hanabi-disable.wav", volume);
+                        SoundUtils.playSound("hanabi-disable.ogg", volume);
                     }
                     break;
                 case SIGMA:
                     if (enabled) {
-                        SoundUtils.playSound("sigma-enable.wav", volume);
+                        SoundUtils.playSound("sigma-enable.ogg", volume);
                     } else {
-                        SoundUtils.playSound("sigma-disable.wav", volume);
+                        SoundUtils.playSound("sigma-disable.ogg", volume);
                     }
                     break;
             }

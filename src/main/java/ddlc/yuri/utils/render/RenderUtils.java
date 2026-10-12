@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
@@ -577,6 +578,22 @@ public class RenderUtils {
 
     public static float interpolateFloat(float oldValue, float newValue, double interpolationValue) {
         return (float) interpolate(oldValue, newValue, (float) interpolationValue);
+    }
+
+    /**
+     * Interpolates between two angles along the short arc, so a pair that sits on opposite
+     * sides of the +/-180 seam blends the way a viewer expects instead of sweeping a full turn.
+     * <p>
+     * Entity rotations are stored as a {@code prev} and a current value, and the entity is
+     * supposed to unwrap the {@code prev} value against the current one every tick so that the
+     * difference never exceeds 180 degrees. That unwrap happens once, mid tick. Anything that
+     * rewrites the current rotation afterwards, RotationManager being the obvious case, leaves
+     * the pair a full turn apart and makes a plain lerp spin the entity for a whole tick. This
+     * is the same guard {@code RendererLivingEntity.interpolateRotation} and the cape layer
+     * apply, so what is drawn here lines up with the vanilla model.
+     */
+    public static float interpolateAngle(float prev, float current, float partialTicks) {
+        return current + MathHelper.wrapAngleTo180_float(prev - current) * partialTicks;
     }
 
     public static int interpolateInt(int oldValue, int newValue, double interpolationValue) {

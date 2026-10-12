@@ -75,6 +75,8 @@ public class CategoryTab {
             l = "C";
         } else if (category.name().equalsIgnoreCase("Misc")) {
             l = "F";
+        } else if (category.name().equalsIgnoreCase("Ghost")) {
+            l = "E";
         }
 
         Gui.drawRect(drawX - 1, drawY, drawX + 101, drawY + 15,

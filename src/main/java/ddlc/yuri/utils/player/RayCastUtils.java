@@ -70,6 +70,17 @@ public class RayCastUtils implements IMinecraft {
         return null;
     }
 
+    public static MovingObjectPosition rayCastBlock(final Vector2f rotation, final double range, final BlockPos pos, final EnumFacing side) {
+        if (mc.thePlayer == null || mc.theWorld == null) return null;
+
+        final MovingObjectPosition hit = mc.thePlayer.rayTraceCustom(range, rotation.x, rotation.y);
+
+        if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || hit.hitVec == null) return null;
+        if (!hit.getBlockPos().equals(pos) || hit.sideHit != side) return null;
+
+        return hit;
+    }
+
     public static boolean overBlock(final Vector2f rotation, final EnumFacing enumFacing, final BlockPos pos, final boolean strict) {
         final MovingObjectPosition movingObjectPosition = mc.thePlayer.rayTraceCustom(4.5f, rotation.x, rotation.y);
 

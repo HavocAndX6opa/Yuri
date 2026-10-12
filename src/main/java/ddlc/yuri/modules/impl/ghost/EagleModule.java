@@ -1,4 +1,4 @@
-package ddlc.yuri.modules.impl.player;
+package ddlc.yuri.modules.impl.ghost;
 
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.ClientTickEvent;
@@ -12,7 +12,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.util.BlockPos;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(label = "Eagle", description = "Just like scaffold but legit and safe", category = ModuleCategory.PLAYER)
+@ModuleInfo(label = "Eagle", description = "Just like scaffold but legit and safe", category = ModuleCategory.GHOST)
 public final class EagleModule extends Module {
 
     private final NumberProperty delay = new NumberProperty("Delay", 50.0f, 0.0f, 200.0f, 10.0f);
