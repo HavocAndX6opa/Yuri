@@ -38,24 +38,7 @@ public final class KeyUtil {
     }
 
     public static boolean sameKey(int first, int second) {
-        if (first == second) return true;
-
-        if (!isModifier(first) || !isModifier(second)) return false;
-
-        return modifierGroup(first) == modifierGroup(second);
-    }
-
-    private static int modifierGroup(int key) {
-        if (isShift(key)) {
-            return 1;
-        }
-        if (key == Keyboard.KEY_LCONTROL || key == Keyboard.KEY_RCONTROL) {
-            return 2;
-        }
-        if (key == Keyboard.KEY_LMENU || key == Keyboard.KEY_RMENU) {
-            return 3;
-        }
-        return 4;
+        return first == second;
     }
 
     public static int getBindableKey(int keyCode) {
@@ -74,17 +57,21 @@ public final class KeyUtil {
 
         switch (key) {
             case Keyboard.KEY_LSHIFT:
+                return "LSHIFT";
             case Keyboard.KEY_RSHIFT:
-                return "SHIFT";
+                return "RSHIFT";
             case Keyboard.KEY_LCONTROL:
+                return "LCTRL";
             case Keyboard.KEY_RCONTROL:
-                return "CTRL";
+                return "RCTRL";
             case Keyboard.KEY_LMENU:
+                return "LALT";
             case Keyboard.KEY_RMENU:
-                return "ALT";
+                return "RALT";
             case Keyboard.KEY_LMETA:
+                return "LMETA";
             case Keyboard.KEY_RMETA:
-                return "META";
+                return "RMETA";
             case Keyboard.KEY_CAPITAL:
                 return "CAPS";
             case Keyboard.KEY_SCROLL:
@@ -193,14 +180,10 @@ public final class KeyUtil {
             case "SHIFT": return Keyboard.KEY_LSHIFT;
             case "LCONTROL": return Keyboard.KEY_LCONTROL;
             case "RCONTROL": return Keyboard.KEY_RCONTROL;
-            case "CTRL": return Keyboard.KEY_LCONTROL;
-            case "CONTROL": return Keyboard.KEY_LCONTROL;
-            case "LALT": return Keyboard.KEY_LMENU;
-            case "RALT": return Keyboard.KEY_RMENU;
-            case "LMENU": return Keyboard.KEY_LMENU;
-            case "RMENU": return Keyboard.KEY_RMENU;
-            case "ALT": return Keyboard.KEY_LMENU;
-            case "MENU": return Keyboard.KEY_LMENU;
+            case "CTRL": case "CONTROL": return Keyboard.KEY_LCONTROL;
+            case "LALT": case "LMENU": return Keyboard.KEY_LMENU;
+            case "RALT": case "RMENU": return Keyboard.KEY_RMENU;
+            case "ALT": case "MENU": return Keyboard.KEY_LMENU;
             case "LMETA": return Keyboard.KEY_LMETA;
             case "RMETA": return Keyboard.KEY_RMETA;
 
