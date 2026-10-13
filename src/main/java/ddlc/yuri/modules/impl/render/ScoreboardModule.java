@@ -24,6 +24,7 @@ public class ScoreboardModule extends Module {
     public static ModeProperty<Mode> scoreboardStyle = new ModeProperty<>("Scoreboard Style", Mode.LEFT_OFFSET, () -> !removeScoreboard.getValue());
     public static Property<Boolean> yuriRect = new Property<>("Yuri Rect", true, () -> !removeScoreboard.getValue());
     public static Property<Boolean> customFont = new Property<>("Custom Font", true, () -> !removeScoreboard.getValue());
+    public static Property<Boolean> centerText = new Property<>("Center Text", true, () -> !removeScoreboard.getValue());
     public static Property<Boolean> smartY = new Property<>("Smart Y", true, () -> (scoreboardStyle.getValue() == Mode.VANILLA || scoreboardStyle.getValue() == Mode.VANILLA_OFFSET) && !removeScoreboard.getValue());
     public static NumberProperty yOffset = new NumberProperty("Y Offset", 20, -150, 150, 1, () -> !removeScoreboard.getValue());
 

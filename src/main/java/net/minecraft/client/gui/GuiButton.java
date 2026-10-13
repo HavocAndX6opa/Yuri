@@ -3,6 +3,7 @@ package net.minecraft.client.gui;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.click.atmosphere.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;
+import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
@@ -16,6 +17,7 @@ import java.awt.*;
 
 public class GuiButton extends Gui
 {
+    protected static final ResourceLocation buttonTextures = new ResourceLocation("textures/gui/widgets.png");
     private static final Color BG_COLOR = new Color(0, 0, 0, 130);
     private static final Color DISABLED_TEXT_COLOR = new Color(120, 120, 120, 180);
 
@@ -67,6 +69,12 @@ public class GuiButton extends Gui
     {
         if (this.visible)
         {
+            if (!CustomMinecraftModule.isStyleActive(CustomMinecraftModule.guiButtons))
+            {
+                this.drawVanillaButton(mc, mouseX, mouseY);
+                return;
+            }
+
             this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
 
             // Smooth hover animation calculation matching MenuButton
@@ -115,6 +123,34 @@ public class GuiButton extends Gui
 
             GlStateManager.disableBlend();
         }
+    }
+
+    private void drawVanillaButton(Minecraft mc, int mouseX, int mouseY)
+    {
+        FontRenderer fontrenderer = mc.fontRendererObj;
+        mc.getTextureManager().bindTexture(buttonTextures);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
+        int i = this.getHoverState(this.hovered);
+
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.blendFunc(770, 771);
+        this.drawTexturedModalRect(this.xPosition, this.yPosition, 0, 46 + i * 20, this.width / 2, this.height);
+        this.drawTexturedModalRect(this.xPosition + this.width / 2, this.yPosition, 200 - this.width / 2, 46 + i * 20, this.width / 2, this.height);
+        this.mouseDragged(mc, mouseX, mouseY);
+        int j = 14737632;
+
+        if (!this.enabled)
+        {
+            j = 10526880;
+        }
+        else if (this.hovered)
+        {
+            j = 16777120;
+        }
+
+        this.drawCenteredString(fontrenderer, this.displayString, this.xPosition + this.width / 2, this.yPosition + (this.height - 8) / 2, j);
     }
 
     protected void mouseDragged(Minecraft mc, int mouseX, int mouseY)

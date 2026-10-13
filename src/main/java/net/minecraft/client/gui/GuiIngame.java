@@ -10,6 +10,7 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.managers.impl.SlotManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
+import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.modules.impl.render.*;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
@@ -258,21 +259,32 @@ public class GuiIngame extends Gui {
 
                 int j2 = i2 << 24 & -16777216;
 
-                // Title rendered directly at size 80 (equivalent to 20 * 4 scale)
-                FontUtils.getFont("sf", 80).drawStringWithShadow(
-                        this.displayedTitle,
-                        (float) (-FontUtils.getFont("sf", 80).getStringWidth(this.displayedTitle) / 2),
-                        -40.0F,
-                        16777215 | j2
-                );
+                if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.s45PacketTitle)) {
+                    // Title rendered directly at size 80 (equivalent to 20 * 4 scale)
+                    FontUtils.getFont("sf", 80).drawStringWithShadow(
+                            this.displayedTitle,
+                            (float) (-FontUtils.getFont("sf", 80).getStringWidth(this.displayedTitle) / 2),
+                            -40.0F,
+                            16777215 | j2
+                    );
 
-                // Subtitle rendered directly at size 40 (equivalent to 20 * 2 scale)
-                FontUtils.getFont("sf", 40).drawStringWithShadow(
-                        this.displayedSubTitle,
-                        (float) (-FontUtils.getFont("sf", 40).getStringWidth(this.displayedSubTitle) / 2),
-                        10.0F,
-                        16777215 | j2
-                );
+                    // Subtitle rendered directly at size 40 (equivalent to 20 * 2 scale)
+                    FontUtils.getFont("sf", 40).drawStringWithShadow(
+                            this.displayedSubTitle,
+                            (float) (-FontUtils.getFont("sf", 40).getStringWidth(this.displayedSubTitle) / 2),
+                            10.0F,
+                            16777215 | j2
+                    );
+                } else {
+                    GlStateManager.pushMatrix();
+                    GlStateManager.scale(4.0F, 4.0F, 4.0F);
+                    this.getFontRenderer().drawString(this.displayedTitle, (float) (-this.getFontRenderer().getStringWidth(this.displayedTitle) / 2), -10.0F, 16777215 | j2, true);
+                    GlStateManager.popMatrix();
+                    GlStateManager.pushMatrix();
+                    GlStateManager.scale(2.0F, 2.0F, 2.0F);
+                    this.getFontRenderer().drawString(this.displayedSubTitle, (float) (-this.getFontRenderer().getStringWidth(this.displayedSubTitle) / 2), 5.0F, 16777215 | j2, true);
+                    GlStateManager.popMatrix();
+                }
 
                 GlStateManager.disableBlend();
                 GlStateManager.popMatrix();
@@ -1154,7 +1166,7 @@ public class GuiIngame extends Gui {
             int rowY = boardTopY + ((i + 1) * fontHeight);
 
             int playerNameWidth = useMcFont ? this.mc.fontRendererObj.getStringWidth(playerName) : customFr.getStringWidth(playerName);
-            float playerX = startX + (maxWidth - playerNameWidth) / 2f;
+            float playerX = ScoreboardModule.centerText.getValue() ? startX + (maxWidth - playerNameWidth) / 2f : startX;
 
             if (useMcFont) {
                 this.mc.fontRendererObj.drawStringWithShadow(playerName, playerX, rowY, textColor);

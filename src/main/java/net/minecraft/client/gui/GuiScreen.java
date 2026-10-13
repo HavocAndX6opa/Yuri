@@ -4,8 +4,10 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import ddlc.yuri.Yuri;
+import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.main.YuriMenu;
 import ddlc.yuri.api.gui.main.api.MenuShaderBackground;
+import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.Minecraft;
@@ -13,7 +15,10 @@ import net.minecraft.client.gui.inventory.*;
 import net.minecraft.client.gui.stream.GuiTwitchUserMode;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.EntityList;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
@@ -199,12 +204,16 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
             GlStateManager.disableLighting();
             GlStateManager.disableDepth();
 
-            int fontHeight = FontUtils.getFont("sf", 18).getHeight();
+            CustomFontRenderer customFont = CustomMinecraftModule.isStyleActive(CustomMinecraftModule.itemToolTips)
+                    ? FontUtils.getFont("sf", 18)
+                    : null;
+            int fontHeight = customFont != null ? customFont.getHeight() : 8;
+            int lineSpacing = customFont != null ? fontHeight + 1 : 10;
             int i = 0;
 
             for (String s : textLines)
             {
-                int j = FontUtils.getFont("sf", 18).getStringWidth(s);
+                int j = customFont != null ? customFont.getStringWidth(s) : this.fontRendererObj.getStringWidth(s);
 
                 if (j > i)
                 {
@@ -218,7 +227,7 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
 
             if (textLines.size() > 1)
             {
-                k += 2 + (textLines.size() - 1) * (fontHeight + 1);
+                k += 2 + (textLines.size() - 1) * lineSpacing;
             }
 
             if (l1 + i > this.width)
@@ -249,14 +258,22 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
             for (int k1 = 0; k1 < textLines.size(); ++k1)
             {
                 String s1 = (String)textLines.get(k1);
-                FontUtils.getFont("sf", 18).drawStringWithShadow(s1, (float)l1, (float)i2, -1);
+
+                if (customFont != null)
+                {
+                    customFont.drawStringWithShadow(s1, (float)l1, (float)i2, -1);
+                }
+                else
+                {
+                    this.fontRendererObj.drawStringWithShadow(s1, (float)l1, (float)i2, -1);
+                }
 
                 if (k1 == 0)
                 {
                     i2 += 2;
                 }
 
-                i2 += fontHeight + 1;
+                i2 += lineSpacing;
             }
 
             this.zLevel = 0.0F;
@@ -628,6 +645,22 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
 
     public void drawBackground(int tint)
     {
+        if (!CustomMinecraftModule.isStyleActive(CustomMinecraftModule.shaderGuiBG))
+        {
+            Tessellator tessellator = Tessellator.getInstance();
+            WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+            this.mc.getTextureManager().bindTexture(optionsBackground);
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            float f = 32.0F;
+            worldrenderer.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
+            worldrenderer.pos(0.0D, (double)this.height, 0.0D).tex(0.0D, (double)((float)this.height / 32.0F + (float)tint)).color(64, 64, 64, 255).endVertex();
+            worldrenderer.pos((double)this.width, (double)this.height, 0.0D).tex((double)((float)this.width / 32.0F), (double)((float)this.height / 32.0F + (float)tint)).color(64, 64, 64, 255).endVertex();
+            worldrenderer.pos((double)this.width, 0.0D, 0.0D).tex((double)((float)this.width / 32.0F), (double)tint).color(64, 64, 64, 255).endVertex();
+            worldrenderer.pos(0.0D, 0.0D, 0.0D).tex(0.0D, (double)tint).color(64, 64, 64, 255).endVertex();
+            tessellator.draw();
+            return;
+        }
+
         GlStateManager.disableLighting();
         GlStateManager.disableFog();
         GlStateManager.enableBlend();

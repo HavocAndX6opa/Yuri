@@ -1,6 +1,8 @@
 package net.minecraft.client.gui;
 
 import com.google.common.collect.Lists;
+import ddlc.yuri.api.font.CustomFontRenderer;
+import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -46,10 +48,14 @@ public class GuiNewChat extends Gui
                     flag = true;
                 }
 
+                CustomFontRenderer customFont = CustomMinecraftModule.isStyleActive(CustomMinecraftModule.chat)
+                        ? FontUtils.getFont("sf", 18)
+                        : null;
+
                 float f1 = this.getChatScale();
                 int l = MathHelper.ceiling_float_int((float)this.getChatWidth() / f1);
                 GlStateManager.pushMatrix();
-                GlStateManager.translate(2.0F, -10.0F, 0.0F);
+                GlStateManager.translate(2.0F, customFont != null ? -10.0F : 20.0F, 0.0F);
                 GlStateManager.scale(f1, f1, 1.0F);
 
                 for (int i1 = 0; i1 + this.scrollPos < this.drawnChatLines.size() && i1 < i; ++i1)
@@ -62,27 +68,65 @@ public class GuiNewChat extends Gui
 
                         if (j1 < 200 || flag)
                         {
-                            double fadeOut = 1.0D;
-                            if (!flag)
+                            int l1;
+
+                            if (customFont != null)
+                            {
+                                double fadeOut = 1.0D;
+
+                                if (!flag)
+                                {
+                                    double d0 = (double)j1 / 200.0D;
+                                    d0 = 1.0D - d0;
+                                    d0 = d0 * 10.0D;
+                                    d0 = MathHelper.clamp_double(d0, 0.0D, 1.0D);
+                                    fadeOut = d0 * d0;
+                                }
+
+                                double fadeIn = MathHelper.clamp_double(((double)j1 + (double)this.mc.timer.renderPartialTicks) / 10.0D, 0.0D, 1.0D);
+                                l1 = (int)(255.0D * fadeOut * fadeIn * f);
+                            }
+                            else
                             {
                                 double d0 = (double)j1 / 200.0D;
                                 d0 = 1.0D - d0;
                                 d0 = d0 * 10.0D;
                                 d0 = MathHelper.clamp_double(d0, 0.0D, 1.0D);
-                                fadeOut = d0 * d0;
+                                d0 = d0 * d0;
+                                l1 = (int)(255.0D * d0);
+
+                                if (flag)
+                                {
+                                    l1 = 255;
+                                }
+
+                                l1 = (int)((float)l1 * f);
                             }
 
-                            double fadeIn = MathHelper.clamp_double(((double)j1 + (double)this.mc.timer.renderPartialTicks) / 10.0D, 0.0D, 1.0D);
-                            int l1 = (int)(255.0D * fadeOut * fadeIn * f);
                             ++j;
 
                             if (l1 > 3)
                             {
                                 int i2 = 0;
                                 int j2 = -i1 * 9;
+
+                                if (customFont == null)
+                                {
+                                    drawRect(i2, j2 - 9, i2 + l + 4, j2, l1 / 2 << 24);
+                                }
+
                                 String s = chatline.getChatComponent().getFormattedText();
                                 GlStateManager.enableBlend();
-                                FontUtils.getFont("sf", 18).drawStringWithShadow(s, (float)i2, (float)(j2 - 8), 16777215 + (l1 << 24));
+
+                                if (customFont != null)
+                                {
+                                    customFont.drawStringWithShadow(s, (float)i2, (float)(j2 - 8), 16777215 + (l1 << 24));
+                                }
+                                else
+                                {
+                                    this.mc.fontRendererObj.drawStringWithShadow(s, (float)i2, (float)(j2 - 8), 16777215 + (l1 << 24));
+                                }
+
                                 GlStateManager.disableAlpha();
                                 GlStateManager.disableBlend();
                             }
@@ -92,7 +136,7 @@ public class GuiNewChat extends Gui
 
                 if (flag)
                 {
-                    int k2 = FontUtils.getFont("sf", 18).getHeight();
+                    int k2 = customFont != null ? customFont.getHeight() : this.mc.fontRendererObj.FONT_HEIGHT;
                     GlStateManager.translate(-3.0F, 0.0F, 0.0F);
                     int l2 = k * k2 + k;
                     int i3 = j * k2 + j;
@@ -103,6 +147,12 @@ public class GuiNewChat extends Gui
                     {
                         int k3 = j3 > 0 ? 170 : 96;
                         int l3 = this.isScrolled ? 13382451 : 3355562;
+
+                        if (customFont == null)
+                        {
+                            drawRect(0, -j3, 2, -j3 - k1, l3 + (k3 << 24));
+                            drawRect(2, -j3, 1, -j3 - k1, 13421772 + (k3 << 24));
+                        }
                     }
                 }
 
@@ -137,7 +187,17 @@ public class GuiNewChat extends Gui
         }
 
         int i = MathHelper.floor_float((float)this.getChatWidth() / this.getChatScale());
-        List<IChatComponent> list = GuiUtilRenderComponents.splitText(chatComponent, i, FontUtils.getFont("sf", 18), false, false);
+        List<IChatComponent> list;
+
+        if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.chat))
+        {
+            list = GuiUtilRenderComponents.splitText(chatComponent, i, FontUtils.getFont("sf", 18), false, false);
+        }
+        else
+        {
+            list = GuiUtilRenderComponents.splitText(chatComponent, i, this.mc.fontRendererObj, false, false);
+        }
+
         boolean flag = this.getChatOpen();
 
         for (IChatComponent ichatcomponent : list)
@@ -234,11 +294,15 @@ public class GuiNewChat extends Gui
             if (j >= 0 && k >= 0)
             {
                 int l = Math.min(this.getLineCount(), this.drawnChatLines.size());
-                int fontHeight = FontUtils.getFont("sf", 18).getHeight() + 20;
+                CustomFontRenderer customFont = CustomMinecraftModule.isStyleActive(CustomMinecraftModule.chat)
+                        ? FontUtils.getFont("sf", 18)
+                        : null;
+                int fontHeight = customFont != null ? customFont.getHeight() + 20 : this.mc.fontRendererObj.FONT_HEIGHT;
 
-                if (j <= MathHelper.floor_float((float)this.getChatWidth() / this.getChatScale()) && k < fontHeight * l)
+                if (j <= MathHelper.floor_float((float)this.getChatWidth() / this.getChatScale())
+                        && k < (customFont != null ? fontHeight * l : this.mc.fontRendererObj.FONT_HEIGHT * l + l))
                 {
-                    int i1 = k / fontHeight + this.scrollPos;
+                    int i1 = (customFont != null ? k / fontHeight : k / this.mc.fontRendererObj.FONT_HEIGHT) + this.scrollPos;
 
                     if (i1 >= 0 && i1 < this.drawnChatLines.size())
                     {
@@ -249,7 +313,8 @@ public class GuiNewChat extends Gui
                         {
                             if (ichatcomponent instanceof ChatComponentText)
                             {
-                                j1 += FontUtils.getFont("sf", 18).getStringWidth(GuiUtilRenderComponents.func_178909_a(((ChatComponentText)ichatcomponent).getChatComponentText_TextValue(), false));
+                                String text = GuiUtilRenderComponents.func_178909_a(((ChatComponentText)ichatcomponent).getChatComponentText_TextValue(), false);
+                                j1 += customFont != null ? customFont.getStringWidth(text) : this.mc.fontRendererObj.getStringWidth(text);
 
                                 if (j1 > j)
                                 {

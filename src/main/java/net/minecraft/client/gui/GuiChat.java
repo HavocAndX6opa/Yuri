@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 
 import ddlc.yuri.api.gui.YuriTextField;
+import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.network.play.client.C14PacketTabComplete;
 import net.minecraft.util.BlockPos;
@@ -28,7 +29,7 @@ public class GuiChat extends GuiScreen
     private boolean waitingOnAutocomplete;
     private int autocompleteIndex;
     private List<String> foundPlayerNames = Lists.<String>newArrayList();
-    protected YuriTextField inputField;
+    protected GuiTextField inputField;
     private String defaultInputFieldText = "";
 
 
@@ -49,7 +50,16 @@ public class GuiChat extends GuiScreen
     {
         Keyboard.enableRepeatEvents(true);
         this.sentHistoryCursor = this.mc.ingameGUI.getChatGUI().getSentMessages().size();
-        this.inputField = new YuriTextField(0, FontUtils.getFont("sf", 18), 4, this.height - 12, this.width - 4, 12);
+
+        if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.chat))
+        {
+            this.inputField = new YuriTextField(0, FontUtils.getFont("sf", 18), 4, this.height - 12, this.width - 4, 12);
+        }
+        else
+        {
+            this.inputField = new GuiTextField(0, this.fontRendererObj, 4, this.height - 12, this.width - 4, 12);
+        }
+
         this.inputField.setMaxStringLength(100);
         this.inputField.setEnableBackgroundDrawing(false);
         this.inputField.setFocused(true);
@@ -292,7 +302,14 @@ public class GuiChat extends GuiScreen
     {
         int alpha = (int)(this.fadeProgress * 127) << 24;
 
-        drawRect(0, this.height - 14, this.width, this.height, alpha & 0xFF000000);
+        if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.chat))
+        {
+            drawRect(0, this.height - 14, this.width, this.height, alpha & 0xFF000000);
+        }
+        else
+        {
+            drawRect(2, this.height - 14, this.width - 2, this.height - 2, Integer.MIN_VALUE);
+        }
 
         GlStateManager.pushMatrix();
         GlStateManager.enableBlend();
