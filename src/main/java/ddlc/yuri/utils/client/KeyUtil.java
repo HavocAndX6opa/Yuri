@@ -17,6 +17,53 @@ public final class KeyUtil {
         return key < 0;
     }
 
+    public static boolean isModifier(int key) {
+        switch (key) {
+            case Keyboard.KEY_LSHIFT:
+            case Keyboard.KEY_RSHIFT:
+            case Keyboard.KEY_LCONTROL:
+            case Keyboard.KEY_RCONTROL:
+            case Keyboard.KEY_LMENU:
+            case Keyboard.KEY_RMENU:
+            case Keyboard.KEY_LMETA:
+            case Keyboard.KEY_RMETA:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static boolean isShift(int key) {
+        return key == Keyboard.KEY_LSHIFT || key == Keyboard.KEY_RSHIFT;
+    }
+
+    public static boolean sameKey(int first, int second) {
+        if (first == second) return true;
+
+        if (!isModifier(first) || !isModifier(second)) return false;
+
+        return modifierGroup(first) == modifierGroup(second);
+    }
+
+    private static int modifierGroup(int key) {
+        if (isShift(key)) {
+            return 1;
+        }
+        if (key == Keyboard.KEY_LCONTROL || key == Keyboard.KEY_RCONTROL) {
+            return 2;
+        }
+        if (key == Keyboard.KEY_LMENU || key == Keyboard.KEY_RMENU) {
+            return 3;
+        }
+        return 4;
+    }
+
+    public static int getBindableKey(int keyCode) {
+        return keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_DELETE
+                ? Keyboard.KEY_NONE
+                : keyCode;
+    }
+
     public static String getKeyName(int key) {
         if (key == Keyboard.KEY_NONE) {
             return "None";
@@ -24,8 +71,28 @@ public final class KeyUtil {
         if (key < 0) {
             return getMouseButtonName(key - MOUSE_KEY_OFFSET);
         }
-        String name = Keyboard.getKeyName(key);
-        return name == null ? "Unknown" : name;
+
+        switch (key) {
+            case Keyboard.KEY_LSHIFT:
+            case Keyboard.KEY_RSHIFT:
+                return "SHIFT";
+            case Keyboard.KEY_LCONTROL:
+            case Keyboard.KEY_RCONTROL:
+                return "CTRL";
+            case Keyboard.KEY_LMENU:
+            case Keyboard.KEY_RMENU:
+                return "ALT";
+            case Keyboard.KEY_LMETA:
+            case Keyboard.KEY_RMETA:
+                return "META";
+            case Keyboard.KEY_CAPITAL:
+                return "CAPS";
+            case Keyboard.KEY_SCROLL:
+                return "SCROLL";
+            default:
+                String name = Keyboard.getKeyName(key);
+                return name == null ? "Unknown" : name;
+        }
     }
 
     private static String getMouseButtonName(int button) {
@@ -123,10 +190,24 @@ public final class KeyUtil {
 
             case "LSHIFT": return Keyboard.KEY_LSHIFT;
             case "RSHIFT": return Keyboard.KEY_RSHIFT;
+            case "SHIFT": return Keyboard.KEY_LSHIFT;
             case "LCONTROL": return Keyboard.KEY_LCONTROL;
             case "RCONTROL": return Keyboard.KEY_RCONTROL;
+            case "CTRL": return Keyboard.KEY_LCONTROL;
+            case "CONTROL": return Keyboard.KEY_LCONTROL;
             case "LALT": return Keyboard.KEY_LMENU;
             case "RALT": return Keyboard.KEY_RMENU;
+            case "LMENU": return Keyboard.KEY_LMENU;
+            case "RMENU": return Keyboard.KEY_RMENU;
+            case "ALT": return Keyboard.KEY_LMENU;
+            case "MENU": return Keyboard.KEY_LMENU;
+            case "LMETA": return Keyboard.KEY_LMETA;
+            case "RMETA": return Keyboard.KEY_RMETA;
+
+            case "NONE": return Keyboard.KEY_NONE;
+            case "UNBOUND": return Keyboard.KEY_NONE;
+            case "CAPS": return Keyboard.KEY_CAPITAL;
+            case "SCROLL": return Keyboard.KEY_SCROLL;
 
             case "ESCAPE": return Keyboard.KEY_ESCAPE;
             case "ENTER": return Keyboard.KEY_RETURN;

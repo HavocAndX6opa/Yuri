@@ -570,7 +570,7 @@ public class CsgoClickGui extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         if (listeningKeybind != null) {
-            listeningKeybind.setValue(keyCode == Keyboard.KEY_ESCAPE ? 0 : keyCode);
+            listeningKeybind.setValue(KeyUtil.getBindableKey(keyCode));
             listeningKeybind = null;
             return;
         }

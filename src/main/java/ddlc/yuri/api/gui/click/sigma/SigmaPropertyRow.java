@@ -315,7 +315,7 @@ public class SigmaPropertyRow {
                 stringProperty.setValue(stringProperty.getValue() + typedChar);
             }
         } else if (property.getValue() instanceof Integer && listeningKey) {
-            ((Property<Integer>) property).setValue(keyCode);
+            ((Property<Integer>) property).setValue(KeyUtil.getBindableKey(keyCode));
             listeningKey = false;
         }
     }

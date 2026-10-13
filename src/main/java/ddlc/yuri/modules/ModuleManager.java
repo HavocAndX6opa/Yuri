@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableClassToInstanceMap;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.KeyPressEvent;
+import ddlc.yuri.utils.client.KeyUtil;
+import org.lwjgl.input.Keyboard;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Field;
@@ -28,9 +30,15 @@ public final class ModuleManager {
     @EventHook
     public void onKeyPress(KeyPressEvent event) {
         final int keyPressed = event.getKey();
+
+        if (keyPressed == Keyboard.KEY_NONE) return;
+
         for (final Module module : this.getModules()) {
             final int moduleBind = module.getKey();
-            if (moduleBind == keyPressed) {
+
+            if (moduleBind == Keyboard.KEY_NONE) continue;
+
+            if (KeyUtil.sameKey(moduleBind, keyPressed)) {
                 module.toggle();
             }
         }

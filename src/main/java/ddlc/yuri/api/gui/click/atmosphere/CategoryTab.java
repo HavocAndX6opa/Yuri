@@ -653,9 +653,7 @@ public class CategoryTab {
     }
 
     private static int bindableKey(int keyCode) {
-        return keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_DELETE
-                ? Keyboard.KEY_NONE
-                : keyCode;
+        return KeyUtil.getBindableKey(keyCode);
     }
 
     private static boolean isIgnoredKey(int keyCode) {

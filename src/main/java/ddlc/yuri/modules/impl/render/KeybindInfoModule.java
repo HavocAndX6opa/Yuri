@@ -10,6 +10,7 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.utils.client.KeyUtil;
 import ddlc.yuri.utils.misc.IMinecraft;
 import ddlc.yuri.utils.render.DragUtils;
 import ddlc.yuri.utils.render.adapters.FontAdapter;
@@ -231,7 +232,7 @@ public class KeybindInfoModule extends Module implements IMinecraft {
     private List<Module> getActiveModules() {
         List<Module> modules = new ArrayList<>();
         for (Module module : Yuri.INSTANCE.getModuleManager().getModules()) {
-            if (module.isEnabled() && module != this && module.keybind.getValue() != 0 && Keyboard.getKeyName(module.getKey()).length() == 1) {
+            if (module.isEnabled() && module != this && module.keybind.getValue() != Keyboard.KEY_NONE && getKeyName(module).length() == 1) {
                 modules.add(module);
             }
         }
@@ -240,8 +241,7 @@ public class KeybindInfoModule extends Module implements IMinecraft {
     }
 
     private String getKeyName(Module module) {
-        int key = module.getKey();
-        return key == Keyboard.KEY_NONE ? "None" : Keyboard.getKeyName(key);
+        return KeyUtil.getKeyName(module.getKey());
     }
 
     private static Color withAlpha(Color color, float multiplier) {
