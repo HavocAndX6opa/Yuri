@@ -142,12 +142,7 @@ public final class BreakerModule extends Module {
 
         AuraModule killAura = Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class);
         if (blockDamage == 0f) {
-            if (killAura.isEnabled() && AuraModule.target != null && breakPos != null) {
-                resetSlot();
-                return;
-            } else {
-                startBreak();
-            }
+            startBreak();
         } else {
             if (autoTool.getValue() && spoofTick != -1 && mc.thePlayer.inventory.currentItem != spoofTick) {
                 mc.thePlayer.inventory.currentItem = spoofTick;

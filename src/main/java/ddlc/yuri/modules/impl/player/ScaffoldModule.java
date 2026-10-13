@@ -421,7 +421,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks <= (isDiagonal() ? 1 : 3)) {
+            if (mc.thePlayer.offGroundTicks <= 4) {
                 tellyNoPlace = false;
             }
         }

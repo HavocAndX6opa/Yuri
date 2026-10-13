@@ -14,6 +14,7 @@ import ddlc.yuri.managers.impl.*;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.modules.impl.player.BreakerModule;
 import ddlc.yuri.modules.impl.player.ScaffoldModule;
 import ddlc.yuri.utils.client.MathUtils;
 import ddlc.yuri.utils.client.TimerUtils;
@@ -153,7 +154,7 @@ public class AuraModule extends Module {
     public void onPreUpdate(PreUpdateEvent event) {
         setSuffix(mode.getValue().toString());
 
-        if (mc.thePlayer == null || mc.theWorld == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled()) {
+        if (mc.thePlayer == null || mc.theWorld == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled() || (Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).isEnabled() && Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).bedPos != null)) {
             if (target != null || autoBlocking) {
                 resetCombatState();
             }

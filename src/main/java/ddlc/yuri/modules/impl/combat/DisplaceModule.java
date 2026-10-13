@@ -129,8 +129,7 @@ public final class DisplaceModule extends Module {
             }
 
             attacking = true;
-            mc.thePlayer.swingItem();
-            mc.playerController.attackEntity(mc.thePlayer, hitTarget);
+            mc.clickMouse();
             attacking = false;
             finishing = true;
             return;
@@ -185,7 +184,8 @@ public final class DisplaceModule extends Module {
         if (packet instanceof C08PacketPlayerBlockPlacement && attackedThisTick && lastAttacked != null) {
             C08PacketPlayerBlockPlacement place = (C08PacketPlayerBlockPlacement) packet;
             ItemStack stack = place.getStack();
-            if (place.getPlacedBlockDirection() != 255 || stack == null || !(stack.getItem() instanceof ItemSword)) return;
+            if (place.getPlacedBlockDirection() != 255 || stack == null || !(stack.getItem() instanceof ItemSword))
+                return;
 
             Entity hit = lastAttacked;
             attackedThisTick = false;
