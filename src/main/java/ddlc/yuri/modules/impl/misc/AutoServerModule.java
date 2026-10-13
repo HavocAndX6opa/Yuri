@@ -8,6 +8,7 @@ import ddlc.yuri.api.properties.impl.MultiModeProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.utils.player.PlayerUtils;
 import net.minecraft.client.gui.GuiScreenBook;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.play.server.S02PacketChat;
@@ -161,7 +162,7 @@ public final class AutoServerModule extends Module {
 
         String raw = chat.getChatComponent().getUnformattedText();
 
-        if (!isGameStart(raw)) return;
+        if (!PlayerUtils.gameStarted(raw)) return;
 
         if (mc.getNetHandler() == null) return;
 
@@ -221,26 +222,5 @@ public final class AutoServerModule extends Module {
         if (killer.equalsIgnoreCase(self)) return;
 
         mc.thePlayer.sendChatMessage(String.format(EXCUSES[random.nextInt(EXCUSES.length)], killer));
-    }
-
-    private boolean isGameStart(String raw) {
-        String stripped = StringUtils.stripControlCodes(raw);
-
-        if (stripped.startsWith(" ") && (stripped.contains("Protect your bed and destroy the enemy beds.") || stripped.contains("Goodluck with your BedWars Game"))) {
-            return true;
-        }
-
-        switch (raw) {
-            case "Cages opened! FIGHT!":
-            case "§r§r§r                               §r§f§lSkyWars Duel§r":
-            case "§r§eCages opened! §r§cFIGHT!§r":
-                return true;
-            default:
-                break;
-        }
-
-        String trimmed = stripped.trim();
-
-        return trimmed.equals("Cages opened! FIGHT!") || trimmed.equals("SkyWars Duel");
     }
 }

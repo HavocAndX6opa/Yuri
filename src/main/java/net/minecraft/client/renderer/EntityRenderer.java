@@ -844,11 +844,6 @@ public class EntityRenderer implements IResourceManagerReloadListener
 
         this.hurtCameraEffect(partialTicks);
 
-        if (this.mc.gameSettings.viewBobbing)
-        {
-            this.setupViewBobbing(partialTicks);
-        }
-
         float f1 = this.mc.thePlayer.prevTimeInPortal + (this.mc.thePlayer.timeInPortal - this.mc.thePlayer.prevTimeInPortal) * partialTicks;
 
         if (f1 > 0.0F)
@@ -1034,7 +1029,9 @@ public class EntityRenderer implements IResourceManagerReloadListener
 
             if (world != null)
             {
-                if (Config.isCustomColors() && CustomColors.updateLightmap(world, this.torchFlickerX, this.lightmapColors, this.mc.thePlayer.isPotionActive(Potion.nightVision), partialTicks))
+                boolean ambienceActive = Yuri.INSTANCE.getModuleManager().getModule(AmbienceModule.class).isEnabled() && AmbienceModule.clientColorLightMap.getValue();
+
+                if (!ambienceActive && Config.isCustomColors() && CustomColors.updateLightmap(world, this.torchFlickerX, this.lightmapColors, this.mc.thePlayer.isPotionActive(Potion.nightVision), partialTicks))
                 {
                     this.lightmapTexture.updateDynamicTexture();
                     this.lightmapUpdateNeeded = false;
@@ -1160,12 +1157,22 @@ public class EntityRenderer implements IResourceManagerReloadListener
                         f10 = 0.0F;
                     }
 
-                    int j = 255;
-                    int k = (int)(f8 * 255.0F);
-                    int l = (int)(f9 * 255.0F);
-                    int i1 = (int)(f10 * 255.0F);
-                    this.lightmapColors[i] = Yuri.INSTANCE.getModuleManager().getModule(AmbienceModule.class).isEnabled() && AmbienceModule.clientColorLightMap.getValue() ?
-                            ColorManager.getColors().getFirst().darker().darker().getRGB() : j << 24 | k << 16 | l << 8 | i1;
+                    if (ambienceActive)
+                    {
+                        java.awt.Color baseColor = ColorManager.getColors().getFirst().brighter().brighter();
+                        int k = (int)(baseColor.getRed() * f8);
+                        int l = (int)(baseColor.getGreen() * f9);
+                        int i1 = (int)(baseColor.getBlue() * f10);
+                        this.lightmapColors[i] = 255 << 24 | k << 16 | l << 8 | i1;
+                    }
+                    else
+                    {
+                        int j = 255;
+                        int k = (int)(f8 * 255.0F);
+                        int l = (int)(f9 * 255.0F);
+                        int i1 = (int)(f10 * 255.0F);
+                        this.lightmapColors[i] = j << 24 | k << 16 | l << 8 | i1;
+                    }
                 }
 
                 this.lightmapTexture.updateDynamicTexture();

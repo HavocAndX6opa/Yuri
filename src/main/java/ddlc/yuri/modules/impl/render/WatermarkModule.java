@@ -41,7 +41,6 @@ public class WatermarkModule extends Module implements IMinecraft {
     public enum Type {
         YURI("Yuri"),
         YURISENSE("Yurisense"),
-        VIRTUE("Virtue"),
         SIMPLE("Simple"),
         CLASSIC("Classic"),
         LOGO("Logo"),
@@ -73,7 +72,7 @@ public class WatermarkModule extends Module implements IMinecraft {
 
     @EventHook(EventPriority.VERY_HIGH)
     public void onShader2D(Shader2DEvent event) {
-        if (event.getShaderType() == Shader2DEvent.ShaderType.BLUR && (type.getValue() != Type.VIRTUE || type.getValue() != Type.YURI || type.getValue() != Type.YURISENSE)) return;
+        if (event.getShaderType() == Shader2DEvent.ShaderType.BLUR && (type.getValue() != Type.YURI || type.getValue() != Type.YURISENSE)) return;
         renderWatermark();
     }
 
@@ -108,16 +107,6 @@ public class WatermarkModule extends Module implements IMinecraft {
                         white
                 );
                 break;
-            case VIRTUE:
-                RenderUtils.drawBorderedRect(2.0f, 2.0f, 60.0f, 34.0f, 1.0f, -1603704471, -16777216, true, true, true, true);
-
-                mc.fontRendererObj.drawString(name.getValue(), (29 - mc.fontRendererObj.getStringWidth(name.getValue()) / 2f + 2), 4.0f,
-                        -4210753, true);
-                mc.fontRendererObj.drawString(getTime(), (29 - mc.fontRendererObj.getStringWidth(getTime()) / 2f + 2), 15.0f,
-                        -4210753, true);
-                mc.fontRendererObj.drawString("Fps: " + Minecraft.getDebugFPS(), (29 - mc.fontRendererObj.getStringWidth("Fps: " + Minecraft.getDebugFPS()) / 2f + 2), 26.0f,
-                        -4210753, true);
-                break;
             case SIMPLE:
                 String a = "\u00a7l" + name.getValue().charAt(0);
                 String b = new ChatComponentText(name.getValue().substring(1)).getFormattedText();
@@ -130,7 +119,7 @@ public class WatermarkModule extends Module implements IMinecraft {
                         2 + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth,
                         2,
                         white);
-                FontUtils.getFont("sf", 14).drawStringWithShadow(Yuri.BUILD.toLowerCase(), FontUtils.getFont("sf", 14).getStringWidth(Yuri.BUILD.toLowerCase()) + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth - 1, FontUtils.getFont("sf", 18).getHeight() - 3, white);
+                FontUtils.getFont("sf", 14).drawStringWithShadow(Yuri.BUILD.toLowerCase(), FontUtils.getFont("sf", 14).getStringWidth(Yuri.BUILD.toLowerCase()) + FontUtils.getFont("sf", 18).getStringWidth(a) + prefixWidth - 1, FontUtils.getFont("sf", 18).getHeight() - 2.5f, white);
                 break;
             case LOGO:
                 RenderUtils.drawImage(
@@ -231,54 +220,26 @@ public class WatermarkModule extends Module implements IMinecraft {
                 textFont.drawStringWithShadow(timeText, cursorX, cursorY, white);
                 break;
             case YURISENSE:
-                String server = mc.isSingleplayer()
-                        ? "singleplayer"
-                        : (mc.getCurrentServerData() != null
-                        ? mc.getCurrentServerData().serverIP
-                        : "unknown");
+                String server = mc.isSingleplayer() ? "singleplayer" : (mc.getCurrentServerData() != null ? mc.getCurrentServerData().serverIP : "unknown");
+                String fullInfo = "yurisense - " + mc.thePlayer.getName() + " - " + server + " - " + ClientInfoUtils.getPing() + "ms";
 
-                String text = "yurisense - "
-                        + mc.thePlayer.getName()
-                        + " - "
-                        + server
-                        + " - "
-                        + ClientInfoUtils.getPing()
-                        + "ms";
-
-                float x = 4.5f;
-                float y = 4.5f;
-
-                float textWidth = FontUtils.getFont("sf", 18).getStringWidth(text) + 2;
+                CustomFontRenderer font = FontUtils.getFont("sf", 18);
+                float textWidth = font.getStringWidth(fullInfo) + 2;
+                float x = 4.5f, y = 4.5f;
 
                 Gui.drawRect2(x, y, textWidth + 7, 18.5, YURISENSE_LINE_RGB);
-
                 Gui.drawRect2(x + 2.5, y + 2.5, textWidth + 2, 13, YURISENSE_BODY_RGB);
 
                 Gui.drawRect2(x + 1, y + 1, textWidth + 5, .5, YURISENSE_LINE_DARKER_RGB);
-
                 Gui.drawRect2(x + 1, y + 17, textWidth + 5, .5, YURISENSE_LINE_DARKER_RGB);
-
                 Gui.drawRect2(x + 1, y + 1.5, .5, 16, YURISENSE_LINE_DARKER_RGB);
+                Gui.drawRect2(x + 1.5 + textWidth, y + 1.5, .5, 16, YURISENSE_LINE_DARKER_RGB);
 
-                Gui.drawRect2((x + 1.5) + textWidth, y + 1.5, .5, 16, YURISENSE_LINE_DARKER_RGB);
+                RenderUtils.drawGradientRect((int) (x + 2.5f), (int) (y + 2.5f), (int) (x + textWidth + 4.5f), (int) (y + 3.5f), true, ColorManager.getColors().getFirst().getRGB(), ColorManager.getColors().getSecond().getRGB());
+                Gui.drawRect2(x + 2.5, y + 3.5, textWidth + 2, .5, YURISENSE_LINE_DARKER_RGB);
 
-                RenderUtils.drawGradientRect((int) (x + 2.5f), (int) (y + 14.5f), (int) (x + textWidth + 4.5f), (int) (y + 15.5f), true, ColorManager.getColors().getFirst().getRGB(), ColorManager.getColors().getSecond().getRGB());
-
-                Gui.drawRect2(x + 2.5, y + 16, textWidth + 2, .5, YURISENSE_LINE_DARKER_RGB);
-
-                FontUtils.getFont("sf", 18).drawStringWithShadow("yuri", x + 4.5f, y + 4.3f, main);
-
-                FontUtils.getFont("sf", 18).drawStringWithShadow("sense - "
-                                + mc.thePlayer.getName()
-                                + " - "
-                                + server
-                                + " - "
-                                + ClientInfoUtils.getPing()
-                                + "ms",
-                        x + 4.5f + FontUtils.getFont("sf", 18).getStringWidth("yuri"),
-                        y + 4.3f,
-                        white
-                );
+                font.drawStringWithShadow("yuri", x + 4.5f, y + 5.3f, main);
+                font.drawStringWithShadow(fullInfo.substring(4), x + 4.5f + font.getStringWidth("yuri"), y + 5.3f, white);
                 break;
         }
     }

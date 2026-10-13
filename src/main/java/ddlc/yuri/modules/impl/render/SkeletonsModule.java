@@ -111,7 +111,7 @@ public class SkeletonsModule extends Module {
             return;
         }
 
-        Color color = useClientColors.getValue() ? ColorManager.getColor().brighter() : Color.WHITE;
+        Color color = useClientColors.getValue() ? ColorManager.getColor() : Color.WHITE;
         GlStateManager.color(color.getRed() / 255.0F, color.getGreen() / 255.0F, color.getBlue() / 255.0F, 1.0F);
         GL11.glLineWidth(skeletonsWidth.getValue().floatValue());
 

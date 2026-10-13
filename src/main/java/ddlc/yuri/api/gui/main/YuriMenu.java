@@ -3,103 +3,177 @@ package ddlc.yuri.api.gui.main;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.font.CustomFontRenderer;
 import ddlc.yuri.api.gui.alt.YuriAltMenu;
-import ddlc.yuri.api.gui.main.api.MenuButton;
-import ddlc.yuri.api.gui.main.api.MenuShaderBackground;
-import ddlc.yuri.api.gui.main.windows.WelcomeWindow;
-import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;
+import ddlc.yuri.utils.render.hud.AnimatedBackground;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class YuriMenu extends GuiScreen {
 
-    private final List<MenuButton> buttons = new ArrayList<>();
-    private WelcomeWindow welcomeWindow;
-    private static boolean displayWindow = true;
-
     public static final Color BASE_BG = new Color(10, 9, 13, 255);
-    private static final Color ERROR_COLOR = new Color(214, 64, 69);
-    private static final float CARD_PADDING_TOP = 32f;
-    private static final float CARD_PADDING_BOTTOM = 28f;
+    private static final Color ACCENT = new Color(222, 64, 255);
+    private static final Color ACCENT_SOFT = new Color(170, 80, 255);
+    private static final Color BUTTON_FILL = new Color(52, 50, 56);
+    private static final Color FOOTER = new Color(226, 170, 255);
 
-    private float animX;
-    private float animY;
+    private static final ResourceLocation LOGO = new ResourceLocation("yuri/gui/menu/text_logo.png");
+    private static final ResourceLocation YURI = new ResourceLocation("yuri/gui/logo.png");
+    private static final ResourceLocation LINES = new ResourceLocation("yuri/gui/menu/splashes.txt");
+    private static final ResourceLocation BACKGROUND = new ResourceLocation("yuri/gui/menu/background.jpg");
+
+    private static final String[] LABELS = {"Singleplayer", "Multiplayer", "Account Manager", "Settings", "Exit"};
+    private static final String[] ICONS = {"singleplayer.png", "multiplayer.png", "alt.png", "options.png", "shop.png"};
+    private static final String[] FALLBACK = {"S", "M", "A", "O", "X"};
+
+    private static final float RADIUS = 27f;
+    private static final float GAP = 16f;
+    private static final float LOGO_SIZE = 170f;
+
+
+    private final AnimatedBackground animatedBackground = new AnimatedBackground(BACKGROUND);
+
+    private long lastFrame;
+
+    private final float[] hover = new float[5];
+    private final boolean[] hasIcon = new boolean[5];
+    private final ResourceLocation[] iconLocations = new ResourceLocation[5];
 
     private ScaledResolution sr;
 
+    private float animX;
+    private float animY;
+    private long openTime;
+
     private String currentLine;
-    private boolean showError;
-
-    private final String[] lines = {
-            "natsuki is gonna steal you again?!",
-            "i picked out this font just for you",
-            "sayori would never notice the little things like i do",
-            "i brought my knives, just in case",
-            "did you know obsession is just love that hasn't been understood yet",
-            "monika keeps rearranging the club, i've noticed",
-            "i wrote you something, but i'm too embarrassed to show it yet",
-            "the deeper you go into me, the more you'll find",
-            "i trimmed a page out of my favorite book for you",
-            "i don't share well. you should know that by now",
-            "some feelings cut deeper than they should",
-            "i rehearsed this greeting for three days",
-            "i like it when you look at only me",
-            "there's a certain beauty in the things people are afraid of",
-            "i saved you a seat, right next to mine",
-            "i've been reading about you as much as my books"
-    };
-
-    private final String[] errorLines = {
-            "monika hacked into your client",
-            "i think someone's been messing with my pages",
-            "it seems the club isn't quite the same anymore",
-            "something's missing, and it isn't supposed to be",
-            "i don't remember writing this line",
-            "the character files feel... off today",
-            "she's not supposed to know she's not real"
-    };
 
     @Override
     public void initGui() {
         sr = new ScaledResolution(mc);
+        openTime = System.currentTimeMillis();
 
         Random rng = new Random();
 
-        showError = rng.nextFloat() < 0.02f;
+        currentLine = pickLine(rng);
 
-        currentLine = showError
-                ? errorLines[rng.nextInt(errorLines.length)]
-                : lines[rng.nextInt(lines.length)];
+        lastFrame = System.nanoTime();
 
-        buttons.clear();
-
-        buttons.add(new MenuButton("Singleplayer", () -> mc.displayGuiScreen(new GuiSelectWorld(this))));
-        buttons.add(new MenuButton("Multiplayer", () -> mc.displayGuiScreen(new GuiMultiplayer(this))));
-        buttons.add(new MenuButton("Account Manager", () -> mc.displayGuiScreen(new YuriAltMenu())));
-        buttons.add(new MenuButton("Settings", () -> mc.displayGuiScreen(new GuiOptions(this, mc.gameSettings))));
-        buttons.add(new MenuButton("Exit", () -> mc.shutdown()));
-
-        welcomeWindow = null;
-        if (displayWindow) {
-            float windowWidth = 250f;
-            float windowHeight = 100f;
-            float windowX = 12f;
-            float windowY = 12f;
-
-            String placeholderText = "Welcome to Yuri Client!\n\n" +
-                    "Any questions? Join our Discord! https://discord.gg/8VhKD2QQHc\n\n" +
-                    "Happy Halloween!";
-
-            welcomeWindow = new WelcomeWindow(windowX, windowY, windowWidth, windowHeight, "Welcome Back!", placeholderText);
+        for (int i = 0; i < ICONS.length; i++) {
+            iconLocations[i] = new ResourceLocation("yuri/gui/menu/" + ICONS[i]);
+            hasIcon[i] = resourceExists(iconLocations[i]);
+            hover[i] = 0f;
         }
+    }
+
+    private String pickLine(Random rng) {
+        List<String> entries = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(mc.getResourceManager().getResource(LINES).getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (!line.isEmpty()) entries.add(line);
+            }
+        } catch (Exception ignored) {
+        }
+        if (entries.isEmpty()) return null;
+        return entries.get(rng.nextInt(entries.size()));
+    }
+
+    private boolean resourceExists(ResourceLocation location) {
+        try {
+            mc.getResourceManager().getResource(location);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void runAction(int index) {
+        switch (index) {
+            case 0:
+                mc.displayGuiScreen(new GuiSelectWorld(this));
+                break;
+            case 1:
+                mc.displayGuiScreen(new GuiMultiplayer(this));
+                break;
+            case 2:
+                mc.displayGuiScreen(new YuriAltMenu());
+                break;
+            case 3:
+                mc.displayGuiScreen(new GuiOptions(this, mc.gameSettings));
+                break;
+            case 4:
+                mc.shutdown();
+                break;
+        }
+    }
+
+    private float buttonCenterX(float w, int index) {
+        float total = LABELS.length * RADIUS * 2f + (LABELS.length - 1) * GAP;
+        return w / 2f - total / 2f + RADIUS + index * (RADIUS * 2f + GAP);
+    }
+
+    private float buttonCenterY(float h) {
+        return h / 2f + 52f;
+    }
+
+    private int argb(Color c, float alpha) {
+        int a = (int) Math.max(0, Math.min(255, alpha * 255f));
+        return new Color(c.getRed(), c.getGreen(), c.getBlue(), a).getRGB();
+    }
+
+    private void setColor(int argb) {
+        float a = (argb >> 24 & 255) / 255f;
+        float r = (argb >> 16 & 255) / 255f;
+        float g = (argb >> 8 & 255) / 255f;
+        float b = (argb & 255) / 255f;
+        GlStateManager.color(r, g, b, a);
+    }
+
+    private void fillCircle(float cx, float cy, float r, int argb) {
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        setColor(argb);
+        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+        GL11.glVertex2f(cx, cy);
+        for (int i = 0; i <= 64; i++) {
+            double ang = Math.PI * 2.0 * i / 64.0;
+            GL11.glVertex2f(cx + (float) Math.cos(ang) * r, cy + (float) Math.sin(ang) * r);
+        }
+        GL11.glEnd();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+    }
+
+    private void ringCircle(float cx, float cy, float r, float width, int argb) {
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
+        GL11.glLineWidth(width);
+        setColor(argb);
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        for (int i = 0; i < 64; i++) {
+            double ang = Math.PI * 2.0 * i / 64.0;
+            GL11.glVertex2f(cx + (float) Math.cos(ang) * r, cy + (float) Math.sin(ang) * r);
+        }
+        GL11.glEnd();
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1f, 1f, 1f, 1f);
     }
 
     @Override
@@ -110,156 +184,116 @@ public class YuriMenu extends GuiScreen {
         float h = sr.getScaledHeight();
 
         Gui.drawRect(0, 0, (int) w, (int) h, BASE_BG.getRGB());
-        MenuShaderBackground.get().render(w, h);
 
-        float mx = (mouseX - w / 2f) * 0.01f;
-        float my = (mouseY - h / 2f) * 0.01f;
+        long now = System.nanoTime();
+        float dt = Math.min(0.1f, (now - lastFrame) / 1.0E9f);
+        lastFrame = now;
 
+        float mx = (w / 2f) * 0.00001f;
+        float my = (h / 2f) * 0.01f;
         animX += (mx - animX) * 0.05f;
         animY += (my - animY) * 0.05f;
 
-        float center = w / 2f;
+        float t = Math.min(1f, (System.currentTimeMillis() - openTime) / 700f);
+        float fade = 1f - (float) Math.pow(1f - t, 3);
 
-        drawContent(w, h, mouseX, mouseY, center);
-
-        if (welcomeWindow != null) {
-            if (!welcomeWindow.shouldWindowClose()) {
-                welcomeWindow.render(mouseX, mouseY);
-            } else {
-                displayWindow = false;
-            }
-        }
+        drawBackground(w, h, mouseX, mouseY, dt, fade);
+        drawContent(w, h, mouseX, mouseY, fade);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
-    private void drawContent(float w, float h, float mouseX, float mouseY, float center) {
+    private void drawBackground(float w, float h, float mouseX, float mouseY, float dt, float fade) {
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
-        CustomFontRenderer font = FontUtils.getScaledFont("sf", 18, (float) sr.getScaleFactor() / 2f);
-        if (font == null) return;
+        animatedBackground.render(w, h, mouseX, mouseY, fade);
 
-        float logoHeight = 128f;
-        float logoGap = 20f;
-        float lineHeight = font.getHeight();
-        float lineGap = 30f;
-        float buttonHeight = FontUtils.getScaledFont("sf", 14, (float) sr.getScaleFactor() / 2f).getHeight() + 10f;
-        float rowSpacing = 2.0f;
-        float buttonsHeight = buttonHeight * 2 + rowSpacing;
+        GlStateManager.color(1f, 1f, 1f, 1f);
 
-        float cardHeight = CARD_PADDING_TOP + logoHeight + logoGap + buttonsHeight + lineGap + lineHeight + CARD_PADDING_BOTTOM;
+        Gui.drawRect(0, 0, (int) w, (int) h, argb(new Color(20, 6, 36), 0.22f * fade));
+    }
 
-        float cardY = h / 2f - cardHeight / 2f;
+    private void drawContent(float w, float h, int mouseX, int mouseY, float fade) {
+        float scale = (float) sr.getScaleFactor() / 2f;
+        CustomFontRenderer small = FontUtils.getScaledFont("sf", 14, scale);
+        CustomFontRenderer medium = FontUtils.getScaledFont("sf", 18, scale);
+        if (small == null || medium == null) return;
 
-        float logoY = cardY + CARD_PADDING_TOP;
+        float cx = w / 2f;
+        float logoY = h / 2f - LOGO_SIZE / 1.5f + (1f - fade);
 
         GlStateManager.pushMatrix();
-        GlStateManager.translate(animX, animY, 0);
-
-        RenderUtils.drawImage(
-                new ResourceLocation("yuri/gui/logo.png"),
-                center - logoHeight / 2f,
-                logoY,
-                logoHeight,
-                logoHeight
-        );
-
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(1f, 1f, 1f, fade);
+        RenderUtils.drawImage(LOGO, cx - LOGO_SIZE / 2f, logoY, LOGO_SIZE, LOGO_SIZE);
+        GlStateManager.color(1f, 1f, 1f, 1f);
         GlStateManager.popMatrix();
 
-        float buttonsY = logoY + logoHeight + logoGap;
-        drawButtons(center, buttonsY, mouseX, mouseY, buttonHeight, rowSpacing);
+        float by = buttonCenterY(h) + (1f - fade) * 14f;
+        int hovered = -1;
 
-        float lineY = buttonsY + buttonsHeight + lineGap;
-        int lineColor = showError
-                ? new Color(ERROR_COLOR.getRed(), ERROR_COLOR.getGreen(), ERROR_COLOR.getBlue(), 190).getRGB()
-                : RenderUtils.withAlpha(ColorManager.getColor(), 190);
-        font.drawCenteredString(currentLine, center, lineY, lineColor);
+        for (int i = 0; i < LABELS.length; i++) {
+            float bx = buttonCenterX(w, i);
+            float dx = mouseX - bx;
+            float dy = mouseY - buttonCenterY(h);
+            boolean over = dx * dx + dy * dy <= RADIUS * RADIUS;
+            if (over) hovered = i;
 
-        drawFooterBadge(font, "Yuri " + Yuri.VERSION, 0, h - font.getHeight() - 2f, false);
+            hover[i] += ((over ? 1f : 0f) - hover[i]) * 0.2f;
+            float hv = hover[i];
+            float r = RADIUS + hv * 2.5f;
+
+            if (hasIcon[i]) {
+                float size = r * 2f / 0.75f;
+                GlStateManager.enableBlend();
+                GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                GlStateManager.color(1f, 1f, 1f, (0.8f + 0.12f * hv) * fade);
+                GlStateManager.enableBlend();
+                GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                mc.getTextureManager().bindTexture(iconLocations[i]);
+                Gui.drawModalRectWithCustomSizedTexture(bx - size / 2f, by - size / 2f, 0, 0, size, size, size, size);
+                GlStateManager.disableBlend();
+                GlStateManager.color(1f, 1f, 1f, 1f);
+            } else {
+                fillCircle(bx, by, r, argb(BUTTON_FILL, (0.78f + 0.12f * hv) * fade));
+                ringCircle(bx, by, r, 1.4f, argb(ACCENT_SOFT, (0.35f + 0.55f * hv) * fade));
+                float gh = medium.getHeight();
+                medium.drawCenteredString(FALLBACK[i], bx, by - gh / 2f, argb(ACCENT, (0.8f + 0.2f * hv) * fade));
+            }
+        }
+
+        if (hovered != -1) {
+            small.drawCenteredString(LABELS[hovered], buttonCenterX(w, hovered), by + RADIUS + 10f,
+                    argb(Color.WHITE, 0.9f * fade));
+        }
+
+        if (currentLine != null) {
+            medium.drawCenteredString(currentLine, cx, by + RADIUS + 34f, argb(Color.WHITE, 0.6f * fade));
+        }
+
+        float footerY = h - small.getHeight() - 3f;
+        small.drawString("Yuri " + Yuri.VERSION, 4f, footerY, argb(FOOTER, 0.8f * fade));
 
         String credits = "Brought to you by: unlegit!";
-        drawFooterBadge(font, credits, w - font.getStringWidth(credits), h - font.getHeight() - 2f, true);
-    }
-
-    private void drawFooterBadge(CustomFontRenderer font, String text, float x, float y, boolean alignRight) {
-        float paddingX = 2f;
-        float badgeX = alignRight ? x - paddingX : x;
-
-        font.drawString(text, badgeX + paddingX, y, new Color(196, 199, 199, 190).getRGB());
-    }
-
-    private void drawButtons(float center, float y, float mx, float my, float buttonHeight, float spacing) {
-        CustomFontRenderer font = FontUtils.getScaledFont("sf", 14, (float) sr.getScaleFactor() / 2f);
-        if (font == null || buttons.size() < 5) return;
-
-        drawRow(new MenuButton[]{buttons.get(0), buttons.get(1), buttons.get(2)}, center, y, spacing, mx, my);
-
-        drawRow(new MenuButton[]{buttons.get(3), buttons.get(4)}, center, y + buttonHeight + spacing, spacing, mx, my);
-    }
-
-    private void drawRow(MenuButton[] row, float center, float y, float gap, float mx, float my) {
-
-        CustomFontRenderer font = FontUtils.getScaledFont("sf", 14, (float) sr.getScaleFactor() / 2f);
-        if (font == null) return;
-
-        float totalWidth = 0;
-
-        for (int i = 0; i < row.length; i++) {
-            float itemWidth = row[i].label.isEmpty()
-                    ? font.getHeight() + 10f
-                    : row[i].getLayoutWidth(font.getStringWidth(row[i].label));
-            totalWidth += itemWidth;
-            if (i != row.length - 1) totalWidth += gap;
-        }
-
-        float x = center - totalWidth / 2f;
-
-        for (MenuButton b : row) {
-
-            float textWidth = font.getStringWidth(b.label);
-            float textHeight = font.getHeight();
-
-            float itemHeight = b.getLayoutHeight(textHeight);
-            float itemWidth = b.label.isEmpty() ? itemHeight : b.getLayoutWidth(textWidth);
-
-            if (b.label.isEmpty()) {
-                b.layoutBox(x, y - 5f, itemWidth, itemHeight);
-            } else {
-                b.layout(x + 8f, y, textWidth, textHeight);
-            }
-
-            b.updateHover(mx, my);
-            b.renderBox();
-
-            if (!b.label.isEmpty()) {
-                font.drawString(b.label, b.x + (b.width - textWidth) / 2f, y, b.getTextColor());
-            }
-
-            x += b.width + gap;
-        }
+        small.drawString(credits, w - small.getStringWidth(credits) - 4f, footerY, argb(FOOTER, 0.8f * fade));
     }
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        if (welcomeWindow != null && !welcomeWindow.shouldWindowClose()) {
-            welcomeWindow.mouseClicked(mouseX, mouseY, mouseButton);
-        }
-
         if (mouseButton == 0) {
-            for (MenuButton button : buttons) {
-                if (button.isHovered(mouseX, mouseY)) {
-                    button.mouseClicked();
+            float w = sr.getScaledWidth();
+            float h = sr.getScaledHeight();
+            for (int i = 0; i < LABELS.length; i++) {
+                float dx = mouseX - buttonCenterX(w, i);
+                float dy = mouseY - buttonCenterY(h);
+                if (dx * dx + dy * dy <= RADIUS * RADIUS) {
+                    runAction(i);
                     return;
                 }
             }
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
-    }
-
-    @Override
-    protected void mouseReleased(int mouseX, int mouseY, int state) {
-        if (welcomeWindow != null) {
-            welcomeWindow.mouseReleased();
-        }
-        super.mouseReleased(mouseX, mouseY, state);
     }
 }

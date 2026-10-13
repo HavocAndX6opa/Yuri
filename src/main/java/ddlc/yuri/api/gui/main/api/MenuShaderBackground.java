@@ -5,7 +5,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
-import java.awt.Color;
+import java.awt.*;
 
 public final class MenuShaderBackground {
 
@@ -135,7 +135,7 @@ public final class MenuShaderBackground {
         GL20.glUniform1f(uTimeLocation, elapsed);
         GL20.glUniform2f(uResolutionLocation, width, height);
 
-        Color c = ColorManager.getColor();
+        Color c = ColorManager.getYuriColor();
         GL20.glUniform3f(uColorLocation, c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f);
 
         GlStateManager.disableCull();

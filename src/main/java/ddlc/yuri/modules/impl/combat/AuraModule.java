@@ -66,7 +66,6 @@ public class AuraModule extends Module {
     private static final NumberProperty min = new NumberProperty("Min CPS", 9.0, 1, 20.0, 0.1);
     private static final NumberProperty max = new NumberProperty("Max CPS", 13.0, 1, 20.0, 0.1);
     public static ModeProperty<AutoBlock> ab = new ModeProperty<>("Auto Block", AutoBlock.FAKE);
-    private static final NumberProperty blockCps = new NumberProperty("Auto Block CPS", 8.0, 1, 10, 0.1, () -> ab.getValue() == AutoBlock.HYPIXEL);
     public static Property<Boolean> onlyBlockIfHurt = new Property<>("Only Block If Hurt", false);
     private final NumberProperty blockOnHurtTicks = new NumberProperty("Block On Hurt Ticks", 4, 0, 10, 1, onlyBlockIfHurt::getValue);
     public static final Property<Boolean> throughWalls = new Property<>("Through Walls", false);
@@ -396,7 +395,7 @@ public class AuraModule extends Module {
             if (ab.getValue() == AutoBlock.LEGIT) {
                 delay = (long) (1000.0 / 5.0);
             } else if (ab.getValue() == AutoBlock.HYPIXEL) {
-                delay = (long) (1000.0 / blockCps.getValue());
+                delay = (long) (1000.0 / 5);
             } else {
                 delay = (long) (1000.0 / getCPS());
             }

@@ -26,6 +26,7 @@ import ddlc.yuri.utils.player.packet.PacketUtils;
 import ddlc.yuri.utils.render.progress.ProgressBarEntry;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.Entity;
@@ -217,14 +218,6 @@ public final class ScaffoldModule extends Module {
             mc.gameSettings.keyBindAttack.setPressed(false);
         }
 
-        if (mode.getValue() == Mode.TELLY) {
-            if (tellySafeTimer.hasTimeElapsed(400)) {
-                mc.gameSettings.keyBindJump.setPressed(Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode()));
-            } else {
-                mc.gameSettings.keyBindJump.setPressed(true);
-            }
-        }
-
         setSuffix(mode.getValue().toString());
 
         if (safeWalk.getValue()) {
@@ -316,13 +309,18 @@ public final class ScaffoldModule extends Module {
                 canPlace = false;
             }
 
-            targetBlock = PlayerUtils.getPlacePossibility(offset.getX(), offset.getY(), offset.getZ(), sameY ? (int) Math.floor(startY) : null);
-            if (targetBlock == null && sameY) {
-                targetBlock = PlayerUtils.getPlacePossibility(offset.getX(), offset.getY(), offset.getZ(), null);
+            if (mode.getValue() == Mode.TELLY && !tellySafeTimer.hasTimeElapsed(700)) {
+                canPlace = true;
+                tellyNoPlace = false;
             }
+
+            final boolean downwards = offset.getY() < 0;
+
+            targetBlock = PlayerUtils.getPlacePossibility(offset.getX(), offset.getY(), offset.getZ(),
+                    sameY ? (int) Math.floor(startY) : null, downwards, true);
             if (targetBlock == null) return;
 
-            enumFacing = PlayerUtils.getEnumFacing(targetBlock, offset.getY() < 0);
+            enumFacing = PlayerUtils.getEnumFacing(targetBlock, downwards, true);
             if (enumFacing == null) return;
 
             final BlockPos position = new BlockPos(targetBlock.xCoord, targetBlock.yCoord, targetBlock.zCoord);
@@ -330,11 +328,11 @@ public final class ScaffoldModule extends Module {
 
             if (blockFace == null || enumFacing.getEnumFacing() == null) return;
 
+            if (sameY && startY - 1 != Math.floor(targetBlock.yCoord)) return;
+
             this.doRotations();
 
             if (targetBlock == null || enumFacing == null || blockFace == null) return;
-
-            if (startY - 1 != Math.floor(targetBlock.yCoord) && sameY) return;
 
             if (blockStack == null || !(blockStack.getItem() instanceof ItemBlock))
                 return;
@@ -402,6 +400,11 @@ public final class ScaffoldModule extends Module {
     }
 
     private void tellyLogic() {
+        if (mode.getValue() == Mode.TELLY && !tellySafeTimer.hasTimeElapsed(400)) {
+            tellyNoPlace = false;
+            return;
+        }
+
         if (mc.thePlayer.offGroundTicks == 0) {
             if (mc.thePlayer.onGroundTicks == 0) {
                 tellyNoPlace = true;
@@ -421,7 +424,7 @@ public final class ScaffoldModule extends Module {
                 }
             }
         } else {
-            if (mc.thePlayer.offGroundTicks <= 4) {
+            if (isDiagonal() ? mc.thePlayer.offGroundTicks <= 4 : mc.thePlayer.offGroundTicks <= 5) {
                 tellyNoPlace = false;
             }
         }
@@ -530,12 +533,12 @@ public final class ScaffoldModule extends Module {
             case TELLY:
                 if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                     if (mc.objectMouseOver.sideHit != enumFacing.getEnumFacing() || !mc.objectMouseOver.getBlockPos().equals(blockFace)) {
-                        if (!hypixelTelly.getValue()) {
-                            ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target);
-                        } else {
-                            ScaffoldUtils.computeWatchdog3Rotations(blockFace, enumFacing, target);
-                        }
+                        ScaffoldUtils.computeNormalRotations(blockFace, enumFacing, target);
                     }
+                }
+
+                if (!tellySafeTimer.hasTimeElapsed(400)) {
+                    rotSpeed = 7.0f;
                 }
 
                 mc.entityRenderer.getMouseOver(1);
@@ -545,15 +548,17 @@ public final class ScaffoldModule extends Module {
                     } else {
                         rotSpeed = 20.0f;
                     }
+                    if (tellySafeTimer.hasTimeElapsed(400)) {
                         target[0] = mc.thePlayer.rotationYaw;
+                    }
                 } else {
                     if (hypixelTelly.getValue()) {
-                        rotSpeed = isDiagonal() ? 3.3f : mc.gameSettings.keyBindJump.isKeyDown() ? 3.25f : 2.5f;
+                        rotSpeed = isDiagonal() ? 3.6f : mc.gameSettings.keyBindJump.isKeyDown() ? 3.45f : 2.8f;
                     }
                 }
                 break;
             case HYPIXEL:
-                rotSpeed = isDiagonal() || mc.gameSettings.keyBindJump.isKeyDown() ? 6.5f : 4.8f;
+                rotSpeed = mc.thePlayer.isPotionActive(Potion.moveSpeed) ? isDiagonal() ? 10.0f : 7.0f : isDiagonal() || mc.gameSettings.keyBindJump.isKeyDown() ? 6.75f : 4.8f;
                 if (canPlace && !mc.gameSettings.keyBindPickBlock.isKeyDown()) {
                     ScaffoldUtils.computeWatchdog3Rotations(blockFace, enumFacing, target);
                 }
@@ -609,21 +614,9 @@ public final class ScaffoldModule extends Module {
             if (!autoJump.getValue()) autoJump.setValue(true);
         }
 
-        if (keepY.getValue() && autoJump.getValue()) {
-            if (mc.thePlayer.onGround && MoveUtils.isMoving() && mc.thePlayer.posY == startY) {
-                handleJump();
-            }
+        if (autoJump.getValue() && mc.thePlayer.onGround && MoveUtils.isMoving()) {
+            mc.thePlayer.jump();
         }
-
-        if (autoJump.getValue() && !keepY.getValue()) {
-            if (mc.thePlayer.onGround && MoveUtils.isMoving()) {
-                handleJump();
-            }
-        }
-    }
-
-    private void handleJump() {
-        if (autoJump.getValue()) mc.thePlayer.jump();
     }
 
     private void sprint() {
@@ -682,7 +675,8 @@ public final class ScaffoldModule extends Module {
                 mc.thePlayer.motionY = 0.42;
                 break;
             case HYPIXEL:
-                if (mc.thePlayer.isPotionActive(Potion.jump)) {
+                Block block = mc.theWorld.getBlockState(new BlockPos(mc.thePlayer.getPositionVector().subtract(0, 1, 0))).getBlock();
+                if (mc.thePlayer.isPotionActive(Potion.jump) || (block != null && !block.isFullBlock())) {
                     return;
                 }
 
@@ -690,11 +684,11 @@ public final class ScaffoldModule extends Module {
                     mc.thePlayer.jump();
                 }
 
-                if (mc.thePlayer.offGroundTicks == 4 && MoveUtils.speed() == 0.0) {
+                if (mc.thePlayer.offGroundTicks == 4 && !MoveUtils.isMoving()) {
                     mc.thePlayer.motionY -= 0.03;
                 }
 
-                if (mc.thePlayer.offGroundTicks == 5 && MoveUtils.speed() == 0.0) {
+                if (mc.thePlayer.offGroundTicks == 5 && !MoveUtils.isMoving()) {
                     mc.thePlayer.motionY -= 0.5;
                 }
                 break;
@@ -769,6 +763,9 @@ public final class ScaffoldModule extends Module {
             targetBlock = null;
             tellyNoPlace = false;
             this.initialBlockCount = ScaffoldUtils.countBlocks();
+            if (hypixelTelly.getValue() && mode.getValue() == Mode.TELLY) {
+                rotSpeed = 7.0f;
+            }
         }
         tellySafeTimer.reset();
         lastRenderTime = -1L;

@@ -168,7 +168,7 @@ public final class HornsModule extends Module {
         GlStateManager.translate(x, y, z);
         GlStateManager.rotate(-headYaw, 0.0F, 1.0F, 0.0F);
 
-        GlStateManager.translate(0.0F, player.height + HEIGHT - HEAD_PIVOT_DROP, 0.0F);
+        GlStateManager.translate(0.0F, mc.thePlayer.isSneaking() ? player.height - 0.2f + HEIGHT - HEAD_PIVOT_DROP : player.height + HEIGHT - HEAD_PIVOT_DROP, 0.0F);
         GlStateManager.rotate(headPitch, 1.0F, 0.0F, 0.0F);
 
         GlStateManager.translate(0.0F, HEAD_PIVOT_DROP, FRONT);

@@ -7,6 +7,7 @@ import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.util.MovingObjectPosition;
@@ -30,7 +31,7 @@ public final class AutoClickerModule extends Module {
 
         if (mc.currentScreen != null || !mc.inGameHasFocus) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
-        if (!Mouse.isButtonDown(0) || Mouse.isButtonDown(1)) return;
+        if (!Mouse.isButtonDown(0)) return;
 
         if (weaponsOnly.getValue() && !isHoldingWeapon()) return;
 
@@ -43,8 +44,7 @@ public final class AutoClickerModule extends Module {
         int cps = getHumanizedCPS();
 
         if (now - lastClick >= 1000L / cps) {
-            mc.clickMouse();
-            mc.leftClickCounter = 0;
+            KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
             lastClick = now;
         }
     }

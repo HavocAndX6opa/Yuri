@@ -78,7 +78,7 @@ public class GuiButton extends Gui
             GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
             // Draw modern background box & theme outline
-            Color outlineColor = this.enabled ? ColorManager.getColor() : new Color(60, 60, 60, 180);
+            Color outlineColor = this.enabled ? ColorManager.getYuriColor() : new Color(60, 60, 60, 180);
             RoundedUtils.drawRoundOutline(this.xPosition, this.yPosition, this.width, this.height, 6f, -0.5f, hovered ? BG_COLOR.brighter().brighter().brighter().brighter().brighter().brighter() : BG_COLOR, outlineColor);
 
             // Draw animated hover underline expansion
@@ -90,7 +90,7 @@ public class GuiButton extends Gui
                 float animatedHeight = 1.5f;
                 float animatedY = this.yPosition + this.height - animatedHeight;
 
-                RoundedUtils.drawRoundedRect(animatedX, animatedY, animatedWidth, animatedHeight, 0.2f, ColorManager.getColor());
+                RoundedUtils.drawRoundedRect(animatedX, animatedY, animatedWidth, animatedHeight, 0.2f, ColorManager.getYuriColor());
             }
 
             this.mouseDragged(mc, mouseX, mouseY);
@@ -98,7 +98,7 @@ public class GuiButton extends Gui
             // Text color interpolation
             int textColor = !this.enabled
                     ? DISABLED_TEXT_COLOR.getRGB()
-                    : RenderUtils.interpolateColor(GuiTheme.TEXT, ColorManager.getColor(), this.hoverAnim);
+                    : RenderUtils.interpolateColor(GuiTheme.TEXT, ColorManager.getYuriColor(), this.hoverAnim);
 
             // Render text with custom font (fallback to vanilla font renderer if null)
             CustomFontRenderer fr = FontUtils.getFont("sf", 18);

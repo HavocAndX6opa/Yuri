@@ -18,7 +18,7 @@ import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.util.StringUtils;
 import org.lwjgl.util.glu.GLU;
 
 import java.awt.*;
@@ -27,7 +27,7 @@ import java.text.DecimalFormat;
 @ModuleInfo(label = "Name Tags", description = "Renders name tags through walls", category = ModuleCategory.RENDER)
 public class NameTagsModule extends Module {
 
-    private static final DecimalFormat DISTANCE_FORMAT = new DecimalFormat("0.0");
+    private static final DecimalFormat HEALTH_FORMAT = new DecimalFormat("0.0");
 
     public final Property<Boolean> renderSelf = new Property<>("Render Self", true);
     public final Property<Boolean> background = new Property<>("Background", true);
@@ -88,7 +88,6 @@ public class NameTagsModule extends Module {
     }
 
     private void renderNameTag(EntityPlayer player, double x, double y, double z, ScaledResolution sr, Color bgColor) {
-
         ESPUtils.windPos.clear();
         if (!GLU.gluProject((float) x, (float) y, (float) z,
                 ActiveRenderInfo.MODELVIEW,
@@ -109,8 +108,11 @@ public class NameTagsModule extends Module {
             return;
         }
 
-        double distance = mc.thePlayer.getHealth();
-        String distanceText = DISTANCE_FORMAT.format(distance);
+        String nameText = player.hasCustomName() ? player.getCustomNameTag() : player.getDisplayName().getFormattedText();
+        String plainNameText = StringUtils.stripControlCodes(nameText);
+
+        double health = player.getHealth();
+        String healthText = HEALTH_FORMAT.format(health);
         String heart = "\u2764";
         String tagText = CLIENT_TAG;
         double s = scale.getValue();
@@ -118,28 +120,28 @@ public class NameTagsModule extends Module {
         boolean showClientTag = mc.gameSettings.thirdPersonView != 0 && renderSelf.getValue() && player.equals(mc.thePlayer);
 
         int rawFontHeight = getFontHeight();
-        int rawClientWidth = showClientTag ? getStringWidth(CLIENT_NAME) : 0;
-        int rawNameWidth = getStringWidth(player.getName());
-        int rawDistanceWidth = getStringWidth(distanceText);
-        int rawHeartWidth = mc.fontRendererObj.getStringWidth(heart);
+        int rawClientWidth = getStringWidth(CLIENT_NAME);
+        int rawNameWidth = getStringWidth(plainNameText);
+        int rawHealthWidth = getStringWidth(healthText);
+        int rawHeartWidth = getStringWidth(heart);
         int rawGap = 4;
 
         double fontHeight = rawFontHeight * s;
         double clientWidth = rawClientWidth * s;
         double nameWidth = rawNameWidth * s;
-        double distanceWidth = rawDistanceWidth * s;
+        double healthWidth = rawHealthWidth * s;
         double heartWidth = rawHeartWidth * s;
         double gap = rawGap * s;
         double badgePadding = BADGE_PADDING * s;
         double badgeGap = BADGE_GAP * s;
         double bgPadding = BG_PADDING * s;
 
-        double mainTextWidth = clientWidth + gap + nameWidth + gap + distanceWidth + gap + heartWidth;
+        double mainTextWidth = clientWidth + gap + nameWidth + gap + healthWidth + gap + heartWidth;
         double badgeWidth = showClientTag ? (getStringWidth(tagText) * s) + badgePadding * 2 : 0;
         double totalWidth = mainTextWidth + badgeGap + badgeWidth;
 
         double startX = screenX - totalWidth / 2.0;
-        double topY = screenY - fontHeight - 4 * s;
+        double topY = screenY - fontHeight - (4 * s);
 
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
@@ -162,13 +164,13 @@ public class NameTagsModule extends Module {
             cursorX += clientWidth + gap;
         }
 
-        drawString(player.getName(), cursorX, topY, Color.white.getRGB(), s);
+        drawString(nameText, cursorX, topY, Color.white.getRGB(), s);
         cursorX += nameWidth + gap;
 
-        drawString(distanceText, cursorX, topY, Color.white.getRGB(), s);
-        cursorX += distanceWidth + gap;
+        drawString(healthText, cursorX, topY, Color.white.getRGB(), s);
+        cursorX += healthWidth + gap;
 
-        drawString(heart, cursorX, customFont.getValue() ? topY + 2.5f * s : topY, Color.red.getRGB(), s);
+        drawString(heart, cursorX, customFont.getValue() ? topY + (2.5f * s) : topY - (1.0f * s), Color.red.getRGB(), s);
 
         if (showClientTag) {
             double badgeX = startX + mainTextWidth + badgeGap;
@@ -195,7 +197,7 @@ public class NameTagsModule extends Module {
             GlStateManager.enableTexture2D();
         }
 
-        drawString(text, x + badgePadding, y, ColorManager.getColor().getRGB(), s);
+        drawString(text, background.getValue() ? x + badgePadding : x, background.getValue() ? y : y - (1.0f * s), ColorManager.getColor().getRGB(), s);
     }
 
     private void drawString(String text, double x, double y, int color, double s) {

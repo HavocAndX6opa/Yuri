@@ -18,7 +18,6 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +103,6 @@ public class YuriClickGUI extends GuiScreen {
     }
 
     private void applyPanelShadow(float progress) {
-        // Without FBOs (Fast Render / AA / no GPU support) framebufferClear() clears the screen to white.
         if (progress < 0.12F || !OpenGlHelper.isFramebufferEnabled()) {
             return;
         }

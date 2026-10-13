@@ -4,7 +4,7 @@ import ddlc.yuri.modules.impl.render.ClickGUIModule;
 import ddlc.yuri.utils.misc.Pair;
 import ddlc.yuri.utils.render.RenderUtils;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -12,6 +12,10 @@ public class ColorManager {
 
     private static final Map<ClickGUIModule.Color, Color[]> STATIC_COLORS = new EnumMap<>(ClickGUIModule.Color.class);
 
+    public static Color getYuriColor() {
+        return new Color(161, 82, 230);
+    }
+    
     public static Color getColor() {
         ClickGUIModule.Color mode = ClickGUIModule.color.getValue();
         long now = System.currentTimeMillis();

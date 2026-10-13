@@ -3,16 +3,13 @@ package ddlc.yuri.utils.player;
 import ddlc.yuri.managers.impl.RotationManager;
 import ddlc.yuri.utils.client.MathUtils;
 import ddlc.yuri.utils.misc.IMinecraft;
-import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.network.play.client.C0APacketAnimation;
 import net.minecraft.util.*;
 
 import java.util.ArrayList;
@@ -95,26 +92,29 @@ public class PlayerUtils implements IMinecraft {
     }
 
     private static final HashMap<Integer, Integer> GOOD_POTIONS = new HashMap<Integer, Integer>() {{
-        put(6, 1); // Instant Health
-        put(10, 2); // Regeneration
-        put(11, 3); // Resistance
-        put(21, 4); // Health Boost
-        put(22, 5); // Absorption
-        put(23, 6); // Saturation
-        put(5, 7); // Strength
-        put(1, 8); // Speed
-        put(12, 9); // Fire Resistance
-        put(14, 10); // Invisibility
-        put(3, 11); // Haste
-        put(13, 12); // Water Breathing
+        put(6, 1);
+        put(10, 2);
+        put(11, 3);
+        put(21, 4);
+        put(22, 5);
+        put(23, 6);
+        put(5, 7);
+        put(1, 8);
+        put(12, 9);
+        put(14, 10);
+        put(3, 11);
+        put(13, 12);
     }};
 
     public static Vec3 getPlacePossibility(double offsetX, double offsetY, double offsetZ) {
         return getPlacePossibility(offsetX, offsetY, offsetZ, null);
     }
 
-    // This methods purpose is to get block placement possibilities, blocks are 1 unit thick so please don't change it to 0.5 it causes bugs.
     public static Vec3 getPlacePossibility(double offsetX, double offsetY, double offsetZ, Integer plane) {
+        return getPlacePossibility(offsetX, offsetY, offsetZ, plane, false, false);
+    }
+
+    public static Vec3 getPlacePossibility(double offsetX, double offsetY, double offsetZ, Integer plane, boolean downwards, boolean avoidWalls) {
 
         final List<Vec3> possibilities = new ArrayList<>();
         final int range = (int) (6.0 + (Math.abs(offsetX) + Math.abs(offsetZ)));
@@ -147,6 +147,11 @@ public class PlayerUtils implements IMinecraft {
             possibilities.removeIf(vec3 -> Math.floor(vec3.yCoord + 1) != plane);
         }
 
+        if (avoidWalls) {
+            final int maxY = (int) Math.floor(mc.thePlayer.posY - 1 + offsetY + 1.0E-3);
+            possibilities.removeIf(vec3 -> (int) Math.floor(vec3.yCoord) > maxY);
+        }
+
         possibilities.sort(Comparator.comparingDouble(vec3 -> {
 
             final double d0 = (mc.thePlayer.posX + offsetX) - vec3.xCoord;
@@ -156,7 +161,17 @@ public class PlayerUtils implements IMinecraft {
 
         }));
 
-        return possibilities.isEmpty() ? null : possibilities.get(0);
+        if (!avoidWalls) {
+            return possibilities.isEmpty() ? null : possibilities.get(0);
+        }
+
+        for (Vec3 candidate : possibilities) {
+            if (getEnumFacing(candidate, downwards, true) != null) {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target) {
@@ -282,20 +297,24 @@ public class PlayerUtils implements IMinecraft {
     }
 
     public static EnumFacingOffset getEnumFacing(final Vec3 position) {
-        return getEnumFacing(position, false);
+        return getEnumFacing(position, false, false);
     }
 
     public static EnumFacingOffset getEnumFacing(final Vec3 position, boolean downwards) {
+        return getEnumFacing(position, downwards, false);
+    }
+
+    public static EnumFacingOffset getEnumFacing(final Vec3 position, boolean downwards, boolean avoidWalls) {
         List<EnumFacingOffset> possibleFacings = new ArrayList<>();
 
         int posX = (int) Math.floor(position.xCoord);
         int posY = (int) Math.floor(position.yCoord);
         int posZ = (int) Math.floor(position.zCoord);
 
-        checkAndAddFacing(possibleFacings, posX, posY, posZ - 1, EnumFacing.SOUTH, 0, 0, -1);
-        checkAndAddFacing(possibleFacings, posX, posY, posZ + 1, EnumFacing.NORTH, 0, 0, 1);
-        checkAndAddFacing(possibleFacings, posX - 1, posY, posZ, EnumFacing.EAST,  -1, 0, 0);
-        checkAndAddFacing(possibleFacings, posX + 1, posY, posZ, EnumFacing.WEST,   1, 0, 0);
+        checkAndAddFacing(possibleFacings, posX, posY, posZ - 1, EnumFacing.SOUTH, 0, 0, -1, avoidWalls);
+        checkAndAddFacing(possibleFacings, posX, posY, posZ + 1, EnumFacing.NORTH, 0, 0, 1, avoidWalls);
+        checkAndAddFacing(possibleFacings, posX - 1, posY, posZ, EnumFacing.EAST, -1, 0, 0, avoidWalls);
+        checkAndAddFacing(possibleFacings, posX + 1, posY, posZ, EnumFacing.WEST, 1, 0, 0, avoidWalls);
 
         if (!possibleFacings.isEmpty()) {
             double jitter = (ThreadLocalRandom.current().nextDouble() - 0.5) * 30.0;
@@ -326,14 +345,35 @@ public class PlayerUtils implements IMinecraft {
         return null;
     }
 
-    private static void checkAndAddFacing(List<EnumFacingOffset> list, int x, int y, int z, EnumFacing facing, int offX, int offY, int offZ) {
-        if (checkBlock(x, y, z)) {
-            list.add(new EnumFacingOffset(facing, new Vec3(offX, offY, offZ)));
-        }
+    private static void checkAndAddFacing(List<EnumFacingOffset> list, int x, int y, int z, EnumFacing facing, int offX, int offY, int offZ, boolean avoidWalls) {
+        if (!checkBlock(x, y, z)) return;
+        if (avoidWalls && checkBlock(x, y + 1, z)) return;
+        list.add(new EnumFacingOffset(facing, new Vec3(offX, offY, offZ)));
     }
 
     private static boolean checkBlock(int x, int y, int z) {
         BlockPos pos = new BlockPos(x, y, z);
         return !BlockUtils.block(x, y, z).isReplaceable(mc.theWorld, pos);
+    }
+
+    public static boolean gameStarted(String raw) {
+        String stripped = StringUtils.stripControlCodes(raw);
+
+        if (stripped.startsWith(" ") && (stripped.contains("Protect your bed and destroy the enemy beds.") || stripped.contains("Goodluck with your BedWars Game"))) {
+            return true;
+        }
+
+        switch (raw) {
+            case "Cages opened! FIGHT!":
+            case "§r§r§r                               §r§f§lSkyWars Duel§r":
+            case "§r§eCages opened! §r§cFIGHT!§r":
+                return true;
+            default:
+                break;
+        }
+
+        String trimmed = stripped.trim();
+
+        return trimmed.equals("Cages opened! FIGHT!") || trimmed.equals("SkyWars Duel");
     }
 }
