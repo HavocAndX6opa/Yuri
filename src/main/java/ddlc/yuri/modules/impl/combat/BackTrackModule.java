@@ -7,6 +7,7 @@ import ddlc.yuri.api.events.annotations.EventPriority;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.events.impl.render.Render3DEvent;
 import ddlc.yuri.api.events.impl.world.WorldJoinEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.NumberProperty;
@@ -14,7 +15,10 @@ import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.Packet;
@@ -132,42 +136,30 @@ public class BackTrackModule extends Module {
         spoofedPosition = new Vec3(realX / 32.0, realY / 32.0, realZ / 32.0);
     }
 
-/*    @EventHook
+    @EventHook
     public void onRender3D(Render3DEvent event) {
-        if (mc.thePlayer == null || target == null || !spoofing || spoofedPosition == null) return;
+        Vec3 pos = spoofedPosition;
+        if (mc.thePlayer == null || mc.theWorld == null || !holding || pos == null) return;
 
-        double drawX = spoofedPosition.xCoord - mc.getRenderManager().viewerPosX;
-        double drawY = spoofedPosition.yCoord - mc.getRenderManager().viewerPosY;
-        double drawZ = spoofedPosition.zCoord - mc.getRenderManager().viewerPosZ;
+        RenderManager rm = mc.getRenderManager();
 
-        double half = target.width / 2.0;
-        double height = target.height;
-
-        AxisAlignedBB box = new AxisAlignedBB(
-                drawX - half, drawY, drawZ - half,
-                drawX + half, drawY + height, drawZ + half);
-
-        Color color = ColorManager.getColors().getFirst();
-
-        GlStateManager.pushMatrix();
+        GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.disableTexture2D();
         GlStateManager.disableDepth();
         GlStateManager.depthMask(false);
+        GlStateManager.disableLighting();
         GlStateManager.disableCull();
 
-        GlStateManager.color(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 0.16f);
-        RenderUtils.drawBoundingBox(box);
+        RenderUtils.renderPlayerPosition(pos.xCoord - rm.viewerPosX, pos.yCoord - rm.viewerPosY, pos.zCoord - rm.viewerPosZ);
 
         GlStateManager.enableCull();
         GlStateManager.depthMask(true);
         GlStateManager.enableDepth();
-        GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
-        GlStateManager.popMatrix();
-        GlStateManager.resetColor();
-    }*/
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+    }
 
     private EntityLivingBase resolveTarget() {
         if (onlyKillAura.getValue()) {

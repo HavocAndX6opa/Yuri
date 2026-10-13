@@ -59,9 +59,9 @@ public class RenderUtils {
 
     public static void drawBlockESP(final BlockPos blockPos, final float red, final float green, final float blue, final float alpha, final float lineAlpha, final float lineWidth) {
         GlStateManager.color(red, green, blue, alpha);
-        final float x = (float)(blockPos.getX() - mc.getRenderManager().renderPosX);
-        final float y = (float)(blockPos.getY() - mc.getRenderManager().renderPosY);
-        final float z = (float)(blockPos.getZ() - mc.getRenderManager().renderPosZ);
+        final float x = (float) (blockPos.getX() - mc.getRenderManager().renderPosX);
+        final float y = (float) (blockPos.getY() - mc.getRenderManager().renderPosY);
+        final float z = (float) (blockPos.getZ() - mc.getRenderManager().renderPosZ);
         final Block block = mc.theWorld.getBlockState(blockPos).getBlock();
         drawBoundingBox(new AxisAlignedBB(x, y, z, x + block.getBlockBoundsMaxX(), y + block.getBlockBoundsMaxY(), z + block.getBlockBoundsMaxZ()));
         if (lineWidth > 0.0f) {
@@ -143,7 +143,7 @@ public class RenderUtils {
     }
 
     public static void drawFilledAABB(AxisAlignedBB aabb, int color) {
-        aabb = aabb.offset(- mc.getRenderManager().viewerPosX, - mc.getRenderManager().viewerPosY, - mc.getRenderManager().viewerPosZ);
+        aabb = aabb.offset(-mc.getRenderManager().viewerPosX, -mc.getRenderManager().viewerPosY, -mc.getRenderManager().viewerPosZ);
 
         GL11.glBlendFunc(770, 771);
         GL11.glEnable(3042);
@@ -160,13 +160,12 @@ public class RenderUtils {
 
     public static void renderPlayerPosition(double x, double y, double z) {
         AxisAlignedBB bb = new AxisAlignedBB(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3);
-        GLUtils.start3D();
-        GlStateManager.pushMatrix();
-        GlStateManager.color(ColorManager.getColor().getRed() / 255f, ColorManager.getColor().getGreen() / 255f,
-                ColorManager.getColor().getBlue() / 255f, 80 / 255f);
-        RenderUtils.drawBoundingBox(bb);
-        GlStateManager.popMatrix();
-        GLUtils.stop3D();
+        GlStateManager.color(ColorManager.getColors().getFirst().getRed() / 255f, ColorManager.getColors().getFirst().getGreen() / 255f, ColorManager.getColors().getFirst().getBlue() / 255f, 60 / 255f);
+        drawBoundingBox(bb);
+        GL11.glLineWidth(0.5f);
+        GlStateManager.color(ColorManager.getColors().getSecond().getRed() / 255f, ColorManager.getColors().getSecond().getGreen() / 255f, ColorManager.getColors().getSecond().getBlue() / 255f, 40 / 255f);
+        drawOutlinedBoundingBox(bb);
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     // 2d rendering
