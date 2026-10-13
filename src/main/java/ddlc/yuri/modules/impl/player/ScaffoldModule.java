@@ -684,11 +684,11 @@ public final class ScaffoldModule extends Module {
                     mc.thePlayer.jump();
                 }
 
-                if (mc.thePlayer.offGroundTicks == 4 && !MoveUtils.isMoving()) {
+                if (mc.thePlayer.offGroundTicks == 4 && !MoveUtils.isMoving() && MoveUtils.speed() == 0.0) {
                     mc.thePlayer.motionY -= 0.03;
                 }
 
-                if (mc.thePlayer.offGroundTicks == 5 && !MoveUtils.isMoving()) {
+                if (mc.thePlayer.offGroundTicks == 5 && !MoveUtils.isMoving() && MoveUtils.speed() == 0.0) {
                     mc.thePlayer.motionY -= 0.5;
                 }
                 break;
