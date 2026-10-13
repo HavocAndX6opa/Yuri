@@ -1,7 +1,7 @@
 package net.minecraft.client.gui;
 
 import ddlc.yuri.api.font.CustomFontRenderer;
-import ddlc.yuri.api.gui.click.novoline.GuiTheme;
+import ddlc.yuri.api.gui.click.atmosphere.GuiTheme;
 import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RenderUtils;

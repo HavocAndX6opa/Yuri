@@ -1,4 +1,4 @@
-package ddlc.yuri.api.gui.click.novoline;
+package ddlc.yuri.api.gui.click.atmosphere;
 
 import java.awt.*;
 

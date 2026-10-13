@@ -13,10 +13,7 @@ import net.minecraft.client.gui.inventory.*;
 import net.minecraft.client.gui.stream.GuiTwitchUserMode;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.EntityList;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
@@ -103,7 +100,7 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback
         float logoY = (float) this.height - logoSize;
 
         if (ClickGUIModule.logoInGuis.getValue()) {
-            if (mc.currentScreen instanceof GuiInventory || mc.currentScreen instanceof GuiContainerCreative || mc.currentScreen instanceof GuiChest || mc.currentScreen instanceof GuiCrafting || mc.currentScreen instanceof GuiEnchantment || mc.currentScreen instanceof GuiFurnace || mc.currentScreen instanceof GuiRepair || mc.currentScreen == Yuri.INSTANCE.getImGuiClickGui() || mc.currentScreen == Yuri.INSTANCE.getCsgoClickGui() || mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() || mc.currentScreen == Yuri.INSTANCE.getSigmaClickGui()) {
+            if (mc.currentScreen instanceof GuiInventory || mc.currentScreen instanceof GuiContainerCreative || mc.currentScreen instanceof GuiChest || mc.currentScreen instanceof GuiCrafting || mc.currentScreen instanceof GuiEnchantment || mc.currentScreen instanceof GuiFurnace || mc.currentScreen instanceof GuiRepair || mc.currentScreen == Yuri.INSTANCE.getImGuiClickGui() || mc.currentScreen == Yuri.INSTANCE.getCsgoClickGui() || mc.currentScreen == Yuri.INSTANCE.getAtmosphereClickGui() || mc.currentScreen == Yuri.INSTANCE.getSigmaClickGui()) {
 
                 GlStateManager.color(1.0F, 1.0F, 1.0F, alpha);
                 GlStateManager.enableBlend();

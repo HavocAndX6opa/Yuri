@@ -1,6 +1,6 @@
 package ddlc.yuri.utils.render.imgui.style;
 
-import ddlc.yuri.api.gui.click.novoline.GuiTheme;
+import ddlc.yuri.api.gui.click.atmosphere.GuiTheme;
 import imgui.flag.ImGuiCol;
 
 import java.awt.*;

@@ -16,16 +16,17 @@ public class ClickGUIModule extends Module implements IMinecraft {
 
     public static final ModeProperty<Color> color = new ModeProperty<>("Color", Color.YURI);
     public static final NumberProperty colorSpeed = new NumberProperty("Color Speed", 5, 1, 10, 1);
-    public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.YURI);
+    public static final ModeProperty<Mode> mode = new ModeProperty<>("Mode", Mode.ATMOSPHERE);
     public static final ModeProperty<ImGuiStyleType> style = new ModeProperty<>("Style", ImGuiStyleType.REGULAR, () -> mode.getValue() == Mode.IMGUI);
-    private final Property<Boolean> closePrevious = new Property<>("Close Previous", true, () -> mode.getValue() == Mode.NOVOLINE || mode.getValue() == Mode.YURI);
+    private final Property<Boolean> closePrevious = new Property<>("Close Previous", true, () -> mode.getValue() == Mode.ATMOSPHERE);
+    public static final Property<Boolean> keybinds = new Property<>("Keybinds In GUI", true, () -> mode.getValue() == Mode.ATMOSPHERE);
+    public static final Property<Boolean> tooltips = new Property<>("Tooltips", true, () -> mode.getValue() == Mode.ATMOSPHERE);
     public static final Property<Boolean> logoInGuis = new Property<>("Logo In GUIS", false);
 
     public enum Mode {
-        YURI("Yuri"),
+        ATMOSPHERE("Atmospehere"),
         IMGUI("ImGui"),
         CSGO("CSGO"),
-        NOVOLINE("Novoline"),
         SIGMA("Sigma");
 
         public final String name;
@@ -81,11 +82,8 @@ public class ClickGUIModule extends Module implements IMinecraft {
     @Override
     public void onEnable() {
         switch (mode.getValue()) {
-            case NOVOLINE:
-                mc.displayGuiScreen(Yuri.INSTANCE.getNovolineClickGui());
-                break;
-            case YURI:
-                mc.displayGuiScreen(Yuri.INSTANCE.getYuriClickGUI());
+            case ATMOSPHERE:
+                mc.displayGuiScreen(Yuri.INSTANCE.getAtmosphereClickGui());
                 break;
             case IMGUI:
                 mc.displayGuiScreen(Yuri.INSTANCE.getImGuiClickGui());
@@ -101,14 +99,12 @@ public class ClickGUIModule extends Module implements IMinecraft {
 
     @Override
     public void onDisable() {
-       if (mc.currentScreen == Yuri.INSTANCE.getNovolineClickGui() && !Yuri.INSTANCE.getNovolineClickGui().isClosing()) {
-            Yuri.INSTANCE.getNovolineClickGui().beginClose();
+       if (mc.currentScreen == Yuri.INSTANCE.getAtmosphereClickGui() && !Yuri.INSTANCE.getAtmosphereClickGui().isClosing()) {
+            Yuri.INSTANCE.getAtmosphereClickGui().beginClose();
         } else if (mc.currentScreen == Yuri.INSTANCE.getImGuiClickGui() && !Yuri.INSTANCE.getImGuiClickGui().isClosing()) {
             Yuri.INSTANCE.getImGuiClickGui().beginClose();
         } else if (mc.currentScreen == Yuri.INSTANCE.getCsgoClickGui() && !Yuri.INSTANCE.getCsgoClickGui().isClosing()) {
             Yuri.INSTANCE.getCsgoClickGui().beginClose();
-        } else if (mc.currentScreen == Yuri.INSTANCE.getYuriClickGUI() && !Yuri.INSTANCE.getYuriClickGUI().isClosing()) {
-            Yuri.INSTANCE.getYuriClickGUI().beginClose();
         } else if (mc.currentScreen == Yuri.INSTANCE.getSigmaClickGui() && !Yuri.INSTANCE.getSigmaClickGui().isClosing()) {
             Yuri.INSTANCE.getSigmaClickGui().beginClose();
         }

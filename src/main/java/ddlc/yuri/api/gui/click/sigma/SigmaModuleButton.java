@@ -1,5 +1,6 @@
 package ddlc.yuri.api.gui.click.sigma;
 
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.utils.render.RenderUtils;
 
@@ -65,8 +66,8 @@ public class SigmaModuleButton {
             hoverFactor = 1.5f;
         }
 
-        int primary = RenderUtils.interpolateColor(SigmaTheme.DISABLED_BG.getRGB(), SigmaTheme.ENABLED_BLUE.getRGB(), enabled);
-        int secondary = RenderUtils.interpolateColor(SigmaTheme.DISABLED_BG_HOVER.getRGB(), SigmaTheme.ENABLED_BLUE_HOVER.getRGB(), enabled);
+        int primary = RenderUtils.interpolateColor(SigmaTheme.DISABLED_BG.getRGB(), ColorManager.getColor().getRGB(), enabled);
+        int secondary = RenderUtils.interpolateColor(SigmaTheme.DISABLED_BG_HOVER.getRGB(), ColorManager.getColor().getRGB(), enabled);
         int background = SigmaTheme.blend(primary, secondary, 1f - hoverFactor);
         background = SigmaTheme.applyAlpha(background, ((primary >> 24 & 0xFF) / 255f) * alpha);
         SigmaRenderer.rect(panelX, y, panelX + SigmaTheme.PANEL_WIDTH, y + SigmaTheme.MODULE_HEIGHT, background);

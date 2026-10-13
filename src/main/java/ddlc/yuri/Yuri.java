@@ -8,11 +8,10 @@ import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.GameStartupEvent;
 import ddlc.yuri.api.events.impl.client.GameStoppingEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
+import ddlc.yuri.api.gui.click.atmosphere.AtmosphereClickGui;
 import ddlc.yuri.api.gui.click.csgo.CsgoClickGui;
 import ddlc.yuri.api.gui.click.imgui.ImGuiClickGui;
-import ddlc.yuri.api.gui.click.novoline.NovolineClickGui;
 import ddlc.yuri.api.gui.click.sigma.SigmaClickGui;
-import ddlc.yuri.api.gui.click.yuri.YuriClickGUI;
 import ddlc.yuri.managers.ManagerWrapper;
 import ddlc.yuri.modules.ModuleManager;
 import ddlc.yuri.modules.impl.render.ClickGUIModule;
@@ -33,9 +32,7 @@ public class Yuri {
     @Getter
     private ConfigManager configManager;
     @Getter
-    private final YuriClickGUI yuriClickGUI = new YuriClickGUI();
-    @Getter
-    private final NovolineClickGui novolineClickGui = new NovolineClickGui();
+    private final AtmosphereClickGui atmosphereClickGui = new AtmosphereClickGui();
     @Getter
     private final ImGuiClickGui imGuiClickGui = new ImGuiClickGui();
     @Getter

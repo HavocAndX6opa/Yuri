@@ -1,6 +1,5 @@
 package ddlc.yuri.api.gui.alt.comp;
 
-import ddlc.yuri.api.gui.click.yuri.YuriTheme;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
 import net.minecraft.client.Minecraft;
@@ -43,7 +42,7 @@ public class CustomTextBox extends Gui {
 
         RoundedUtils.drawRoundedRect(xPosition, yPosition, width, height, 12f, FIELD_BACKGROUND);
         if (focused) {
-            RoundedUtils.drawRoundedRect(xPosition, yPosition + height - 1.2f, width, 1.2f, 12f, YuriTheme.accent());
+            RoundedUtils.drawRoundedRect(xPosition, yPosition + height - 1.2f, width, 1.2f, 12f, FIELD_BACKGROUND.brighter().brighter());
         }
 
         boolean empty = text.isEmpty();

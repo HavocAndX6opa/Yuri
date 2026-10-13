@@ -2,20 +2,16 @@ package ddlc.yuri.api.gui.click.sigma;
 
 import net.minecraft.util.ResourceLocation;
 
-import java.awt.Color;
+import java.awt.*;
 
 public final class SigmaTheme {
 
     public static final Color DEEP_TEAL = new Color(1, 1, 1, 255);
     public static final Color LIGHT_GREYISH_BLUE = new Color(254, 254, 254, 255);
-    public static final Color ENABLED_BLUE = new Color(41, 166, 255, 255);
-    public static final Color ENABLED_BLUE_HOVER = new Color(41, 184, 255, 255);
     public static final Color DISABLED_BG = new Color(254, 254, 245, 112);
     public static final Color DISABLED_BG_HOVER = new Color(202, 202, 202, 0);
     public static final Color CHECKBOX_GREY = new Color(192, 192, 192, 255);
-    public static final Color CHECKBOX_TRACK = new Color(59, 153, 253, 255);
     public static final Color MID_GREY = new Color(153, 153, 153, 255);
-    public static final Color SCROLLBAR = new Color(1, 1, 1, 255);
 
     public static final float PANEL_WIDTH = 200f;
     public static final float PANEL_HEIGHT = 320f;

@@ -5,6 +5,7 @@ import ddlc.yuri.api.properties.impl.DescriptorProperty;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.MultiModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
+import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.utils.client.KeyUtil;
 import ddlc.yuri.utils.render.RenderUtils;
 import net.minecraft.util.MathHelper;
@@ -117,7 +118,7 @@ public class SigmaPropertyRow {
                     drawCheckbox(right - 24f, optionY, 24f, selected, optionHovered, false, alpha * expandProgress);
                     SigmaRenderer.font(SigmaTheme.LIGHT_FONT, 20, left + 10f,
                             optionY + 12f - SigmaRenderer.fontHeight(SigmaTheme.LIGHT_FONT, 20) / 2f, value.toString(),
-                            SigmaTheme.applyAlpha(selected ? SigmaTheme.ENABLED_BLUE.getRGB() : SigmaTheme.DEEP_TEAL.getRGB(),
+                            SigmaTheme.applyAlpha(selected ? ColorManager.getColor().darker().getRGB() : SigmaTheme.DEEP_TEAL.getRGB(),
                                     alpha * expandProgress));
                     optionY += 24f;
                 }
@@ -141,7 +142,7 @@ public class SigmaPropertyRow {
         SigmaRenderer.roundRect(x, y, size, size, 10f,
                 SigmaTheme.applyAlpha(SigmaTheme.CHECKBOX_GREY, over * (1f - checkFraction) * alpha));
         SigmaRenderer.roundRect(x, y, size, size, 10f,
-                SigmaTheme.applyAlpha(SigmaTheme.blend(SigmaTheme.ENABLED_BLUE.getRGB(), SigmaTheme.DEEP_TEAL.getRGB(),
+                SigmaTheme.applyAlpha(SigmaTheme.blend(ColorManager.getColor().darker().getRGB(), SigmaTheme.DEEP_TEAL.getRGB(),
                         mouseDown ? 0.9f : 1f), checkFraction * alpha));
         if (checkFraction > 0.01f) {
             float cx = x + size / 2f;
@@ -238,7 +239,7 @@ public class SigmaPropertyRow {
 
     private void drawKeybind(float x, float y, float width, float height, int key, float alpha) {
         SigmaRenderer.roundRect(x, y, width, height, 6f,
-                SigmaTheme.applyAlpha(listeningKey ? SigmaTheme.ENABLED_BLUE.getRGB() : 0x131313,
+                SigmaTheme.applyAlpha(listeningKey ? ColorManager.getColor().darker().getRGB() : 0x131313,
                         alpha * (listeningKey ? 1f : 0.05f)));
         String name = listeningKey ? "..." : KeyUtil.getKeyName(key);
         SigmaRenderer.font(SigmaTheme.LIGHT_FONT, 18,
