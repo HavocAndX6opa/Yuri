@@ -20,7 +20,7 @@ public class ConfigItem extends ConfigEntry {
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton != 0) return;
 
-        if (!this.lastClick.hasTimeElapsed(200)) {
+        if (this.lastClick.hasTimeElapsed(200)) {
             ConfigManager.getInstance().loadConfig(this.getName());
         }
 

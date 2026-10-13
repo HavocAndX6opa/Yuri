@@ -53,6 +53,7 @@ public class CategoryTab {
 
     private NumberProperty dragging;
     private float settingsTop;
+    private float contentTop;
     private float viewBottom;
 
     public CategoryTab(ModuleCategory category) {
@@ -188,14 +189,16 @@ public class CategoryTab {
 
         this.viewBottom = this.y + height;
 
+        float header = Math.min(l.headerHeight, height);
+
+        this.contentTop = this.y + header;
+
         if (height <= 0.0F) return;
 
         int accent = ColorManager.getColor().getRGB();
 
         AtmosphereDraw.fill(this.x, this.y, this.x + this.width, this.viewBottom,
                 AtmospherePalette.argb(AtmospherePalette.PANEL, alpha));
-
-        float header = Math.min(l.headerHeight, height);
 
         AtmosphereDraw.fill(this.x, this.y, this.x + this.width, this.y + header,
                 AtmospherePalette.argb(AtmospherePalette.HEADER, alpha));
@@ -593,32 +596,12 @@ public class CategoryTab {
                 ((ModuleEntry) other).setOpen(other == next);
             }
         }
-
-        this.reveal(next);
-    }
-
-    private void reveal(ModuleEntry row) {
-        if (row == null) return;
-
-        int index = 0;
-
-        for (ColumnRow other : this.rows) {
-            if (other == row) break;
-
-            index++;
-        }
-
-        this.contentHeight = this.contentHeight(1.0F);
-
-        this.scrollTarget = Math.max(0.0F, Math.min(this.maxScroll(), index * this.layout.rowHeight));
-
-        this.scroll = this.scrollTarget;
     }
 
     private float rowY(PropertyEntry row) {
         AtmosphereLayout l = this.layout;
 
-        float cursor = this.settingsTop + 1.0F + l.groupGap;
+        float cursor = this.settingsTop + l.groupGap + 1.0F + l.groupGap;
 
         for (PropertyEntry other : this.settingRows) {
             if (other == row) return cursor;
@@ -634,10 +617,11 @@ public class CategoryTab {
     private boolean hovered(int mouseX, int mouseY, float rowY, float height) {
         int top = (int) Math.round(rowY);
         int bottom = (int) Math.round(rowY + height);
+        int visibleTop = (int) Math.round(this.contentTop);
 
         return mouseX > this.x && mouseX < this.x + this.width
                 && mouseY >= top && mouseY < bottom
-                && mouseY > this.y && mouseY < this.viewBottom;
+                && mouseY >= visibleTop && mouseY < this.viewBottom;
     }
 
     private boolean contains(float mouseX, float mouseY) {

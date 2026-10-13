@@ -69,22 +69,39 @@ public class ConfigTab extends CategoryTab {
             this.refreshConfigs();
         }));
 
-        try {
-            List<String> remote = GithubConfigFetcher.fetchConfigList();
-            if (remote != null && !remote.isEmpty()) {
-                for (String remoteName : remote) {
-                    final String configName = remoteName;
+        this.addRemoteConfigs();
+    }
 
-                    this.add(new ConfigButton("↳ " + configName, this, ignored -> new Thread(() -> {
-                        boolean loaded = GithubConfigFetcher.downloadAndLoadConfig(configName);
+    private void addRemoteConfigs() {
+        List<String> cached = GithubConfigFetcher.getCachedConfigList();
 
-                        if (loaded) {
-                            Minecraft.getMinecraft().addScheduledTask(this::refreshConfigs);
-                        }
-                    }, "github-config-download").start()));
+        if (cached != null) {
+            this.appendRemote(cached);
+            return;
+        }
+
+        GithubConfigFetcher.fetchConfigListAsync(configs -> {
+            Minecraft mc = Minecraft.getMinecraft();
+
+            if (mc == null) return;
+
+            mc.addScheduledTask(() -> this.appendRemote(configs));
+        });
+    }
+
+    private void appendRemote(List<String> remote) {
+        if (remote == null || remote.isEmpty()) return;
+
+        for (String remoteName : remote) {
+            final String configName = remoteName;
+
+            this.add(new ConfigButton("↳ " + configName, this, ignored -> new Thread(() -> {
+                boolean loaded = GithubConfigFetcher.downloadAndLoadConfig(configName);
+
+                if (loaded) {
+                    Minecraft.getMinecraft().addScheduledTask(this::refreshConfigs);
                 }
-            }
-        } catch (Throwable ignored) {
+            }, "github-config-download").start()));
         }
     }
 
