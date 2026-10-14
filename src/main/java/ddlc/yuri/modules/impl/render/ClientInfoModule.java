@@ -1,7 +1,6 @@
 package ddlc.yuri.modules.impl.render;
 
 import ddlc.yuri.api.events.annotations.EventHook;
-import ddlc.yuri.api.events.annotations.EventPriority;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
 import ddlc.yuri.api.events.impl.render.Render2DEvent;
 import ddlc.yuri.api.events.impl.render.Shader2DEvent;
@@ -12,7 +11,6 @@ import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.utils.render.DragUtils;
-import ddlc.yuri.utils.render.RenderUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
 import ddlc.yuri.utils.render.adapters.FontAdapter;
 import net.minecraft.client.gui.GuiChat;
@@ -130,7 +128,7 @@ public final class ClientInfoModule extends Module {
         FontAdapter font = FontAdapter.of("sf", 18, useCustomFont.getValue());
         sr = new ScaledResolution(mc);
 
-        double targetY = (mc.currentScreen instanceof GuiChat) ? (sr.getScaledHeight() - 15) : (sr.getScaledHeight() - 2);
+        double targetY = (mc.currentScreen instanceof GuiChat) ? (sr.getScaledHeight() - 15) : (useCustomFont.getValue() ? sr.getScaledHeight() - 2 : sr.getScaledHeight());
 
         double speedFactor = 0.125;
         y = y + (targetY - y) * speedFactor;
