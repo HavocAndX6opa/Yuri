@@ -102,7 +102,7 @@ public final class AutoPotModule extends Module {
     private void handleAiming() {
         aimTicks++;
 
-        RotationManager.setRotations(mc.thePlayer.rotationYaw, 90.0f, 10.0f, RotationManager.MovementFix.NORMAL);
+        RotationManager.setRotations(mc.thePlayer.rotationYaw - 180f, 90.0f, 10.0f, RotationManager.MovementFix.TRADITIONAL);
 
         if (RotationManager.rotations.y > 85) {
             mc.thePlayer.inventory.currentItem = aimSlot;

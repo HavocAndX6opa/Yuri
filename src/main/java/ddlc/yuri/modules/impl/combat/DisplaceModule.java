@@ -2,7 +2,6 @@ package ddlc.yuri.modules.impl.combat;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
-import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
 import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
@@ -16,24 +15,14 @@ import ddlc.yuri.managers.impl.RotationManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
-import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.network.play.client.C03PacketPlayer;
-import net.minecraft.network.play.client.C07PacketPlayerDigging;
-import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
-import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 
 import java.util.Random;
@@ -41,7 +30,7 @@ import java.util.Random;
 @ModuleInfo(label = "Displace", description = "Offsets your hit angle to change the knockback direction of your target", category = ModuleCategory.COMBAT)
 public final class DisplaceModule extends Module {
 
-    private static final int MAX_WAIT_TICKS = 2;
+    private static final int MAX_HOLD_TICKS = 3;
 
     public enum Mode {
         LEFT("Left"), RIGHT("Right"), RANDOM("Random"), VOID("Void");
@@ -71,15 +60,10 @@ public final class DisplaceModule extends Module {
     private boolean armed = false;
     private boolean finishing = false;
     private boolean overriding = false;
-    private boolean attacking = false;
     private int waitTicks = 0;
     private float heldYaw = 0.0f;
     private float heldPitch = 0.0f;
     private long lastAt = 0L;
-
-    private boolean attackedThisTick = false;
-    private boolean sendingOwn = false;
-    private Entity lastAttacked = null;
 
     private boolean arrow = false;
     private long arrowAt = 0L;
@@ -104,34 +88,14 @@ public final class DisplaceModule extends Module {
                 return;
             }
 
-            AuraModule.rotationOverride = true;
-            AuraModule.canAttack = false;
-            RotationManager.setRotations(new float[]{heldYaw, heldPitch}, 10.0f, RotationManager.MovementFix.NORMAL);
-
-            boolean packetsBad = BadPacketsManager.bad();
-            boolean blocking = mc.thePlayer.isUsingItem() || mc.thePlayer.isBlocking();
-
-            if (waitTicks < MAX_WAIT_TICKS && (packetsBad || blocking)) {
-                waitTicks++;
-                return;
-            }
-
-            if (packetsBad) {
+            if (waitTicks >= MAX_HOLD_TICKS || BadPacketsManager.bad()) {
                 reset();
                 return;
             }
 
-            armed = false;
-
-            if (blocking) {
-                PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-                mc.thePlayer.stopUsingItem();
-            }
-
-            attacking = true;
-            mc.clickMouse();
-            attacking = false;
-            finishing = true;
+            waitTicks++;
+            AuraModule.rotationOverride = true;
+            RotationManager.setRotations(new float[]{heldYaw, heldPitch}, 10.0f, RotationManager.MovementFix.NORMAL);
             return;
         }
 
@@ -151,57 +115,15 @@ public final class DisplaceModule extends Module {
         armed = true;
         overriding = true;
         AuraModule.rotationOverride = true;
-        AuraModule.canAttack = false;
         RotationManager.setRotations(new float[]{heldYaw, heldPitch}, 10.0f, RotationManager.MovementFix.NORMAL);
     }
 
     @EventHook
-    public void onPacketSend(PacketSendEvent event) {
-        if (sendingOwn || mc.theWorld == null) return;
-
-        Packet<?> packet = event.getPacket();
-
-        if (packet instanceof C03PacketPlayer) {
-            attackedThisTick = false;
-            lastAttacked = null;
-            return;
-        }
-
-        if (packet instanceof C02PacketUseEntity) {
-            C02PacketUseEntity use = (C02PacketUseEntity) packet;
-            if (use.getAction() == C02PacketUseEntity.Action.ATTACK) {
-                Entity hit = use.getEntityFromWorld(mc.theWorld);
-                if (hit != null) {
-                    lastAttacked = hit;
-                    attackedThisTick = true;
-                }
-            } else if (use.getAction() == C02PacketUseEntity.Action.INTERACT) {
-                attackedThisTick = false;
-            }
-            return;
-        }
-
-        if (packet instanceof C08PacketPlayerBlockPlacement && attackedThisTick && lastAttacked != null) {
-            C08PacketPlayerBlockPlacement place = (C08PacketPlayerBlockPlacement) packet;
-            ItemStack stack = place.getStack();
-            if (place.getPlacedBlockDirection() != 255 || stack == null || !(stack.getItem() instanceof ItemSword))
-                return;
-
-            Entity hit = lastAttacked;
-            attackedThisTick = false;
-            sendingOwn = true;
-            PacketUtils.sendPacket(new C02PacketUseEntity(hit, new Vec3(0.0, hit.height * 0.5, 0.0)));
-            PacketUtils.sendPacket(new C02PacketUseEntity(hit, C02PacketUseEntity.Action.INTERACT));
-            sendingOwn = false;
-        }
-    }
-
-    @EventHook
     public void onAttack(PlayerAttackEvent event) {
-        if (!attacking || !renderArrow.getValue()) return;
-        Entity target = event.target;
-        if (target == null) return;
-        setArrow(target, heldYaw);
+        if (!armed || event.target == null || event.target != hitTarget) return;
+        if (renderArrow.getValue()) setArrow(event.target, heldYaw);
+        armed = false;
+        finishing = true;
     }
 
     @EventHook
@@ -401,7 +323,6 @@ public final class DisplaceModule extends Module {
     private void release() {
         if (overriding) {
             AuraModule.rotationOverride = false;
-            AuraModule.canAttack = true;
             overriding = false;
         }
     }
@@ -409,12 +330,8 @@ public final class DisplaceModule extends Module {
     private void reset() {
         armed = false;
         finishing = false;
-        attacking = false;
         waitTicks = 0;
         hitTarget = null;
-        attackedThisTick = false;
-        lastAttacked = null;
-        sendingOwn = false;
         release();
     }
 }

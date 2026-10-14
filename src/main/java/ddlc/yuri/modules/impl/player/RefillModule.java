@@ -6,19 +6,19 @@ import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
-import ddlc.yuri.utils.player.packet.PacketUtils;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.item.ItemPotion;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.client.C0DPacketCloseWindow;
 
 @ModuleInfo(label = "Refill", description = "Refills your splash pots when out", category = ModuleCategory.PLAYER)
 public class RefillModule extends Module {
 
+    private static final long CLICK_DELAY = 50;
+    private static final int SHIFT_CLICK = 1;
+
     private final Property<Boolean> autoClose = new Property<>("Auto Close", true);
 
     private long lastClicked = 0;
-    private static final long CLICK_DELAY = 50;
 
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
@@ -26,51 +26,42 @@ public class RefillModule extends Module {
             return;
         }
 
-        int emptySlot = -1;
+        boolean hotbarFull = true;
         for (int i = 0; i < 9; i++) {
             if (mc.thePlayer.inventory.getStackInSlot(i) == null) {
-                emptySlot = i;
+                hotbarFull = false;
                 break;
             }
         }
 
-        if (emptySlot == -1) {
+        if (hotbarFull) {
+            if (autoClose.getValue()) {
+                mc.thePlayer.closeScreen();
+            }
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - lastClicked <= CLICK_DELAY) {
             return;
         }
 
         for (int i = 9; i < 36; i++) {
-            final ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
 
-            if (stack == null || !(stack.getItem() instanceof ItemPotion)) {
+            if (stack == null || !(stack.getItem() instanceof ItemPotion) || !ItemPotion.isSplash(stack.getMetadata())) {
                 continue;
             }
 
-            long currentTime = System.currentTimeMillis();
-            if (currentTime - lastClicked > CLICK_DELAY) {
-                mc.playerController.windowClick(
-                        mc.thePlayer.inventoryContainer.windowId,
-                        i,
-                        0,
-                        4,
-                        mc.thePlayer
-                );
-                lastClicked = currentTime;
-                return;
-            }
-        }
-
-        if (autoClose.getValue()) {
-            boolean allSlotsFull = true;
-            for (int i = 0; i < 9; i++) {
-                if (mc.thePlayer.inventory.getStackInSlot(i) == null) {
-                    allSlotsFull = false;
-                    break;
-                }
-            }
-
-            if (allSlotsFull) {
-                PacketUtils.sendPacket(new C0DPacketCloseWindow(mc.thePlayer.inventoryContainer.windowId));
-            }
+            mc.playerController.windowClick(
+                    mc.thePlayer.inventoryContainer.windowId,
+                    i,
+                    0,
+                    SHIFT_CLICK,
+                    mc.thePlayer
+            );
+            lastClicked = now;
+            return;
         }
     }
 }

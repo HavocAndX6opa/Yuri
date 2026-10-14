@@ -22,6 +22,7 @@ import java.util.Map;
 public final class CriticalsModule extends Module {
 
     private enum Mode {
+        LEGIT("Legit"),
         PACKET("Packet"),
         MOSPIXEL("Mospixel"),
         NCP("NCP");
