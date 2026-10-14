@@ -2,13 +2,11 @@ package net.minecraft.client.renderer.entity.layers;
 
 import ddlc.yuri.Yuri;
 import ddlc.yuri.modules.impl.render.CapesModule;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.entity.player.EnumPlayerModelParts;
 import net.minecraft.util.MathHelper;
-import net.minecraft.util.ResourceLocation;
 
 import static ddlc.yuri.utils.misc.IMinecraft.mc;
 
@@ -71,12 +69,7 @@ public class LayerCape implements LayerRenderer<AbstractClientPlayer> {
     private boolean renderClientCape(AbstractClientPlayer entitylivingbaseIn, float partialTicks) {
         if (entitylivingbaseIn.equals(mc.thePlayer) && Yuri.INSTANCE.getModuleManager().getModule(CapesModule.class).isEnabled()) {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-
-            String capeName = CapesModule.cape.getValue().toString().toLowerCase().replace(" ", "_");
-            ResourceLocation capeTexture = new ResourceLocation("yuri/capes/" + capeName + ".png");
-
-            this.playerRenderer.bindTexture(capeTexture);
-
+            this.playerRenderer.bindTexture(CapesModule.cape.getValue().texture());
             GlStateManager.pushMatrix();
             GlStateManager.translate(0.0F, 0.0F, 0.125F);
             double d0 = entitylivingbaseIn.prevChasingPosX + (entitylivingbaseIn.chasingPosX - entitylivingbaseIn.prevChasingPosX) * (double) partialTicks - (entitylivingbaseIn.prevPosX + (entitylivingbaseIn.posX - entitylivingbaseIn.prevPosX) * (double) partialTicks);
