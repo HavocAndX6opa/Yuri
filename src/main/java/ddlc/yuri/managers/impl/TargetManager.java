@@ -210,6 +210,13 @@ public class TargetManager {
 
     private List<Entity> getTargets() {
         mutableTargetList.clear();
+
+        if (mc.theWorld == null || mc.thePlayer == null) {
+            // No world loaded: don't keep strong references to entities from the last one.
+            target = null;
+            return mutableTargetList;
+        }
+
         List<Entity> loaded = mc.theWorld.loadedEntityList;
         int size = loaded.size();
         for (int i = 0; i < size; i++) {

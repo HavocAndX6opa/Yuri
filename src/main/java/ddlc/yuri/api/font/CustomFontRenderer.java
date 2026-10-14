@@ -15,9 +15,9 @@ import java.util.List;
 
 
 public class CustomFontRenderer extends CustomFont {
-    protected CustomFont.CharData[] boldChars = new CustomFont.CharData[65536];
-    protected CustomFont.CharData[] italicChars = new CustomFont.CharData[65536];
-    protected CustomFont.CharData[] boldItalicChars = new CustomFont.CharData[65536];
+    // NB: the bold/italic/boldItalic CharData arrays used to live here. Nothing ever read or
+    // populated them (drawString always used charData), so they were 3 x 65536 wasted
+    // references per font instance and have been removed.
 
     public int FONT_HEIGHT = 9;
 
@@ -573,7 +573,22 @@ public class CustomFontRenderer extends CustomFont {
     // unicode font pages cover them completely
     private boolean shouldDelegateToVanilla(char c)
     {
-        return isWideEastAsian(c) || (c >= 0xFF61 && c <= 0xFF9F);
+        // The atlas only holds the ranges this client draws (see CustomFont#GLYPH_RANGES).
+        // Anything else is handed to the vanilla renderer, which has full unicode pages, so
+        // CJK, Cyrillic, emoji etc. still show up - just in the MC font instead of the Yuri one.
+        if (Character.isISOControl(c) || isZeroWidth(c))
+        {
+            return false;
+        }
+
+        int type = Character.getType(c);
+
+        if (type == Character.UNASSIGNED || type == Character.PRIVATE_USE || type == Character.SURROGATE)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public float drawBorderedString(String text, double x, double y, int color, int border) {

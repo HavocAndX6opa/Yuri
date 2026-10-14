@@ -37,6 +37,8 @@ import java.util.ArrayDeque;
 @ModuleInfo(label = "Back Track", category = ModuleCategory.COMBAT, description = "Allows you to backtrack players' positions")
 public class BackTrackModule extends Module {
 
+    // dude I AM A FUCKING GENIUS. HOLY SHIT THIS IS SO GOOD!!
+
     public static ModeProperty<Mode> mode = new ModeProperty("Mode", Mode.BASIC);
     public final ModeProperty<Style> style = new ModeProperty("Style", Style.NEW, () -> mode.getValue() == Mode.BASIC);
     public final NumberProperty minRange = new NumberProperty("Min Range", 2.0, 0.0, 6.0, 0.1, () -> mode.getValue() != Mode.MMC);

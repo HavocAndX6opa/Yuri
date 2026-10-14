@@ -2,6 +2,7 @@ package net.minecraft.client.gui;
 
 import ddlc.yuri.api.gui.main.YuriMenu;
 import ddlc.yuri.managers.impl.LastConnectionManager;
+import ddlc.yuri.modules.impl.render.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.gui.achievement.GuiAchievements;
 import net.minecraft.client.gui.achievement.GuiStats;
@@ -109,7 +110,13 @@ public class GuiIngameMenu extends GuiScreen
     public void drawScreen(int mouseX, int mouseY, float partialTicks)
     {
         this.drawDefaultBackground();
-        FontUtils.getFont("sf", 18).drawCenteredString("Yuri Client Paused...", this.width / 2, 40, 16777215);
+
+        if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.pausedScreenText)) {
+            FontUtils.getFont("sf", 18).drawCenteredString("Yuri Client Paused...", this.width / 2, 40, 16777215);
+        } else {
+            this.drawCenteredString(this.fontRendererObj, I18n.format("menu.game", new Object[0]), this.width / 2, 40, 16777215);
+        }
+
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 }

@@ -2,7 +2,7 @@ package net.minecraft.client.gui;
 
 import com.google.common.collect.Lists;
 import ddlc.yuri.api.font.CustomFontRenderer;
-import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
+import ddlc.yuri.modules.impl.render.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;

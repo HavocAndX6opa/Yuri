@@ -18,10 +18,25 @@ public class BlinkManager {
     public static final List<Packet<?>> blinkedSendPackets = new ArrayList<>();
     public static final List<Packet<?>> blinkedReceivePackets = new ArrayList<>();
 
+    /**
+     * A blink that is never released (lag, disconnect, a macro stuck on) would otherwise keep
+     * every packet alive for the rest of the session. Drop the oldest once we hit the cap so a
+     * stuck blink cannot eat the heap.
+     */
+    private static final int MAX_BUFFERED_PACKETS = 8192;
+
+    private static void buffer(List<Packet<?>> buffer, Packet<?> packet) {
+        if (buffer.size() >= MAX_BUFFERED_PACKETS) {
+            buffer.remove(0);
+        }
+
+        buffer.add(packet);
+    }
+
     @EventHook
     public void onPacketSend(PacketSendEvent event) {
         if (enabled) {
-            blinkedSendPackets.add(event.getPacket());
+            buffer(blinkedSendPackets, event.getPacket());
             event.setCancelled(true);
         }
     }
@@ -29,7 +44,7 @@ public class BlinkManager {
     @EventHook
     public void onPacketReceived(PacketReceivedEvent event) {
         if (enabled && cancelReceived) {
-            blinkedReceivePackets.add(event.getPacket());
+            buffer(blinkedReceivePackets, event.getPacket());
             event.setCancelled(true);
         }
     }

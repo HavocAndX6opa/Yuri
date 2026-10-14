@@ -1,5 +1,6 @@
 package net.minecraft.client.renderer;
 
+import ddlc.yuri.modules.impl.render.CustomMinecraftModule;
 import ddlc.yuri.utils.render.FontUtils;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
@@ -94,9 +95,16 @@ public abstract class InventoryEffectRenderer extends GuiContainer
                     s1 = s1 + " " + I18n.format("enchantment.level.4", new Object[0]);
                 }
 
-                FontUtils.getFont("sf", 18).drawStringWithShadow(s1, (float)(i + 10 + 18), (float)(j + 6), 16777215);
                 String s = Potion.getDurationString(potioneffect);
-                FontUtils.getFont("sf", 18).drawStringWithShadow(s, (float)(i + 10 + 18), (float)(j + 6 + 10), 8355711);
+
+                if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.statusEffects)) {
+                    FontUtils.getFont("sf", 18).drawStringWithShadow(s1, (float) (i + 10 + 18), (float) (j + 6), 16777215);
+                    FontUtils.getFont("sf", 18).drawStringWithShadow(s, (float) (i + 10 + 18), (float) (j + 6 + 10), 8355711);
+                } else {
+                    this.fontRendererObj.drawStringWithShadow(s1, (float) (i + 10 + 18), (float) (j + 6), 16777215);
+                    this.fontRendererObj.drawStringWithShadow(s, (float) (i + 10 + 18), (float) (j + 6 + 10), 8355711);
+                }
+
                 j += l;
             }
         }

@@ -10,7 +10,6 @@ import ddlc.yuri.managers.impl.ColorManager;
 import ddlc.yuri.managers.impl.SlotManager;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
-import ddlc.yuri.modules.impl.misc.CustomMinecraftModule;
 import ddlc.yuri.modules.impl.render.*;
 import ddlc.yuri.utils.render.FontUtils;
 import ddlc.yuri.utils.render.RoundedUtils;
@@ -221,12 +220,16 @@ public class GuiIngame extends Gui {
 
                 int alpha = l1 << 24 & -16777216;
 
-                FontUtils.getFont("sf", 18).drawStringWithShadow(
-                        this.recordPlaying,
-                        (float) (-FontUtils.getFont("sf", 18).getStringWidth(this.recordPlaying) / 2),
-                        -4.0F,
-                        l | alpha
-                );
+                if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.streamIndicator)) {
+                    FontUtils.getFont("sf", 18).drawStringWithShadow(
+                            this.recordPlaying,
+                            (float) (-FontUtils.getFont("sf", 18).getStringWidth(this.recordPlaying) / 2),
+                            -4.0F,
+                            l | alpha
+                    );
+                } else {
+                    this.getFontRenderer().drawString(this.recordPlaying, -this.getFontRenderer().getStringWidth(this.recordPlaying) / 2, -4, l + (l1 << 24 & -16777216));
+                }
 
                 GlStateManager.disableBlend();
                 GlStateManager.popMatrix();
@@ -418,14 +421,22 @@ public class GuiIngame extends Gui {
             }
 
             String s = "" + this.mc.thePlayer.experienceLevel;
-            int l1 = (scaledRes.getScaledWidth() - FontUtils.getFont("sf", 18).getStringWidth(s)) / 2;
-            int i1 = scaledRes.getScaledHeight() - 31 - 4;
-            int j1 = 0;
-            FontUtils.getFont("sf", 18).drawString(s, l1 + 1, i1, 0);
-            FontUtils.getFont("sf", 18).drawString(s, l1 - 1, i1, 0);
-            FontUtils.getFont("sf", 18).drawString(s, l1, i1 + 1, 0);
-            FontUtils.getFont("sf", 18).drawString(s, l1, i1 - 1, 0);
-            FontUtils.getFont("sf", 18).drawString(s, l1, i1, k1);
+
+            if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.xpBarText)) {
+                int l1 = (scaledRes.getScaledWidth() - FontUtils.getFont("sf", 18).getStringWidth(s)) / 2;
+                int i1 = scaledRes.getScaledHeight() - 31 - 4;
+                int j1 = 0;
+                FontUtils.getFont("sf", 18).drawString(s, l1 + 1, i1, 0);
+                FontUtils.getFont("sf", 18).drawString(s, l1 - 1, i1, 0);
+                FontUtils.getFont("sf", 18).drawString(s, l1, i1 + 1, 0);
+                FontUtils.getFont("sf", 18).drawString(s, l1, i1 - 1, 0);
+                FontUtils.getFont("sf", 18).drawString(s, l1, i1, k1);
+            } else {
+                int l1 = (scaledRes.getScaledWidth() - this.getFontRenderer().getStringWidth(s)) / 2;
+                int i1 = scaledRes.getScaledHeight() - 31 - 4;
+                this.getFontRenderer().drawStringWithShadow(s, l1, i1, k1);
+            }
+
             this.mc.mcProfiler.endSection();
         }
     }
@@ -440,7 +451,7 @@ public class GuiIngame extends Gui {
                 s = EnumChatFormatting.ITALIC + s;
             }
 
-            int i = (scaledRes.getScaledWidth() - FontUtils.getFont("sf", 18).getStringWidth(s)) / 2;
+            int i = (scaledRes.getScaledWidth() - getWidth(s)) / 2;
             int j = scaledRes.getScaledHeight() - 59;
 
             if (!this.mc.playerController.shouldDrawHUD()) {
@@ -457,7 +468,13 @@ public class GuiIngame extends Gui {
                 GlStateManager.pushMatrix();
                 GlStateManager.enableBlend();
                 GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-                FontUtils.getFont("sf", 18).drawStringWithShadow(s, (float) i, (float) j, 16777215 + (k << 24));
+
+                if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.heldItemName)) {
+                    FontUtils.getFont("sf", 18).drawStringWithShadow(s, (float) i, (float) j, 16777215 + (k << 24));
+                } else {
+                    this.getFontRenderer().drawStringWithShadow(s, (float) i, (float) j, 16777215 + (k << 24));
+                }
+
                 GlStateManager.disableBlend();
                 GlStateManager.popMatrix();
             }
@@ -809,12 +826,16 @@ public class GuiIngame extends Gui {
 
             String s = BossStatus.bossName;
 
-            FontUtils.getFont("sf", 18).drawStringWithShadow(
-                    s,
-                    (float) (i / 2 - FontUtils.getFont("sf", 18).getStringWidth(s) / 2),
-                    (float) (i1 - 10),
-                    16777215
-            );
+            if (CustomMinecraftModule.isStyleActive(CustomMinecraftModule.bossBarText)) {
+                FontUtils.getFont("sf", 18).drawStringWithShadow(
+                        s,
+                        (float) (i / 2 - FontUtils.getFont("sf", 18).getStringWidth(s) / 2),
+                        (float) (i1 - 10),
+                        16777215
+                );
+            } else {
+                this.getFontRenderer().drawStringWithShadow(s, (float) (i / 2 - this.getFontRenderer().getStringWidth(s) / 2), (float) (i1 - 10), 16777215);
+            }
 
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             this.mc.getTextureManager().bindTexture(icons);
@@ -1050,6 +1071,13 @@ public class GuiIngame extends Gui {
 
     private float arraylistOffsetAnim = 0f;
     private static final Color BG_COLOR = new Color(0, 0, 0, 130);
+
+    /** Width of a string in whichever font the given CustomMinecraft style currently resolves to. */
+    private int getWidth(String text) {
+        return CustomMinecraftModule.isStyleActive(CustomMinecraftModule.heldItemName)
+                ? FontUtils.getFont("sf", 18).getStringWidth(text)
+                : this.getFontRenderer().getStringWidth(text);
+    }
 
     public void renderCustomScoreboard(ScoreObjective scoreObjective, ScaledResolution resolution) {
         net.minecraft.scoreboard.Scoreboard scoreboard = scoreObjective.getScoreboard();

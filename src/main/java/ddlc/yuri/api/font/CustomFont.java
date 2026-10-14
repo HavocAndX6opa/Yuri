@@ -13,7 +13,7 @@ import java.util.List;
 public class CustomFont
 {
 
-    private float imgSize = 2048;
+    private float imgSize = 1024;
     protected CharData[] charData = new CharData[65536];
     protected Font font;
     protected boolean antiAlias;
@@ -28,6 +28,30 @@ public class CustomFont
             "Segoe UI Symbol", "Segoe UI Emoji", "Noto Sans Symbols", "Noto Sans Symbols 2",
             "Apple Symbols", "DejaVu Sans", "Symbola", "Arial Unicode MS"
     };
+
+    /**
+     * Codepoint ranges the client actually renders, derived from the non-ASCII escapes used
+     * across the sources: ASCII (which also carries the A-Z icon glyphs), Latin-1, Latin
+     * Extended-A, a little Greek, superscripts, mathematical operators, box drawing /
+     * block elements / geometric shapes, and dingbats (the 26BD diamond and 2764 heart).
+     *
+     * Rasterising the whole 0x0000-0xFFFF plane cost ~100k Java2D glyph operations and
+     * ~3 MiB of CharData per font for glyphs nothing here draws. Anything outside these
+     * ranges falls back to the vanilla font renderer at draw time instead.
+     */
+    private static final int[][] GLYPH_RANGES = {
+            {0x0020, 0x0080},   // ASCII printable (incl. the A-Z icon glyphs)
+            {0x00A0, 0x0180},   // Latin-1 Supplement + Latin Extended-A
+            {0x0380, 0x03D0},   // Greek
+            {0x2070, 0x20A0},   // Superscripts and subscripts
+            {0x2200, 0x2400},   // Mathematical operators / misc technical
+            {0x2500, 0x2600},   // Box drawing, block elements, geometric shapes
+            {0x26B0, 0x27C0},   // Dingbats
+            {0xFEFF, 0xFF00},   // zero width no-break space
+    };
+
+    /** Reused by {@link #measureInk} so rasterising a glyph does not allocate. */
+    private int[] inkScratch = new int[0];
 
     public CustomFont(Font font, boolean antiAlias, boolean fractionalMetrics)
     {
@@ -83,9 +107,17 @@ public class CustomFont
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, antiAlias ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antiAlias ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        for (int i = 0; i < chars.length; i++)
+        // Only allocate metadata for the ranges we actually rasterise. All read sites already
+        // null-check, and a missing entry just falls back to the vanilla renderer at draw time.
+        for (int[] range : GLYPH_RANGES)
         {
-            chars[i] = new CharData();
+            for (int i = range[0]; i < range[1] && i < chars.length; i++)
+            {
+                if (chars[i] == null)
+                {
+                    chars[i] = new CharData();
+                }
+            }
         }
 
         List<Font> fallbackFonts = loadFallbackFonts(font);
@@ -135,20 +167,36 @@ public class CustomFont
 
         int[] cursor = {0, 1};
 
-        rasterizeRange(g, chars, bufferedImage, font, baseMetrics, font, 0x0000, 0x10000, cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
+        // Only the ranges this client draws. Order matters: ASCII goes in first so it always
+        // fits even at large sizes, and anything that overflows falls back to the MC font.
+        for (int[] range : GLYPH_RANGES)
+        {
+            rasterizeRange(g, chars, bufferedImage, font, baseMetrics, font, range[0], range[1], cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
+        }
+
+        if (fallbackFonts.isEmpty())
+        {
+            this.fontHeight = baseMetrics.getHeight();
+            return bufferedImage;
+        }
 
         Font logicalFallback = fallbackFonts.get(fallbackFonts.size() - 1);
+
+        for (int[] range : GLYPH_RANGES)
+        {
+            // Symbols live in the fallback fonts rather than the Yuri TTF.
+            if (range[0] < 0x2000)
+            {
+                continue;
+            }
+
+            for (Font fallback : fallbackFonts)
+            {
+                rasterizeRange(g, chars, bufferedImage, fallback, g.getFontMetrics(fallback), font, range[0], range[1], cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
+            }
+        }
+
         rasterizeRange(g, chars, bufferedImage, logicalFallback, g.getFontMetrics(logicalFallback), font, 0x2500, 0x25B0, cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
-
-        for (Font fallback : fallbackFonts)
-        {
-            rasterizeRange(g, chars, bufferedImage, fallback, g.getFontMetrics(fallback), font, 0x2190, FALLBACK_CHAR_LIMIT, cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
-        }
-
-        for (Font fallback : fallbackFonts)
-        {
-            rasterizeRange(g, chars, bufferedImage, fallback, g.getFontMetrics(fallback), font, 0x0000, 0x2190, cursor, imgSize, cellHeight, maxAscent, baseGlyphTop, baseInkCenter, symbolMaxInkHeight);
-        }
 
         this.fontHeight = baseMetrics.getHeight();
         return bufferedImage;
@@ -164,7 +212,7 @@ public class CustomFont
         {
             char ch = (char) i;
 
-            if (chars[i].valid || Character.isISOControl(ch) || isZeroWidth(ch) || !renderFont.canDisplay(ch))
+            if (chars[i] == null || chars[i].valid || Character.isISOControl(ch) || isZeroWidth(ch) || !renderFont.canDisplay(ch))
             {
                 continue;
             }
@@ -227,7 +275,14 @@ public class CustomFont
             return null;
         }
 
-        int[] pixels = new int[width * height];
+        int needed = width * height;
+
+        if (inkScratch.length < needed)
+        {
+            inkScratch = new int[needed];
+        }
+
+        int[] pixels = inkScratch;
         image.getRGB(x, y, width, height, pixels, 0, width);
         int top = -1;
         int bottom = -1;
