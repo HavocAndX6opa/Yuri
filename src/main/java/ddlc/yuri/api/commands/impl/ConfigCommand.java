@@ -4,6 +4,8 @@ import ddlc.yuri.Yuri;
 import ddlc.yuri.api.commands.Command;
 import ddlc.yuri.api.config.Config;
 import ddlc.yuri.api.config.ConfigManager;
+import ddlc.yuri.api.config.VisualsConfig;
+import ddlc.yuri.utils.client.FolderUtils;
 import ddlc.yuri.utils.client.LoggingUtils;
 
 import java.io.File;
@@ -17,7 +19,7 @@ public class ConfigCommand extends Command {
     @Override
     public void execute(String[] args) {
         if (args.length == 0) {
-            LoggingUtils.sendChatMessage("Usage: .config save/load/list/delete/binds/visuals");
+            usage();
             return;
         }
 
@@ -30,7 +32,7 @@ public class ConfigCommand extends Command {
                     return;
                 }
 
-                String name = args[1];
+                String name = VisualsCommand.join(args, 1);
                 Yuri.INSTANCE.getConfigManager().saveConfig(name);
                 LoggingUtils.sendChatMessage("Successfully saved config " + name + "!");
                 break;
@@ -42,7 +44,7 @@ public class ConfigCommand extends Command {
                     return;
                 }
 
-                String name = args[1];
+                String name = VisualsCommand.join(args, 1);
                 if (Yuri.INSTANCE.getConfigManager().loadConfig(name)) {
                     LoggingUtils.sendChatMessage("Successfully loaded config " + name + "!");
                 } else {
@@ -62,12 +64,17 @@ public class ConfigCommand extends Command {
                     return;
                 }
 
-                String name = args[1];
+                String name = VisualsCommand.join(args, 1);
                 if (deleteConfig(name)) {
                     LoggingUtils.sendChatMessage("Successfully deleted config profile " + name + ".");
                 } else {
                     LoggingUtils.sendChatMessage("The config " + name + " does not exist.");
                 }
+                break;
+            }
+
+            case "folder": {
+                openFolder(ConfigManager.CONFIGS_DIR);
                 break;
             }
 
@@ -97,33 +104,19 @@ public class ConfigCommand extends Command {
             }
 
             case "visuals": {
-                if (args.length < 2) {
-                    LoggingUtils.sendChatMessage("Usage: .config visuals save/load");
-                    return;
-                }
-
-                String action = args[1].toLowerCase();
-                if (action.equals("save")) {
-                    if (Yuri.INSTANCE.getConfigManager().getVisualsConfig().saveToFile()) {
-                        LoggingUtils.sendChatMessage("Successfully saved visuals config!");
-                    } else {
-                        LoggingUtils.sendChatMessage("Failed to save visuals config.");
-                    }
-                } else if (action.equals("load")) {
-                    if (Yuri.INSTANCE.getConfigManager().getVisualsConfig().loadFromFile()) {
-                        LoggingUtils.sendChatMessage("Successfully loaded visuals config!");
-                    } else {
-                        LoggingUtils.sendChatMessage("Failed to load visuals config.");
-                    }
-                } else {
-                    LoggingUtils.sendChatMessage("Usage: .config visuals save/load");
-                }
+                String[] visualsArgs = new String[Math.max(0, args.length - 1)];
+                System.arraycopy(args, 1, visualsArgs, 0, visualsArgs.length);
+                new VisualsCommand().execute(visualsArgs);
                 break;
             }
 
             default:
-                LoggingUtils.sendChatMessage("Usage: .config save/load/list/delete/binds/visuals");
+                usage();
         }
+    }
+
+    private void usage() {
+        LoggingUtils.sendChatMessage("Usage: .config save/load/list/delete/folder <config name>");
     }
 
     private void listConfigs() {
@@ -133,6 +126,14 @@ public class ConfigCommand extends Command {
         }
         for (Config config : Yuri.INSTANCE.getConfigManager().getElements()) {
             LoggingUtils.sendChatMessage(config.getName());
+        }
+    }
+
+    private void openFolder(File directory) {
+        LoggingUtils.sendChatMessage("Config folder: " + directory.getAbsolutePath());
+
+        if (!FolderUtils.openFolder(directory)) {
+            LoggingUtils.sendChatMessage("Could not open the folder automatically.");
         }
     }
 

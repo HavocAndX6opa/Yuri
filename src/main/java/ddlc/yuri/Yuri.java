@@ -1,8 +1,6 @@
 package ddlc.yuri;
 
-import ddlc.yuri.api.config.BindsConfig;
 import ddlc.yuri.api.config.ConfigManager;
-import ddlc.yuri.api.config.VisualsConfig;
 import ddlc.yuri.api.events.EventBus;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.GameStartupEvent;
@@ -41,8 +39,6 @@ public class Yuri {
     private final SigmaClickGui sigmaClickGui = new SigmaClickGui();
     @Getter
     private NotificationHandler notificationHandler = new NotificationHandler();
-    private BindsConfig bindsConfig;
-    private VisualsConfig visualsConfig;
 
     private Yuri() {
         getEventBus().subscribe(this);
@@ -53,11 +49,9 @@ public class Yuri {
         moduleManager = new ModuleManager();
         moduleManager.postInit();
         configManager = new ConfigManager();
-        configManager.loadConfig("default");
-        visualsConfig = new VisualsConfig();
-        visualsConfig.loadFromFile();
-        bindsConfig = new BindsConfig();
-        bindsConfig.loadFromFile();
+        configManager.loadConfig(ConfigManager.DEFAULT_PROFILE);
+        configManager.loadVisuals(ConfigManager.DEFAULT_PROFILE);
+        configManager.getBindsConfig().loadFromFile();
         ManagerWrapper.init();
         ManagerWrapper.subscribe(getEventBus());
         if (getModuleManager().getModule(ClickGUIModule.class).isEnabled()) getModuleManager().getModule(ClickGUIModule.class).setEnabled(false);
@@ -78,9 +72,9 @@ public class Yuri {
 
     @EventHook
     public void onGameStopping(GameStoppingEvent event) {
-        configManager.saveConfig("default");
-        visualsConfig.saveToFile();
-        bindsConfig.saveToFile();
+        configManager.saveConfig(ConfigManager.DEFAULT_PROFILE);
+        configManager.saveVisuals(ConfigManager.DEFAULT_PROFILE);
+        configManager.getBindsConfig().saveToFile();
         System.out.println("Autosaved modules and draggable positions.");
     }
 }

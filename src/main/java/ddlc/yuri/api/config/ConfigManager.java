@@ -12,7 +12,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.List;
 
 public final class ConfigManager extends Manager<Config> {
 
@@ -23,7 +26,7 @@ public final class ConfigManager extends Manager<Config> {
     private final BindsConfig bindsConfig;
 
     @Getter
-    private final VisualsConfig visualsConfig;
+    private final List<VisualsConfig> visualsConfigs = new ArrayList<>();
 
     public ConfigManager() {
         super(loadConfigs());
@@ -33,12 +36,96 @@ public final class ConfigManager extends Manager<Config> {
             boolean ignored = CONFIGS_DIR.mkdirs();
         }
 
+        if (!VISUALS_DIR.exists()) {
+            boolean ignored = VISUALS_DIR.mkdirs();
+        }
+
+        migrateLegacyVisuals();
+
         this.bindsConfig = new BindsConfig();
-        this.visualsConfig = new VisualsConfig();
+        loadVisualsProfiles();
     }
 
     public static final File CONFIGS_DIR = new File(Yuri.NAME, "configs");
+    public static final File VISUALS_DIR = new File(Yuri.NAME, "visuals");
     public static final String EXTENSION = ".json";
+
+    /** Profile auto-saved on shutdown and auto-loaded on startup. */
+    public static final String DEFAULT_PROFILE = "default";
+
+    /**
+     * Visuals used to live in a single Yuri/visuals.json. Move it to the profile folder so
+     * existing HUD layouts survive the switch to named profiles.
+     */
+    private static void migrateLegacyVisuals() {
+        File legacy = new File(Yuri.NAME, "visuals.json");
+        File migrated = new File(VISUALS_DIR, DEFAULT_PROFILE + EXTENSION);
+
+        if (!legacy.exists() || migrated.exists()) {
+            return;
+        }
+
+        try {
+            Files.move(legacy.toPath(), migrated.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void loadVisualsProfiles() {
+        File[] files = VISUALS_DIR.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (FilenameUtils.getExtension(file.getName()).equals("json")) {
+                visualsConfigs.add(new VisualsConfig(FilenameUtils.removeExtension(file.getName())));
+            }
+        }
+    }
+
+    public VisualsConfig findVisuals(String visualsName) {
+        if (visualsName == null) return null;
+
+        for (VisualsConfig visualsConfig : visualsConfigs) {
+            if (visualsConfig.getName().equalsIgnoreCase(visualsName)) {
+                return visualsConfig;
+            }
+        }
+
+        if (new File(VISUALS_DIR, visualsName + EXTENSION).exists()) {
+            VisualsConfig visualsConfig = new VisualsConfig(visualsName);
+            visualsConfigs.add(visualsConfig);
+            return visualsConfig;
+        }
+
+        return null;
+    }
+
+    public boolean loadVisuals(String visualsName) {
+        VisualsConfig visualsConfig = findVisuals(visualsName);
+        if (visualsConfig == null) return false;
+        return visualsConfig.loadFromFile();
+    }
+
+    public boolean saveVisuals(String visualsName) {
+        if (visualsName == null) return false;
+        VisualsConfig visualsConfig = findVisuals(visualsName);
+
+        if (visualsConfig == null) {
+            visualsConfig = new VisualsConfig(visualsName);
+            visualsConfigs.add(visualsConfig);
+        }
+
+        return visualsConfig.saveToFile();
+    }
+
+    public boolean deleteVisuals(String visualsName) {
+        VisualsConfig visualsConfig = findVisuals(visualsName);
+        if (visualsConfig == null) return false;
+
+        File file = visualsConfig.getFile();
+        visualsConfigs.remove(visualsConfig);
+        return file.exists() && file.delete();
+    }
 
     public boolean loadConfig(String configName) {
         if (configName == null) return false;

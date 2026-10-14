@@ -41,7 +41,7 @@ public final class Config implements Serializable {
 
         for (Module module : Yuri.INSTANCE.getModuleManager().getModules()) {
             if (module.getCategory() == ModuleCategory.RENDER) continue;
-            modulesObject.add(module.getLabel(), module.save(false));
+            modulesObject.add(module.getLabel(), module.save());
         }
 
         jsonObject.add("Modules", modulesObject);

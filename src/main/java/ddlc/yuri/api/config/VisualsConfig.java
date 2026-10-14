@@ -15,23 +15,44 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * A named snapshot of the render modules plus the draggable HUD element positions.
+ * Mirrors {@link Config} - one JSON file per profile, all of them living in
+ * {@link ConfigManager#VISUALS_DIR}.
+ */
 public final class VisualsConfig implements Serializable {
 
-    private static final File VISUALS_FILE = new File(Yuri.NAME, "visuals.json");
+    private final String name;
+    private final File file;
 
-    public VisualsConfig() {
-        if (!VISUALS_FILE.exists()) {
+    public VisualsConfig(String name) {
+        this.name = name;
+        this.file = new File(ConfigManager.VISUALS_DIR, name + ConfigManager.EXTENSION);
+
+        if (!ConfigManager.VISUALS_DIR.exists()) {
+            ConfigManager.VISUALS_DIR.mkdirs();
+        }
+
+        if (!file.exists()) {
             try {
-                VISUALS_FILE.createNewFile();
+                file.createNewFile();
             } catch (IOException ignored) {
             }
         }
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
     public boolean saveToFile() {
         JsonObject object = save();
         String contentPrettyPrint = new GsonBuilder().setPrettyPrinting().create().toJson(object);
-        try (FileWriter writer = new FileWriter(VISUALS_FILE)) {
+        try (FileWriter writer = new FileWriter(file)) {
             writer.write(contentPrettyPrint);
             return true;
         } catch (IOException e) {
@@ -40,8 +61,8 @@ public final class VisualsConfig implements Serializable {
     }
 
     public boolean loadFromFile() {
-        if (!VISUALS_FILE.exists()) return false;
-        try (FileReader reader = new FileReader(VISUALS_FILE)) {
+        if (!file.exists()) return false;
+        try (FileReader reader = new FileReader(file)) {
             JsonParser parser = new JsonParser();
             JsonElement element = parser.parse(reader);
 
@@ -65,7 +86,7 @@ public final class VisualsConfig implements Serializable {
 
         for (Module module : Yuri.INSTANCE.getModuleManager().getModules()) {
             if (module.getCategory() == ModuleCategory.RENDER) {
-                modulesObject.add(module.getLabel(), module.save(false));
+                modulesObject.add(module.getLabel(), module.save());
             }
         }
 

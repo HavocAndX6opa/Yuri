@@ -28,6 +28,10 @@ public class Module extends Manager<Property<?>> implements Toggleable, Serializ
     private final String label = getClass().getAnnotation(ModuleInfo.class).label();
     private final String description = getClass().getAnnotation(ModuleInfo.class).description();
     private final ModuleCategory category = getClass().getAnnotation(ModuleInfo.class).category();
+    /**
+     * Reflected so the click GUIs can record it, but never serialised into a module config:
+     * binds live in binds.json via {@link ddlc.yuri.api.config.BindsConfig} instead.
+     */
     public final Property<Integer> keybind = new Property<>("Keybind", getClass().getAnnotation(ModuleInfo.class).key());
     private boolean enabled;
     private boolean hidden;
@@ -101,6 +105,15 @@ public class Module extends Manager<Property<?>> implements Toggleable, Serializ
         keybind.setValue(key);
     }
 
+    /**
+     * The keybind is kept in {@link #elements} so the click GUIs can render and record it,
+     * but it is deliberately skipped when serialising: binds are stored globally by
+     * {@link ddlc.yuri.api.config.BindsConfig} and must not travel inside module configs.
+     */
+    private boolean isKeybind(Property<?> property) {
+        return property == keybind;
+    }
+
     @Override
     public boolean isEnabled() {
         return enabled;
@@ -144,21 +157,17 @@ public class Module extends Manager<Property<?>> implements Toggleable, Serializ
 
     @Override
     public JsonObject save() {
-        return save(true);
-    }
-
-    public JsonObject save(boolean saveKey) {
         JsonObject object = new JsonObject();
         object.addProperty("toggled", isEnabled());
-        if (saveKey) {
-            object.addProperty("key", getKey());
-        }
         object.addProperty("hidden", isHidden());
         List<Property<?>> properties = getElements();
         if (!properties.isEmpty()) {
             JsonObject propertiesObject = new JsonObject();
 
             for (Property<?> property : properties) {
+                // Binds are owned by BindsConfig and are shared across every module config.
+                if (isKeybind(property)) continue;
+
                 if (property instanceof NumberProperty) {
                     propertiesObject.addProperty(property.getLabel(), ((NumberProperty) property).getValue());
                 } else if (property instanceof ModeProperty) {
@@ -190,15 +199,8 @@ public class Module extends Manager<Property<?>> implements Toggleable, Serializ
     @Override
     @SuppressWarnings("unchecked")
     public void load(JsonObject object) {
-        load(object, false);
-    }
-
-    public void load(JsonObject object, boolean loadKey) {
         if (object.has("toggled"))
             setEnabled(object.get("toggled").getAsBoolean());
-
-        if (loadKey && object.has("key"))
-            setKey(object.get("key").getAsInt());
 
         if (object.has("hidden"))
             setHidden(object.get("hidden").getAsBoolean());
@@ -206,6 +208,8 @@ public class Module extends Manager<Property<?>> implements Toggleable, Serializ
         if (object.has("Properties") && !getElements().isEmpty()) {
             JsonObject propertiesObject = object.getAsJsonObject("Properties");
             for (Property<?> property : getElements()) {
+                if (isKeybind(property)) continue;
+
                 if (propertiesObject.has(property.getLabel())) {
                     if (property instanceof NumberProperty) {
                         ((NumberProperty) property).setValue(propertiesObject.get(property.getLabel()).getAsDouble());
