@@ -21,6 +21,7 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,6 +42,9 @@ public class TargetManager {
     @Getter
     @Setter
     private static Mode mode;
+    @Getter
+    @Setter
+    private static TargetPriority priority;
     @Setter
     private static List<Targets> targets;
     @Getter
@@ -51,18 +55,12 @@ public class TargetManager {
     private static int switchTime;
     private int targetIndex;
 
-    public TargetManager(float seekRange) {
-        mode = Mode.ADAPTIVE;
-        targets = Arrays.asList(Targets.PLAYERS, Targets.HOSTILES);
-        TargetManager.seekRange = seekRange;
-        switchTime = 2;
-    }
-
     public TargetManager() {
-        mode = Mode.ADAPTIVE;
+        mode = Mode.SINGLE;
+        priority = TargetPriority.DISTANCE;
         targets = Arrays.asList(Targets.PLAYERS, Targets.HOSTILES);
         seekRange = 6.0f;
-        switchTime = 2;
+        switchTime = 0;
     }
 
     public static void configure(List<Targets> targets) {
@@ -70,7 +68,6 @@ public class TargetManager {
     }
 
     public enum Mode {
-        ADAPTIVE("Adaptive"),
         SWITCH("Switch"),
         SINGLE("Single");
 
@@ -105,12 +102,31 @@ public class TargetManager {
         }
     }
 
+    public enum TargetPriority {
+        DISTANCE("Distance"),
+        HEALTH("Health"),
+        ANGLE("Angle"),
+        HURT_TIME("Hurt Time");
+
+        public final String name;
+
+        TargetPriority(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     @EventHook
     public void onPreUpdate(PreUpdateEvent event) {
         targetList = getTargets();
 
         if (targetList.isEmpty()) {
             target = null;
+            targetIndex = 0;
             return;
         }
 
@@ -125,6 +141,7 @@ public class TargetManager {
     @EventHook
     public void onWorldJoin(WorldJoinEvent event) {
         target = null;
+        targetIndex = 0;
     }
 
     private void selectTarget() {
@@ -133,32 +150,62 @@ public class TargetManager {
             return;
         }
 
-        if (mode.equals(Mode.SINGLE)) {
-            target = (EntityLivingBase) targetList.get(0);
-        } else if (mode.equals(Mode.SWITCH)) {
+        if (mode == Mode.SWITCH) {
+            targetList.sort(Comparator.comparingInt(Entity::getEntityId));
+
             if (targetIndex >= targetList.size()) {
                 targetIndex = 0;
             }
 
-            if (switchTimer.hasTimeElapsed(switchTime * 100)) {
+            if (target != null) {
+                int current = targetList.indexOf(target);
+                if (current != -1) {
+                    targetIndex = current;
+                }
+            }
+
+            if (target == null || !targetList.contains(target)) {
+                switchTimer.reset();
+            } else if (targetList.size() > 1 && switchTimer.hasTimeElapsed(switchTime * 50)) {
                 targetIndex = (targetIndex + 1) % targetList.size();
                 switchTimer.reset();
             }
+
             target = (EntityLivingBase) targetList.get(targetIndex);
-        } else if (mode.equals(Mode.ADAPTIVE)) {
-            EntityLivingBase closest = null;
-            double closestDist = Double.MAX_VALUE;
-            for (Entity e : targetList) {
-                double d = mc.thePlayer.getDistanceToEntity(e);
-                if (d < closestDist) {
-                    closestDist = d;
-                    closest = (EntityLivingBase) e;
-                }
-            }
-            target = closest;
-        } else {
-            throw new IllegalStateException("Unexpected value: " + this.mode);
+            return;
         }
+
+        switch (priority) {
+            case DISTANCE:
+                targetList.sort(Comparator.comparingDouble(e -> mc.thePlayer.getDistanceToEntity(e)));
+                break;
+            case HEALTH:
+                targetList.sort(Comparator.comparingDouble(e -> {
+                    if (e instanceof EntityLivingBase) {
+                        return ((EntityLivingBase) e).getHealth();
+                    }
+                    return Float.MAX_VALUE;
+                }));
+                break;
+            case ANGLE:
+                targetList.sort(Comparator.comparingDouble(e -> {
+                    if (e instanceof EntityLivingBase) {
+                        return getAngleTo((EntityLivingBase) e);
+                    }
+                    return Double.MAX_VALUE;
+                }));
+                break;
+            case HURT_TIME:
+                targetList.sort(Comparator.comparingInt(e -> {
+                    if (e instanceof EntityLivingBase) {
+                        return ((EntityLivingBase) e).hurtTime;
+                    }
+                    return Integer.MAX_VALUE;
+                }));
+                break;
+        }
+
+        target = (EntityLivingBase) targetList.get(0);
     }
 
     private List<Entity> getTargets() {
@@ -218,5 +265,13 @@ public class TargetManager {
     private static @NonNull String teamColor(@NonNull ICommandSender player) {
         Matcher matcher = TEAM_COLOR_PATTERN.matcher(player.getDisplayName().getFormattedText());
         return matcher.find() ? matcher.group(1) : "f";
+    }
+
+    private double getAngleTo(EntityLivingBase entity) {
+        double dx = entity.posX - mc.thePlayer.posX;
+        double dz = entity.posZ - mc.thePlayer.posZ;
+        double targetYaw = Math.toDegrees(Math.atan2(dz, dx)) - 90.0;
+        double delta = Math.abs(mc.thePlayer.rotationYaw - targetYaw) % 360.0;
+        return delta > 180.0 ? 360.0 - delta : delta;
     }
 }

@@ -58,6 +58,8 @@ public class AuraModule extends Module {
 
     private final MultiModeProperty<TargetManager.Targets> targets = new MultiModeProperty<>("Targets", TargetManager.Targets.PLAYERS, TargetManager.Targets.HOSTILES, TargetManager.Targets.TEAMMATES, TargetManager.Targets.INVISIBLES);
     private static final ModeProperty<TargetManager.Mode> mode = new ModeProperty<>("Mode", TargetManager.Mode.SINGLE);
+    private static final ModeProperty<TargetManager.TargetPriority> targetPriority = new ModeProperty<>("Target Priority", TargetManager.TargetPriority.DISTANCE);
+    public static NumberProperty switchSpeed = new NumberProperty("Switch Speed", 0.0, 0.0, 10.0, 1.0, () -> mode.getValue() == TargetManager.Mode.SWITCH);
     public static NumberProperty seekRange = new NumberProperty("Seek Range", 6.0, 3, 6, 0.1);
     public static final Property<Boolean> useOnlyMouse = new Property<>("Simulate Mouse Clicks", true);
     public static NumberProperty attackRange = new NumberProperty("Attack Range", 3.0, 3, 6, 0.1, () -> !useOnlyMouse.getValue());
@@ -161,7 +163,20 @@ public class AuraModule extends Module {
         }
 
         TargetManager.setTargets(targets.getValue());
+
+        if (TargetManager.getMode() != mode.getValue()) {
+            TargetManager.setMode(mode.getValue());
+        }
+
+        if (TargetManager.getPriority() != targetPriority.getValue()) {
+            TargetManager.setPriority(targetPriority.getValue());
+        }
+
         target = TargetManager.getTarget();
+
+        if (TargetManager.getSwitchTime() != switchSpeed.getValue().intValue()) {
+            TargetManager.setSwitchTime(switchSpeed.getValue().intValue());
+        }
 
         if (target != null && !throughWalls.getValue() && !PlayerUtils.canSeeEntity(target)) {
             target = null;
