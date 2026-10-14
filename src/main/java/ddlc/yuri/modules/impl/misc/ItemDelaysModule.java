@@ -7,6 +7,7 @@ import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemEgg;
 import net.minecraft.item.ItemSnowball;
@@ -21,20 +22,18 @@ public final class ItemDelaysModule extends Module {
     @EventHook
     public void onMotion(MotionEvent event) {
         if (mc.thePlayer == null || mc.thePlayer.inventory == null
-                || mc.thePlayer.inventory.getCurrentItem() ==
-                null || !event.isPre()) {
+                || mc.thePlayer.inventory.getCurrentItem() == null || !event.isPre()) {
             return;
         }
 
-        if (allowBlocks.getValue() &&
-                mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock) {
+        Item held = mc.thePlayer.inventory.getCurrentItem().getItem();
+
+        if (allowBlocks.getValue() && held instanceof ItemBlock) {
             mc.rightClickDelayTimer =
                     Math.min(mc.rightClickDelayTimer, this.delay.getValue().intValue());
         }
 
-        if (allowProjectiles.getValue()
-            && mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemSnowball ||
-                mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemEgg) {
+        if (allowProjectiles.getValue() && (held instanceof ItemSnowball || held instanceof ItemEgg)) {
             mc.rightClickDelayTimer =
                     Math.min(mc.rightClickDelayTimer, this.delay.getValue().intValue());
         }
