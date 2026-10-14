@@ -166,6 +166,9 @@ public final class ScaffoldModule extends Module {
         }
     }
 
+    private static final long TELLY_SAFE_MS = 400;
+    private static final float TELLY_SAFE_ROT_SPEED = 5.0f;
+
     private final TimerUtils delayTimer = new TimerUtils();
     private final TimerUtils tellySafeTimer = new TimerUtils();
     private Vec3 targetBlock;
@@ -309,11 +312,6 @@ public final class ScaffoldModule extends Module {
                 canPlace = false;
             }
 
-            if (mode.getValue() == Mode.TELLY && !tellySafeTimer.hasTimeElapsed(700)) {
-                canPlace = true;
-                tellyNoPlace = false;
-            }
-
             final boolean downwards = offset.getY() < 0;
 
             targetBlock = PlayerUtils.getPlacePossibility(offset.getX(), offset.getY(), offset.getZ(),
@@ -360,8 +358,8 @@ public final class ScaffoldModule extends Module {
     @EventHook
     public void onStrafe(StrafeEvent event) {
         if (!isEnabled()) return;
+        this.jump();
         if (!mc.gameSettings.keyBindJump.isPressed()) {
-            this.jump();
             if (mode.getValue() == Mode.GOD_BRIDGE && !autoJump.getValue()) {
                 if (blocksPlaced >= 8) {
                     if (mc.thePlayer.onGround) mc.thePlayer.jump();
@@ -400,7 +398,7 @@ public final class ScaffoldModule extends Module {
     }
 
     private void tellyLogic() {
-        if (mode.getValue() == Mode.TELLY && !tellySafeTimer.hasTimeElapsed(400)) {
+        if (!tellySafeTimer.hasTimeElapsed(TELLY_SAFE_MS)) {
             tellyNoPlace = false;
             return;
         }
@@ -537,10 +535,6 @@ public final class ScaffoldModule extends Module {
                     }
                 }
 
-                if (!tellySafeTimer.hasTimeElapsed(400)) {
-                    rotSpeed = 7.0f;
-                }
-
                 mc.entityRenderer.getMouseOver(1);
                 if (mc.thePlayer.onGround && (!mc.thePlayer.isSprinting() || mc.gameSettings.keyBindJump.isKeyDown()) && MoveUtils.isMoving() && (mc.gameSettings.keyBindJump.isKeyDown() || !mc.thePlayer.isSprinting())) {
                     if (hypixelTelly.getValue()) {
@@ -548,13 +542,15 @@ public final class ScaffoldModule extends Module {
                     } else {
                         rotSpeed = 20.0f;
                     }
-                    if (tellySafeTimer.hasTimeElapsed(400)) {
-                        target[0] = mc.thePlayer.rotationYaw;
-                    }
+                    target[0] = mc.thePlayer.rotationYaw;
                 } else {
                     if (hypixelTelly.getValue()) {
                         rotSpeed = isDiagonal() ? 3.6f : mc.gameSettings.keyBindJump.isKeyDown() ? 3.45f : 2.8f;
                     }
+                }
+
+                if (!tellySafeTimer.hasTimeElapsed(TELLY_SAFE_MS)) {
+                    rotSpeed = TELLY_SAFE_ROT_SPEED;
                 }
                 break;
             case HYPIXEL:
@@ -607,14 +603,11 @@ public final class ScaffoldModule extends Module {
     }
 
     public void jump() {
-        if (mc.gameSettings.keyBindJump.isKeyDown() || Yuri.INSTANCE.getModuleManager().getModule(SpeedModule.class).isEnabled())
-            return;
-
-        if (mode.getValue() == Mode.TELLY) {
-            if (!autoJump.getValue()) autoJump.setValue(true);
+        if (mode.getValue() == Mode.TELLY && !autoJump.getValue()) {
+            autoJump.setValue(true);
         }
 
-        if (autoJump.getValue() && mc.thePlayer.onGround && MoveUtils.isMoving()) {
+        if (autoJump.getValue() && !mc.gameSettings.keyBindJump.isKeyDown() && mc.thePlayer.onGround && MoveUtils.isMoving() && !Yuri.INSTANCE.getModuleManager().getModule(SpeedModule.class).isEnabled()) {
             mc.thePlayer.jump();
         }
     }
