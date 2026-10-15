@@ -1,5 +1,6 @@
 package ddlc.yuri.modules.impl.misc;
 
+import com.google.common.collect.Multimap;
 import ddlc.yuri.Yuri;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.player.MotionEvent;
@@ -11,10 +12,13 @@ import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
 import ddlc.yuri.modules.impl.combat.AuraModule;
 import net.minecraft.block.Block;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
+
+import java.util.Collection;
 
 @ModuleInfo(label = "Auto Swap", description = "Automatically swaps to the best tool or sword based on your crosshair target.", category = ModuleCategory.MISC)
 public final class AutoSwapModule extends Module {
@@ -60,7 +64,7 @@ public final class AutoSwapModule extends Module {
                     }
                 }
             } else if (Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled() && AuraModule.target != null && AuraModule.canAttack) {
-                int itemToUse = getBestSwordSlot();
+                int itemToUse = getBestWeaponSlot();
                 if (itemToUse != -1) {
                     applySwap(itemToUse);
                     return;
@@ -122,23 +126,38 @@ public final class AutoSwapModule extends Module {
         return itemToUse;
     }
 
-    private int getBestSwordSlot() {
-        float bestStr = 0.0F;
+    private int getBestWeaponSlot() {
+        int sword = getBestSlot(true);
+        return sword != -1 ? sword : getBestSlot(false);
+    }
+
+    private int getBestSlot(boolean swords) {
+        double bestDamage = 0.0;
         int itemToUse = -1;
 
         for (int i = 0; i < 9; i++) {
             ItemStack itemStack = mc.thePlayer.inventory.mainInventory[i];
             if (itemStack == null) continue;
 
-            if (!(itemStack.getItem() instanceof ItemSword)) continue;
-
-            ItemSword item = (ItemSword) itemStack.getItem();
-            if (item.attackDamage > bestStr) {
-                bestStr = item.attackDamage;
+            double damage = getDamage(itemStack);
+            if (damage > bestDamage) {
+                bestDamage = damage;
                 itemToUse = i;
             }
         }
 
         return itemToUse;
+    }
+
+    private double getDamage(ItemStack itemStack) {
+        Multimap<String, AttributeModifier> modifiers = itemStack.getAttributeModifiers();
+        Collection<AttributeModifier> damage = modifiers.get(SharedMonsterAttributes.attackDamage.getAttributeUnlocalizedName());
+
+        double total = 0.0;
+        for (AttributeModifier modifier : damage) {
+            total += modifier.getAmount();
+        }
+
+        return total;
     }
 }
