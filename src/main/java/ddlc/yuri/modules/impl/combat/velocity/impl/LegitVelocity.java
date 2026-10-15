@@ -11,7 +11,10 @@ import ddlc.yuri.managers.impl.TargetManager;
 import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.combat.VelocityModule;
 import ddlc.yuri.modules.impl.combat.velocity.VelocityMode;
+import ddlc.yuri.modules.impl.ghost.ClutchModule;
 import ddlc.yuri.modules.impl.misc.AntiBotModule;
+import ddlc.yuri.modules.impl.player.BreakerModule;
+import ddlc.yuri.modules.impl.player.ScaffoldModule;
 import ddlc.yuri.utils.player.FriendUtils;
 import ddlc.yuri.utils.player.PlayerUtils;
 import ddlc.yuri.utils.player.RotationUtils;
@@ -113,7 +116,7 @@ public class LegitVelocity implements VelocityMode {
             return;
         }
 
-        if (mc.thePlayer == null || mc.playerController == null) {
+        if (mc.thePlayer == null || mc.playerController == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled() || (Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).isEnabled() && Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).bedPos != null) || (Yuri.INSTANCE.getModuleManager().getModule(ClutchModule.class).isEnabled() && mc.gameSettings.keyBindSneak.isKeyDown())) {
             return;
         }
 
