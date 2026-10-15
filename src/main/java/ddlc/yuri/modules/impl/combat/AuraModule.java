@@ -319,7 +319,7 @@ public class AuraModule extends Module {
                 break;
             case HYPIXEL:
                 canAttack = !BadPacketsManager.bad(false, false, false, true, false);
-                if (mc.thePlayer.getDistanceToEntity(target) <= 3) {
+                if (mc.thePlayer.getDistanceToEntity(target) <= 3.0) {
                     if (hypixelBlocking) {
                         releaseBlock();
                     }
@@ -437,10 +437,13 @@ public class AuraModule extends Module {
             canAttack = true;
         }
         if (ab.getValue() == AutoBlock.HYPIXEL) {
+            boolean wasBlocking = hypixelBlocking;
+            hypixelBlocking = false;
             hypixelTick = 0;
             if (mc.thePlayer == null) return;
-            if (hypixelBlocking) {
-                releaseBlock();
+            if (wasBlocking || mc.thePlayer.isUsingItem() || mc.thePlayer.isBlocking()) {
+                PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+                mc.thePlayer.stopUsingItem();
             }
         }
         autoBlocking = false;
