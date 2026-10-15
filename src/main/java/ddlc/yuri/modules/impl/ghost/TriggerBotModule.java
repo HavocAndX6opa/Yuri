@@ -8,6 +8,7 @@ import ddlc.yuri.api.properties.impl.NumberProperty;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.util.MovingObjectPosition;
@@ -44,8 +45,7 @@ public final class TriggerBotModule extends Module {
         int cps = getHumanizedCPS();
 
         if (now - lastClick >= 1000L / cps) {
-            mc.clickMouse();
-            mc.leftClickCounter = 0;
+            KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
             lastClick = now;
         }
     }

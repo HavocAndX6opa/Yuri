@@ -3,6 +3,7 @@ package ddlc.yuri.modules.impl.combat;
 import ddlc.yuri.api.events.annotations.EventHook;
 import ddlc.yuri.api.events.impl.client.ClientTickEvent;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
+import ddlc.yuri.api.events.impl.client.PacketSendEvent;
 import ddlc.yuri.api.events.impl.player.HitSlowDownEvent;
 import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
@@ -34,10 +35,7 @@ public final class VelocityModule extends Module {
 
     public final ModeProperty<IntaveMode> intaveMode = new ModeProperty<>("Intave Mode", IntaveMode.INTAVE_LATEST, () -> mode.getValue() == Mode.INTAVE);
 
-    public final Property<Boolean> universalReduce = new Property<>("Reduce", true, () -> mode.getValue() == Mode.LEGIT);
-    public final NumberProperty attackTimes = new NumberProperty("Attack Times", 1, 1, 5, 1, () -> mode.getValue() == Mode.LEGIT && universalReduce.getValue());
-    public final Property<Boolean> onlySprinting = new Property<>("Only Sprinting", true, () -> mode.getValue() == Mode.LEGIT && universalReduce.getValue());
-    public final Property<Boolean> reduceWhenCanAttack = new Property<>("Reduce When Can Attack", true, () -> mode.getValue() == Mode.LEGIT && universalReduce.getValue());
+    public final NumberProperty reduceTicks = new NumberProperty("Reduce Ticks", 2.0, 1.0, 3.0, 1.0, () -> mode.getValue() == Mode.LEGIT);
 
     public enum Mode {
         LEGIT("Legit"),
@@ -101,6 +99,15 @@ public final class VelocityModule extends Module {
     }
 
     @EventHook
+    public void onPacketSend(PacketSendEvent event) {
+
+        VelocityMode currentMode = velocityMode.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onPacketSend(event);
+        }
+    }
+
+    @EventHook
     public void onStrafe(StrafeEvent event) {
 
         VelocityMode currentMode = velocityMode.get(mode.getValue());
@@ -136,5 +143,14 @@ public final class VelocityModule extends Module {
         if (currentMode != null) {
             currentMode.onHitSlowdown(event);
         }
+    }
+
+    @Override
+    public void onDisable() {
+        VelocityMode currentMode = velocityMode.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.reset();
+        }
+        super.onDisable();
     }
 }
