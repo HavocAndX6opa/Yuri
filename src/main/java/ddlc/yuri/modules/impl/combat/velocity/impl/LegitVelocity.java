@@ -1,9 +1,9 @@
 package ddlc.yuri.modules.impl.combat.velocity.impl;
 
 import ddlc.yuri.Yuri;
-import ddlc.yuri.api.events.impl.client.ClientTickEvent;
 import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.StrafeEvent;
 import ddlc.yuri.modules.impl.combat.AuraModule;
 import ddlc.yuri.modules.impl.combat.VelocityModule;
 import ddlc.yuri.modules.impl.combat.velocity.VelocityMode;
@@ -42,7 +42,7 @@ public class LegitVelocity implements VelocityMode {
     }
 
     @Override
-    public void onTick(ClientTickEvent event) {
+    public void onStrafe(StrafeEvent event) {
         if (mc.thePlayer == null) return;
 
         if (ticksSinceVelocity >= 0) {
@@ -55,7 +55,7 @@ public class LegitVelocity implements VelocityMode {
         if (jumpFlag) {
             jumpFlag = false;
             if (mc.thePlayer.onGround && mc.thePlayer.isSprinting()
-                    && !mc.thePlayer.isPotionActive(Potion.jump) && !isInLiquidOrWeb()) {
+                    && !mc.thePlayer.isPotionActive(Potion.jump) && !isInLiquidOrWeb() && !mc.gameSettings.keyBindJump.isKeyDown()) {
                 mc.gameSettings.keyBindJump.pressed = true;
             }
         } else {

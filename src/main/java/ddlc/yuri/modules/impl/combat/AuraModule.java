@@ -14,6 +14,7 @@ import ddlc.yuri.managers.impl.*;
 import ddlc.yuri.modules.Module;
 import ddlc.yuri.modules.ModuleCategory;
 import ddlc.yuri.modules.ModuleInfo;
+import ddlc.yuri.modules.impl.ghost.ClutchModule;
 import ddlc.yuri.modules.impl.player.BreakerModule;
 import ddlc.yuri.modules.impl.player.ScaffoldModule;
 import ddlc.yuri.utils.client.MathUtils;
@@ -155,7 +156,7 @@ public class AuraModule extends Module {
     public void onPreUpdate(PreUpdateEvent event) {
         setSuffix(mode.getValue().toString());
 
-        if (mc.thePlayer == null || mc.theWorld == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled() || (Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).isEnabled() && Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).bedPos != null)) {
+        if (mc.thePlayer == null || mc.theWorld == null || Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled() || (Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).isEnabled() && Yuri.INSTANCE.getModuleManager().getModule(BreakerModule.class).bedPos != null) || (Yuri.INSTANCE.getModuleManager().getModule(ClutchModule.class).isEnabled() && mc.gameSettings.keyBindSneak.isKeyDown())) {
             if (target != null || autoBlocking) {
                 resetCombatState();
             }
@@ -410,7 +411,7 @@ public class AuraModule extends Module {
             if (ab.getValue() == AutoBlock.LEGIT) {
                 delay = (long) (1000.0 / 5.0);
             } else if (ab.getValue() == AutoBlock.HYPIXEL) {
-                delay = (long) (1000.0 / 5);
+                delay = (long) (1000.0 / 8.0);
             } else {
                 delay = (long) (1000.0 / getCPS());
             }

@@ -90,9 +90,7 @@ public class PentagramModule extends Module {
                 && Yuri.INSTANCE.getModuleManager().getModule(ScaffoldModule.class).isEnabled()) {
             return true;
         }
-        return onlyOnAura.getValue()
-                && AuraModule.target != null
-                && Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled();
+        return onlyOnAura.getValue() && Yuri.INSTANCE.getModuleManager().getModule(AuraModule.class).isEnabled();
     }
 
     @EventHook

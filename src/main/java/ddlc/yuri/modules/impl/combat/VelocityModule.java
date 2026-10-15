@@ -6,6 +6,7 @@ import ddlc.yuri.api.events.impl.client.PacketReceivedEvent;
 import ddlc.yuri.api.events.impl.player.HitSlowDownEvent;
 import ddlc.yuri.api.events.impl.player.PlayerAttackEvent;
 import ddlc.yuri.api.events.impl.player.PreUpdateEvent;
+import ddlc.yuri.api.events.impl.player.StrafeEvent;
 import ddlc.yuri.api.properties.Property;
 import ddlc.yuri.api.properties.impl.ModeProperty;
 import ddlc.yuri.api.properties.impl.NumberProperty;
@@ -98,6 +99,16 @@ public final class VelocityModule extends Module {
             currentMode.onPacket(event);
         }
     }
+
+    @EventHook
+    public void onStrafe(StrafeEvent event) {
+
+        VelocityMode currentMode = velocityMode.get(mode.getValue());
+        if (currentMode != null) {
+            currentMode.onStrafe(event);
+        }
+    }
+
 
     @EventHook
     public void onAttack(PlayerAttackEvent event) {

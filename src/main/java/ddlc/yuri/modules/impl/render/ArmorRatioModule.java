@@ -30,9 +30,9 @@ public class ArmorRatioModule extends Module {
     public final Property<Boolean> outline = new Property<>("Outline", true);
     public final Property<Boolean> throughWalls = new Property<>("Through Walls", true);
 
-    private static final Color BETTER = new Color(255, 60, 60);
-    private static final Color EQUAL = new Color(255, 220, 40);
-    private static final Color WORSE = new Color(60, 255, 90);
+    private static final Color TARGET_HAS_BETTER = new Color(255, 60, 60);
+    private static final Color TARGET_HAS_EQUAL = new Color(255, 220, 40);
+    private static final Color TARGET_HAS_WORSE = new Color(60, 255, 90);
 
     @EventHook
     public void onRender3D(Render3DEvent event) {
@@ -49,7 +49,7 @@ public class ArmorRatioModule extends Module {
         double z = target.lastTickPosZ + (target.posZ - target.lastTickPosZ) * pt;
 
         double diff = score(target) - score(mc.thePlayer);
-        Color color = Math.abs(diff) < 0.01 ? EQUAL : diff < 0 ? WORSE : BETTER;
+        Color color = Math.abs(diff) < 0.01 ? TARGET_HAS_EQUAL : diff < 0 ? TARGET_HAS_WORSE : TARGET_HAS_BETTER;
 
         float distance = mc.thePlayer.getDistanceToEntity(target);
         float radius = size.getValue().floatValue() * Math.max(1.0f, distance / 6.0f);
