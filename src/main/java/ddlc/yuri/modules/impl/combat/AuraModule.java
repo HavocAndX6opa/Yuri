@@ -319,15 +319,26 @@ public class AuraModule extends Module {
                 break;
             case HYPIXEL:
                 canAttack = !BadPacketsManager.bad(false, false, false, true, false);
-                if (hypixelBlocking) {
-                    releaseBlock();
-                }
-                long remaining = delay - (System.currentTimeMillis() - lastAttackStamp);
-                if (remaining <= 50L) {
-                    hypixelTick = 1;
-                } else if (hypixelTick == 1) {
-                    sendBlock();
-                    hypixelTick = 0;
+                if (mc.thePlayer.getDistanceToEntity(target) <= 3) {
+                    if (hypixelBlocking) {
+                        releaseBlock();
+                    }
+                    long remaining = delay - (System.currentTimeMillis() - lastAttackStamp);
+                    if (remaining <= 50L) {
+                        hypixelTick = 1;
+                    } else if (hypixelTick == 1) {
+                        sendBlock();
+                        hypixelTick = 0;
+                    }
+                } else {
+                    if (hypixelBlocking)
+                        releaseBlock();
+
+                    if (hypixelTick > 0)
+                        hypixelTick = 0;
+
+                    if (!canAttack)
+                        canAttack = !BadPacketsManager.bad(true, false, false, true, false);
                 }
                 autoBlocking = true;
                 break;
@@ -426,13 +437,10 @@ public class AuraModule extends Module {
             canAttack = true;
         }
         if (ab.getValue() == AutoBlock.HYPIXEL) {
-            boolean wasBlocking = hypixelBlocking;
-            hypixelBlocking = false;
             hypixelTick = 0;
             if (mc.thePlayer == null) return;
-            if (wasBlocking || mc.thePlayer.isUsingItem() || mc.thePlayer.isBlocking()) {
-                PacketUtils.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-                mc.thePlayer.stopUsingItem();
+            if (hypixelBlocking) {
+                releaseBlock();
             }
         }
         autoBlocking = false;

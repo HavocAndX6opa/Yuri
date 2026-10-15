@@ -3,7 +3,7 @@ package net.minecraft.client.settings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import ddlc.yuri.Yuri;
-import ddlc.yuri.modules.impl.player.InvMoveModule;
+import ddlc.yuri.modules.impl.movement.InvMoveModule;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
